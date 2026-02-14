@@ -85,6 +85,10 @@
       enableHistory={true}
       enableAttachments={true}
       enableUpload={true}
+      onPanelsClose={() => {
+        showHistory = false;
+        showAttachments = false;
+      }}
     />
   </div>
 </section>

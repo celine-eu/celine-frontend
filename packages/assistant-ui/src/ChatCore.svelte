@@ -30,6 +30,7 @@
     onConversationChange,
     onError,
     onClose,
+    onPanelsClose,
   }: ChatCoreProps = $props();
 
   // API client
@@ -353,6 +354,7 @@
   export function closePanels() {
     historyPanelOpen = false;
     attachmentsPanelOpen = false;
+    onPanelsClose?.();
   }
 
   // Computed classes
@@ -419,20 +421,16 @@
   {#if enableHistory}
     <HistoryPanel
       open={historyPanelOpen}
+      onClose={closePanels}
       {api}
       currentConversationId={conversationId}
       onSelectConversation={loadConversationInternal}
       onNewConversation={startNewConversation}
-      onClose={() => (historyPanelOpen = false)}
     />
   {/if}
 
   {#if enableAttachments}
-    <AttachmentsPanel
-      open={attachmentsPanelOpen}
-      {api}
-      onClose={() => (attachmentsPanelOpen = false)}
-    />
+    <AttachmentsPanel open={attachmentsPanelOpen} onClose={closePanels} {api} />
   {/if}
 </div>
 
