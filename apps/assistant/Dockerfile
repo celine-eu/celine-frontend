@@ -5,8 +5,8 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Force dev deps in builder regardless of CI env poisoning
-ENV CI=true
 ENV NODE_ENV=development
+ENV CI=true
 
 COPY . .
 
