@@ -2,6 +2,8 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+ENV CI=true
+
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 COPY . .
@@ -14,7 +16,7 @@ COPY apps/assistant ./apps/assistant
 
 # Build
 RUN pnpm -F @celine-eu/assistant build
-RUN pnpm deploy --legacy --filter @celine-eu/assistant --prod /out
+RUN CI=true pnpm deploy --legacy --filter @celine-eu/assistant --prod /out
 
 
 # Runtime stage
