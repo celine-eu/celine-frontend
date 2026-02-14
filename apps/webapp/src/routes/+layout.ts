@@ -1,9 +1,17 @@
-import { api } from '$lib/api';
 import { redirect } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
 
-export const load: LayoutLoad = async ({ url }) => {
-  const me = await api.me().catch(() => null);
+export const load: LayoutLoad = async ({ url, fetch }) => {
+  let me = null;
+  
+  try {
+    const res = await fetch('/api/me', { credentials: 'include' });
+    if (res.ok) {
+      me = await res.json();
+    }
+  } catch {
+    me = null;
+  }
 
   // If backend is unavailable, still render a basic shell with an error message.
   if (!me) {

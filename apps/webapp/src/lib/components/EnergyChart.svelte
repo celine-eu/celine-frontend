@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import { browser } from '$app/environment';
+  import { browser } from "$app/environment";
+  import type { Chart as ChartType } from "chart.js";
+  import { onDestroy, onMount, tick } from "svelte";
 
   type TrendItem = {
     date: string;
@@ -14,63 +15,85 @@
     height?: string;
   }
 
-  let { data = [], height = '280px' }: Props = $props();
+  let { data = [], height = "280px" }: Props = $props();
 
-  let canvas: HTMLCanvasElement | null = $state(null);
-  let chart: any = null;
+  let canvasEl: HTMLCanvasElement | null = $state(null);
+  let chart: ChartType | null = null;
+  let mounted = false;
 
-  // Format date for display
   function formatDate(dateStr: string): string {
     const date = new Date(dateStr);
-    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
   }
 
-  // Short format for mobile
   function formatDateShort(dateStr: string): string {
     const date = new Date(dateStr);
-    return date.toLocaleDateString(undefined, { weekday: 'short' });
+    return date.toLocaleDateString(undefined, { weekday: "short" });
+  }
+
+  function destroyChart() {
+    if (chart) {
+      chart.destroy();
+      chart = null;
+    }
   }
 
   async function createChart() {
-    if (!browser || !canvas) return;
+    if (!browser || !canvasEl || data.length === 0 || !mounted) return;
 
-    // Dynamically import Chart.js
-    const { Chart, registerables } = await import('chart.js');
+    // Destroy any existing chart
+    destroyChart();
+
+    // Wait for DOM to update
+    await tick();
+
+    const { Chart, registerables } = await import("chart.js");
     Chart.register(...registerables);
 
-    // Get CSS variables for theming
     const styles = getComputedStyle(document.documentElement);
-    const productionColor = styles.getPropertyValue('--celine-success').trim() || '#10b981';
-    const consumptionColor = styles.getPropertyValue('--celine-warning').trim() || '#f59e0b';
-    const selfConsumptionColor = styles.getPropertyValue('--celine-info').trim() || '#3b82f6';
-    const gridColor = styles.getPropertyValue('--celine-border').trim() || 'rgba(0,0,0,0.06)';
-    const textColor = styles.getPropertyValue('--celine-text-secondary').trim() || '#64748b';
+    const productionColor =
+      styles.getPropertyValue("--celine-success").trim() || "#10b981";
+    const consumptionColor =
+      styles.getPropertyValue("--celine-warning").trim() || "#f59e0b";
+    const selfConsumptionColor =
+      styles.getPropertyValue("--celine-info").trim() || "#3b82f6";
+    const gridColor =
+      styles.getPropertyValue("--celine-border").trim() || "rgba(0,0,0,0.06)";
+    const textColor =
+      styles.getPropertyValue("--celine-text-secondary").trim() || "#64748b";
 
-    const labels = data.map(d => formatDateShort(d.date));
+    const labels = data.map((d) => formatDateShort(d.date));
     const isMobile = window.innerWidth < 640;
 
-    chart = new Chart(canvas, {
-      type: 'bar',
+    // Double-check canvas is still available and no chart exists
+    if (!canvasEl || chart) return;
+
+    chart = new Chart(canvasEl, {
+      type: "bar",
       data: {
         labels,
         datasets: [
           {
-            label: 'Production',
-            data: data.map(d => d.production_kwh),
+            label: "Production",
+            data: data.map((d) => d.production_kwh),
             backgroundColor: productionColor,
             borderRadius: 4,
             borderSkipped: false,
           },
           {
-            label: 'Consumption',
-            data: data.map(d => d.consumption_kwh),
+            label: "Consumption",
+            data: data.map((d) => d.consumption_kwh),
             backgroundColor: consumptionColor,
             borderRadius: 4,
             borderSkipped: false,
           },
           {
-            label: 'Self-consumption',
-            data: data.map(d => d.self_consumption_kwh),
+            label: "Self-consumption",
+            data: data.map((d) => d.self_consumption_kwh),
             backgroundColor: selfConsumptionColor,
             borderRadius: 4,
             borderSkipped: false,
@@ -82,49 +105,42 @@
         maintainAspectRatio: false,
         interaction: {
           intersect: false,
-          mode: 'index',
+          mode: "index",
         },
         plugins: {
           legend: {
             display: true,
-            position: 'bottom',
+            position: "bottom",
             labels: {
               usePointStyle: true,
-              pointStyle: 'circle',
+              pointStyle: "circle",
               padding: 16,
               color: textColor,
               font: {
                 size: isMobile ? 11 : 12,
-                family: "var(--celine-font-body), 'DM Sans', sans-serif",
               },
             },
           },
           tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-            titleColor: '#f1f5f9',
-            bodyColor: '#cbd5e1',
-            borderColor: 'rgba(255,255,255,0.1)',
+            backgroundColor: "rgba(15, 23, 42, 0.9)",
+            titleColor: "#f1f5f9",
+            bodyColor: "#cbd5e1",
+            borderColor: "rgba(255,255,255,0.1)",
             borderWidth: 1,
             cornerRadius: 8,
             padding: 12,
-            titleFont: {
-              size: 13,
-              weight: 'bold',
-            },
-            bodyFont: {
-              size: 12,
-            },
             callbacks: {
               title: (items: any[]) => {
                 const idx = items[0]?.dataIndex;
-                if (idx !== undefined) {
+                if (idx !== undefined && data[idx]) {
                   return formatDate(data[idx].date);
                 }
-                return '';
+                return "";
               },
               label: (item: any) => {
                 const value = item.raw as number | null;
-                if (value === null || value === undefined) return `${item.dataset.label}: —`;
+                if (value === null || value === undefined)
+                  return `${item.dataset.label}: —`;
                 return `${item.dataset.label}: ${value.toFixed(1)} kWh`;
               },
             },
@@ -132,28 +148,18 @@
         },
         scales: {
           x: {
-            grid: {
-              display: false,
-            },
+            grid: { display: false },
             ticks: {
               color: textColor,
-              font: {
-                size: isMobile ? 10 : 11,
-                family: "var(--celine-font-body), 'DM Sans', sans-serif",
-              },
+              font: { size: isMobile ? 10 : 11 },
             },
           },
           y: {
             beginAtZero: true,
-            grid: {
-              color: gridColor,
-            },
+            grid: { color: gridColor },
             ticks: {
               color: textColor,
-              font: {
-                size: isMobile ? 10 : 11,
-                family: "var(--celine-font-body), 'DM Sans', sans-serif",
-              },
+              font: { size: isMobile ? 10 : 11 },
               callback: (value: any) => `${value} kWh`,
             },
           },
@@ -162,54 +168,46 @@
     });
   }
 
-  function destroyChart() {
-    if (chart) {
-      chart.destroy();
-      chart = null;
-    }
-  }
-
-  // Watch for theme changes
-  function handleThemeChange() {
-    destroyChart();
-    createChart();
-  }
-
   onMount(() => {
+    mounted = true;
     createChart();
 
-    // Listen for theme changes
     const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'data-theme') {
-          handleThemeChange();
+      for (const mutation of mutations) {
+        if (mutation.attributeName === "data-theme") {
+          createChart();
+          break;
         }
-      });
+      }
     });
 
     observer.observe(document.documentElement, { attributes: true });
 
     return () => {
+      mounted = false;
       observer.disconnect();
       destroyChart();
     };
   });
 
   onDestroy(() => {
+    mounted = false;
     destroyChart();
   });
 
-  // Recreate chart when data changes
+  // Only recreate when data actually changes (use JSON comparison)
+  let prevDataJson = "";
   $effect(() => {
-    if (browser && canvas && data.length > 0) {
-      destroyChart();
+    const newDataJson = JSON.stringify(data);
+    if (browser && mounted && canvasEl && newDataJson !== prevDataJson) {
+      prevDataJson = newDataJson;
       createChart();
     }
   });
 </script>
 
 <div class="energy-chart" style:height>
-  <canvas bind:this={canvas}></canvas>
+  <canvas bind:this={canvasEl}></canvas>
 </div>
 
 <style>
