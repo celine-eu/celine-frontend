@@ -32,60 +32,31 @@ tasks:
     cmds:
       - pnpm build:assistant
 
-  # Release - bump version, commit, tag, push
+  # Release - auto version based on conventional commits
   release:webapp:
-    desc: Release webapp (bump version, commit, tag, push)
+    desc: Release webapp (auto version from commits, generates changelog)
     dir: apps/webapp
     cmds:
-      - npx release-it {{.CLI_ARGS}}
+      - npx release-it --ci {{.CLI_ARGS}}
 
   release:assistant:
-    desc: Release assistant (bump version, commit, tag, push)
+    desc: Release assistant (auto version from commits, generates changelog)
     dir: apps/assistant
     cmds:
-      - npx release-it {{.CLI_ARGS}}
+      - npx release-it --ci {{.CLI_ARGS}}
 
-  release:webapp:patch:
-    desc: Release webapp patch version
+  # Dry run to preview release
+  release:webapp:dry:
+    desc: Preview webapp release (dry run)
+    dir: apps/webapp
     cmds:
-      - task: release:webapp
-        vars:
-          CLI_ARGS: "patch --ci"
+      - npx release-it --dry-run
 
-  release:webapp:minor:
-    desc: Release webapp minor version
+  release:assistant:dry:
+    desc: Preview assistant release (dry run)
+    dir: apps/assistant
     cmds:
-      - task: release:webapp
-        vars:
-          CLI_ARGS: "minor --ci"
-
-  release:webapp:major:
-    desc: Release webapp major version
-    cmds:
-      - task: release:webapp
-        vars:
-          CLI_ARGS: "major --ci"
-
-  release:assistant:patch:
-    desc: Release assistant patch version
-    cmds:
-      - task: release:assistant
-        vars:
-          CLI_ARGS: "patch --ci"
-
-  release:assistant:minor:
-    desc: Release assistant minor version
-    cmds:
-      - task: release:assistant
-        vars:
-          CLI_ARGS: "minor --ci"
-
-  release:assistant:major:
-    desc: Release assistant major version
-    cmds:
-      - task: release:assistant
-        vars:
-          CLI_ARGS: "major --ci"
+      - npx release-it --dry-run
 
   # Docker builds
   docker:webapp:

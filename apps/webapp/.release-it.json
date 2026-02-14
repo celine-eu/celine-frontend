@@ -2,17 +2,61 @@
     "git": {
         "commitMessage": "chore(webapp): release v${version}",
         "tagName": "webapp-v${version}",
-        "tagAnnotation": "Release webapp v${version}"
+        "tagAnnotation": "Release webapp v${version}",
+        "requireBranch": "main",
+        "push": true,
+        "pushArgs": [
+            "--follow-tags"
+        ]
     },
     "npm": {
         "publish": false
     },
+    "plugins": {
+        "@release-it/conventional-changelog": {
+            "preset": {
+                "name": "conventionalcommits",
+                "types": [
+                    {
+                        "type": "feat",
+                        "section": "Features"
+                    },
+                    {
+                        "type": "fix",
+                        "section": "Bug Fixes"
+                    },
+                    {
+                        "type": "perf",
+                        "section": "Performance"
+                    },
+                    {
+                        "type": "refactor",
+                        "section": "Refactoring"
+                    },
+                    {
+                        "type": "docs",
+                        "section": "Documentation"
+                    },
+                    {
+                        "type": "chore",
+                        "hidden": true
+                    },
+                    {
+                        "type": "style",
+                        "hidden": true
+                    },
+                    {
+                        "type": "test",
+                        "hidden": true
+                    }
+                ]
+            },
+            "infile": "apps/webapp/CHANGELOG.md"
+        }
+    },
     "hooks": {
         "before:init": [
             "pnpm --filter @celine-eu/webapp check"
-        ],
-        "after:bump": [
-            "pnpm --filter @celine-eu/webapp build"
         ]
     }
 }
