@@ -1,0 +1,14 @@
+{
+  "name": "celine-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:assistant": "pnpm --filter @celine-eu/assistant dev",
+    "dev:webapp": "pnpm --filter @celine-eu/webapp dev",
+    "build": "pnpm -r build",
+    "check": "pnpm -r check"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

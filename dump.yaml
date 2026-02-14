@@ -1,0 +1,16 @@
+dumps:
+  - name: all
+    extensions:
+      - .js
+      - .ts
+      - .md
+      - .json
+      - .yaml
+      - .svelte
+      - .css
+      - .html
+    contents:
+      - packages
+      - apps
+      - pnpm*.yaml
+      - package.json
