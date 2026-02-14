@@ -1,0 +1,18 @@
+{
+    "git": {
+        "commitMessage": "chore(webapp): release v${version}",
+        "tagName": "webapp-v${version}",
+        "tagAnnotation": "Release webapp v${version}"
+    },
+    "npm": {
+        "publish": false
+    },
+    "hooks": {
+        "before:init": [
+            "pnpm --filter @celine-eu/webapp check"
+        ],
+        "after:bump": [
+            "pnpm --filter @celine-eu/webapp build"
+        ]
+    }
+}

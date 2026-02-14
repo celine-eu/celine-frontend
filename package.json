@@ -9,6 +9,7 @@
     "check": "pnpm -r check"
   },
   "devDependencies": {
+    "release-it": "^17.10.0",
     "typescript": "^5.6.3"
   }
 }

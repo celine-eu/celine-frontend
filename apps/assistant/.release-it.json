@@ -1,0 +1,18 @@
+{
+    "git": {
+        "commitMessage": "chore(assistant): release v${version}",
+        "tagName": "assistant-v${version}",
+        "tagAnnotation": "Release assistant v${version}"
+    },
+    "npm": {
+        "publish": false
+    },
+    "hooks": {
+        "before:init": [
+            "pnpm --filter @celine-eu/assistant check"
+        ],
+        "after:bump": [
+            "pnpm --filter @celine-eu/assistant build"
+        ]
+    }
+}

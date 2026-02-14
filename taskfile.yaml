@@ -1,0 +1,105 @@
+version: "3"
+
+vars:
+  IMAGE_WEBAPP: ghcr.io/celine-eu/celine-webapp
+  IMAGE_ASSISTANT: ghcr.io/celine-eu/celine-assistant
+
+tasks:
+  # Development
+  dev:webapp:
+    desc: Run webapp in development mode
+    cmds:
+      - pnpm dev:webapp
+
+  dev:assistant:
+    desc: Run assistant in development mode
+    cmds:
+      - pnpm dev:assistant
+
+  # Build
+  build:
+    desc: Build all apps
+    cmds:
+      - pnpm build
+
+  build:webapp:
+    desc: Build webapp
+    cmds:
+      - pnpm build:webapp
+
+  build:assistant:
+    desc: Build assistant
+    cmds:
+      - pnpm build:assistant
+
+  # Release - bump version, commit, tag, push
+  release:webapp:
+    desc: Release webapp (bump version, commit, tag, push)
+    dir: apps/webapp
+    cmds:
+      - npx release-it {{.CLI_ARGS}}
+
+  release:assistant:
+    desc: Release assistant (bump version, commit, tag, push)
+    dir: apps/assistant
+    cmds:
+      - npx release-it {{.CLI_ARGS}}
+
+  release:webapp:patch:
+    desc: Release webapp patch version
+    cmds:
+      - task: release:webapp
+        vars:
+          CLI_ARGS: "patch --ci"
+
+  release:webapp:minor:
+    desc: Release webapp minor version
+    cmds:
+      - task: release:webapp
+        vars:
+          CLI_ARGS: "minor --ci"
+
+  release:webapp:major:
+    desc: Release webapp major version
+    cmds:
+      - task: release:webapp
+        vars:
+          CLI_ARGS: "major --ci"
+
+  release:assistant:patch:
+    desc: Release assistant patch version
+    cmds:
+      - task: release:assistant
+        vars:
+          CLI_ARGS: "patch --ci"
+
+  release:assistant:minor:
+    desc: Release assistant minor version
+    cmds:
+      - task: release:assistant
+        vars:
+          CLI_ARGS: "minor --ci"
+
+  release:assistant:major:
+    desc: Release assistant major version
+    cmds:
+      - task: release:assistant
+        vars:
+          CLI_ARGS: "major --ci"
+
+  # Docker builds
+  docker:webapp:
+    desc: Build webapp Docker image
+    cmds:
+      - docker build -f apps/webapp/Dockerfile -t {{.IMAGE_WEBAPP}}:dev .
+
+  docker:assistant:
+    desc: Build assistant Docker image
+    cmds:
+      - docker build -f apps/assistant/Dockerfile -t {{.IMAGE_ASSISTANT}}:dev .
+
+  docker:all:
+    desc: Build all Docker images
+    cmds:
+      - task: docker:webapp
+      - task: docker:assistant
