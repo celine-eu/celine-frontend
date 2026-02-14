@@ -2,19 +2,21 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Force dev deps in builder regardless of CI env poisoning
 ENV CI=true
 ENV NODE_ENV=development
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 COPY . .
 
+# Install ALL deps (including devDependencies)
 RUN pnpm install --frozen-lockfile --prod=false
 
-COPY packages ./packages
-COPY apps/webapp ./apps/webapp
+# Build
+RUN pnpm -F @celine-eu/assistant build
 
-RUN pnpm -F @celine-eu/webapp build
+# Deploy standalone runtime bundle
 RUN pnpm deploy --legacy --filter @celine-eu/webapp --prod /out
 
 
