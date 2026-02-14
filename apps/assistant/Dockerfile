@@ -4,13 +4,7 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy workspace metadata first (cache-friendly)
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-
-# Copy manifests needed to resolve workspace deps
-COPY packages/ui/package.json packages/ui/package.json
-COPY packages/assistant-ui/package.json packages/assistant-ui/package.json
-COPY apps/assistant/package.json apps/assistant/package.json
+COPY . .
 
 RUN pnpm install --frozen-lockfile
 
