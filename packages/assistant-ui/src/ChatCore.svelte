@@ -256,7 +256,7 @@
   }
 
   // Conversation management
-  async function loadConversation(id: string) {
+  async function loadConversationInternal(id: string) {
     try {
       conversationId = id;
       const res = await api.fetchConversationMessages(id);
@@ -269,6 +269,11 @@
     } catch (e) {
       handleError(e);
     }
+  }
+
+  // Public method for external control (webapp tab UI)
+  export async function loadConversation(id: string) {
+    await loadConversationInternal(id);
   }
 
   export function startNewConversation() {
@@ -327,6 +332,21 @@
 
   export function focus() {
     composer?.focusInput();
+  }
+
+  export function openHistory() {
+    historyPanelOpen = true;
+    attachmentsPanelOpen = false;
+  }
+
+  export function openAttachments() {
+    attachmentsPanelOpen = true;
+    historyPanelOpen = false;
+  }
+
+  export function closePanels() {
+    historyPanelOpen = false;
+    attachmentsPanelOpen = false;
   }
 
   // Computed classes
@@ -395,7 +415,7 @@
       open={historyPanelOpen}
       {api}
       currentConversationId={conversationId}
-      onSelectConversation={loadConversation}
+      onSelectConversation={loadConversationInternal}
       onNewConversation={startNewConversation}
       onClose={() => (historyPanelOpen = false)}
     />

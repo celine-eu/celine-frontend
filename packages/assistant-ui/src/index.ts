@@ -6,6 +6,9 @@ export { default as AssistantProvider } from './AssistantProvider.svelte';
 export { default as AssistantWidget } from './AssistantWidget.svelte';
 export { default as ChatCore } from './ChatCore.svelte';
 
+export { default as AttachmentsPanel } from "./internal/AttachmentsPanel.svelte";
+export { default as HistoryPanel } from "./internal/HistoryPanel.svelte";
+
 // API client
 export { createAssistantApi } from './api.js';
 export type { AssistantApi } from './api.js';

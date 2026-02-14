@@ -1,15 +1,22 @@
 <script lang="ts">
   import { ChatCore } from "@celine-eu/assistant-ui";
-  import { Button, Icon } from "@celine-eu/ui";
+  import { Icon } from "@celine-eu/ui";
 
   let showHistory = $state(false);
   let showAttachments = $state(false);
   let chatCore: ChatCore | null = $state(null);
 
+  function closePanels() {
+    showHistory = false;
+    showAttachments = false;
+    chatCore?.closePanels?.();
+  }
+
   function handleNewChat() {
     if (chatCore) {
       chatCore.startNewConversation?.();
     }
+    closePanels();
   }
 </script>
 
@@ -29,9 +36,8 @@
         <button
           class="tab"
           class:active={!showHistory && !showAttachments}
-          on:click={() => {
-            showHistory = false;
-            showAttachments = false;
+          onclick={() => {
+            closePanels();
           }}
         >
           <Icon name="message-circle" size={16} />
@@ -40,9 +46,10 @@
         <button
           class="tab"
           class:active={showHistory}
-          on:click={() => {
+          onclick={() => {
             showHistory = true;
             showAttachments = false;
+            chatCore?.openHistory?.();
           }}
         >
           <Icon name="history" size={16} />
@@ -51,9 +58,10 @@
         <button
           class="tab"
           class:active={showAttachments}
-          on:click={() => {
+          onclick={() => {
             showAttachments = true;
             showHistory = false;
+            chatCore?.openAttachments?.();
           }}
         >
           <Icon name="paperclip" size={16} />
@@ -61,41 +69,23 @@
         </button>
       </div>
 
-      <Button variant="secondary" onclick={handleNewChat}>
-        <Icon name="plus" size={16} />
+      <button class="tab new-chat" onclick={handleNewChat}>
+        <Icon name="bot" size={16} />
         New chat
-      </Button>
+      </button>
     </div>
   </header>
 
   <div class="chat-container">
-    {#if showHistory}
-      <div class="panel-view">
-        <p class="panel-placeholder">
-          <Icon name="history" size={32} />
-          <span>Conversation history</span>
-          <small>Coming soon</small>
-        </p>
-      </div>
-    {:else if showAttachments}
-      <div class="panel-view">
-        <p class="panel-placeholder">
-          <Icon name="paperclip" size={32} />
-          <span>Your uploaded files</span>
-          <small>Coming soon</small>
-        </p>
-      </div>
-    {:else}
-      <ChatCore
-        bind:this={chatCore}
-        apiBaseUrl="/api/assistant"
-        mode="full"
-        showHeader={false}
-        enableHistory={false}
-        enableAttachments={false}
-        enableUpload={true}
-      />
-    {/if}
+    <ChatCore
+      bind:this={chatCore}
+      apiBaseUrl="/api/assistant"
+      mode="full"
+      showHeader={false}
+      enableHistory={true}
+      enableAttachments={true}
+      enableUpload={true}
+    />
   </div>
 </section>
 
@@ -185,29 +175,14 @@
     min-height: 0;
   }
 
-  .panel-view {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .new-chat {
+    margin-left: var(--celine-space-sm);
+    font-weight: 600;
   }
 
-  .panel-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--celine-space-sm);
-    color: var(--celine-text-tertiary);
-    text-align: center;
-    margin: 0;
-  }
-
-  .panel-placeholder span {
-    font-weight: 500;
-    color: var(--celine-text-secondary);
-  }
-
-  .panel-placeholder small {
-    font-size: 0.8125rem;
+  .new-chat:hover {
+    background: var(--celine-primary-bg);
+    color: var(--celine-primary);
+    border-color: var(--celine-primary);
   }
 </style>
