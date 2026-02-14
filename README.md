@@ -228,3 +228,4 @@ async def proxy_assistant(path: str, request: Request):
 ```
 
 This allows the assistant to receive user context from the webapp.
+
