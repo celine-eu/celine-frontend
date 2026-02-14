@@ -3,12 +3,13 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 ENV CI=true
+ENV NODE_ENV=development
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 COPY . .
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --prod=false
 
 # Copy sources
 COPY packages ./packages
