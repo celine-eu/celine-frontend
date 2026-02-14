@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, tick } from "svelte";
   import { createAssistantApi, type AssistantApi } from "./api.js";
   import type {
     AssistantContext,
@@ -173,6 +173,10 @@
       { role: "assistant", content: "" },
     ];
 
+    // force scroll for the “user just sent” event
+    await tick();
+    await messageList?.scrollToBottom(true);
+
     const assistantIdx = messages.length - 1;
 
     try {
@@ -251,7 +255,9 @@
       }
       attachmentFiles.clear();
       busy = false;
+      await tick();
       composer?.focusInput();
+      await messageList?.scrollToBottom(true);
     }
   }
 

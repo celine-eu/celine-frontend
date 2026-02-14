@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { Icon } from '@celine-eu/ui';
-  import type { Attachment } from '../types.js';
+  import { Icon } from "@celine-eu/ui";
+  import { tick } from "svelte";
+  import type { Attachment } from "../types.js";
 
   interface Props {
     value: string;
@@ -12,20 +13,21 @@
     onSend: () => Promise<void>;
   }
 
-  let { 
-    value = $bindable(''),
+  let {
+    value = $bindable(""),
     busy = false,
     attachments = [],
     enableUpload = true,
     onAddFiles = () => {},
     onRemoveAttachment = () => {},
-    onSend
+    onSend,
   }: Props = $props();
 
   let fileEl: HTMLInputElement | null = $state(null);
   let inputEl: HTMLTextAreaElement | null = $state(null);
 
-  export function focusInput() {
+  export async function focusInput() {
+    await tick();
     inputEl?.focus();
   }
 
@@ -36,18 +38,18 @@
   function handleFileChange(e: Event) {
     const input = e.currentTarget as HTMLInputElement;
     onAddFiles(input.files);
-    input.value = '';
+    input.value = "";
     focusInput();
   }
 
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  async function handleKeydown(e: KeyboardEvent) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       onSend();
     }
   }
 
-  function handleSubmit(e: Event) {
+  async function handleSubmit(e: Event) {
     e.preventDefault();
     onSend();
   }
@@ -55,8 +57,13 @@
   // Auto-resize textarea
   function autoResize() {
     if (inputEl) {
-      inputEl.style.height = 'auto';
-      inputEl.style.height = Math.min(inputEl.scrollHeight, 150) + 'px';
+      const isSingleLine =
+        inputEl.value.trim().length < 80 && !inputEl.value.includes("\n");
+      if (isSingleLine) {
+        inputEl.style.height = "";
+      } else {
+        inputEl.style.height = Math.min(inputEl.scrollHeight, 150) + "px";
+      }
     }
   }
 
@@ -119,7 +126,7 @@
       bind:this={inputEl}
       bind:value
       placeholder="Type a message..."
-      disabled={busy}
+      readonly={busy}
       aria-label="Message"
       rows="1"
       onkeydown={handleKeydown}
