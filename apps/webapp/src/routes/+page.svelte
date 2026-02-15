@@ -1,10 +1,10 @@
 <script lang="ts">
   import { api, type Overview } from "$lib/api";
-  import { meStore } from "$lib/stores";
-  import { onMount } from "svelte";
-  import { Icon, Skeleton } from "@celine-eu/ui";
+  import { EnergyChart, StatCard } from "$lib/components";
+  import { deviceStore } from "$lib/stores";
   import { AskAssistantButton } from "@celine-eu/assistant-ui";
-  import { StatCard, EnergyChart } from "$lib/components";
+  import { Icon, Skeleton } from "@celine-eu/ui";
+  import { onMount } from "svelte";
 
   let overview: Overview | null = $state(null);
   let err = $state("");
@@ -21,22 +21,29 @@
   }
 
   /** Check if user has any data */
-  function hasUserData(user: Overview['user']): boolean {
-    return user.consumption_kwh !== null || 
-           user.production_kwh !== null || 
-           user.self_consumption_kwh !== null;
+  function hasUserData(user: Overview["user"]): boolean {
+    return (
+      user.consumption_kwh !== null ||
+      user.production_kwh !== null ||
+      user.self_consumption_kwh !== null
+    );
   }
 
   /** Check if REC has any data */
-  function hasRecData(rec: Overview['rec']): boolean {
-    return rec.consumption_kwh !== null || 
-           rec.production_kwh !== null || 
-           rec.self_consumption_kwh !== null;
+  function hasRecData(rec: Overview["rec"]): boolean {
+    return (
+      rec.consumption_kwh !== null ||
+      rec.production_kwh !== null ||
+      rec.self_consumption_kwh !== null
+    );
   }
 
   onMount(async () => {
     try {
       overview = await api.overview();
+      if (overview.devices) {
+        $deviceStore = overview.devices;
+      }
     } catch (e) {
       err = e instanceof Error ? e.message : String(e);
     } finally {
@@ -48,12 +55,10 @@
 <section class="overview">
   <header class="page-header">
     <h1 class="page-title">Overview</h1>
-    <p class="page-subtitle">
-      Your renewable energy community at a glance
-    </p>
+    <p class="page-subtitle">Your renewable energy community at a glance</p>
   </header>
 
-  {#if $meStore && !$meStore.has_smart_meter}
+  {#if !$deviceStore || $deviceStore.length === 0}
     <div class="rec-alert rec-alert--warning" role="status" aria-live="polite">
       <Icon name="alert-triangle" size={20} />
       <div>
@@ -81,7 +86,6 @@
         <Skeleton variant="rect" height="280px" />
       </div>
     </div>
-
   {:else if err}
     <div class="rec-alert rec-alert--danger" role="alert">
       <Icon name="x-circle" size={20} />
@@ -90,7 +94,6 @@
         <p style="margin: 0.25rem 0 0;">{err}</p>
       </div>
     </div>
-
   {:else if overview}
     <!-- User Stats Section -->
     <section class="section-card">
@@ -100,12 +103,12 @@
           <h2 class="section-title">Your Contribution</h2>
           <p class="section-period">{overview.period}</p>
         </div>
-        <AskAssistantButton 
+        <AskAssistantButton
           iconOnly
-          context={{ 
-            page: 'overview', 
-            section: 'user-contribution',
-            data: overview.user 
+          context={{
+            page: "overview",
+            section: "user-contribution",
+            data: overview.user,
           }}
           prompt="Explain my energy contribution and how I can improve"
         />
@@ -133,16 +136,19 @@
             unit="kWh"
             variant="self-consumption"
             icon="battery-charging"
-            subtext={overview.user.self_consumption_rate != null 
-              ? `${fmtPct(overview.user.self_consumption_rate)} of consumption` 
-              : ''}
+            subtext={overview.user.self_consumption_rate != null
+              ? `${fmtPct(overview.user.self_consumption_rate)} of consumption`
+              : ""}
           />
         </div>
       {:else}
         <div class="empty-state">
           <Icon name="activity" size={40} class="empty-icon" />
           <p class="empty-title">No personal data available</p>
-          <p class="empty-text">Your energy data will appear here once your smart meter is connected.</p>
+          <p class="empty-text">
+            Your energy data will appear here once your smart meter is
+            connected.
+          </p>
         </div>
       {/if}
     </section>
@@ -155,12 +161,12 @@
           <h2 class="section-title">Community Trend</h2>
           <p class="section-period">Last 7 days</p>
         </div>
-        <AskAssistantButton 
+        <AskAssistantButton
           iconOnly
-          context={{ 
-            page: 'overview', 
-            section: 'community-trend',
-            data: { trend: overview.trend }
+          context={{
+            page: "overview",
+            section: "community-trend",
+            data: { trend: overview.trend },
           }}
           prompt="Analyze this week's community energy trends"
         />
@@ -190,10 +196,18 @@
               <tbody>
                 {#each overview.trend as row}
                   <tr>
-                    <td>{new Date(row.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</td>
+                    <td
+                      >{new Date(row.date).toLocaleDateString(undefined, {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                      })}</td
+                    >
                     <td class="num production">{fmt(row.production_kwh)}</td>
                     <td class="num consumption">{fmt(row.consumption_kwh)}</td>
-                    <td class="num self-consumption">{fmt(row.self_consumption_kwh)}</td>
+                    <td class="num self-consumption"
+                      >{fmt(row.self_consumption_kwh)}</td
+                    >
                   </tr>
                 {/each}
               </tbody>
@@ -204,7 +218,9 @@
         <div class="empty-state">
           <Icon name="activity" size={40} class="empty-icon" />
           <p class="empty-title">No trend data available</p>
-          <p class="empty-text">Historical data will appear here as it becomes available.</p>
+          <p class="empty-text">
+            Historical data will appear here as it becomes available.
+          </p>
         </div>
       {/if}
     </section>
@@ -217,12 +233,12 @@
           <h2 class="section-title">Community Totals</h2>
           <p class="section-period">{overview.period}</p>
         </div>
-        <AskAssistantButton 
+        <AskAssistantButton
           iconOnly
-          context={{ 
-            page: 'overview', 
-            section: 'community-totals',
-            data: overview.rec 
+          context={{
+            page: "overview",
+            section: "community-totals",
+            data: overview.rec,
           }}
           prompt="How is our community performing compared to typical renewable energy communities?"
         />
@@ -436,9 +452,15 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .data-table .production { color: var(--celine-success); }
-  .data-table .consumption { color: var(--celine-warning); }
-  .data-table .self-consumption { color: var(--celine-info); }
+  .data-table .production {
+    color: var(--celine-success);
+  }
+  .data-table .consumption {
+    color: var(--celine-warning);
+  }
+  .data-table .self-consumption {
+    color: var(--celine-info);
+  }
 
   /* Empty State */
   .empty-state {

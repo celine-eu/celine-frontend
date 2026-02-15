@@ -26,6 +26,13 @@ export type OverviewRec = {
   self_consumption_rate: number | null;
 };
 
+export type MeterDevice = {
+  sensor_id: string | null;
+  key: string | null;
+  name: string | null;
+  details: Record<string, any> | null;
+};
+
 export type TrendItem = {
   date: string;
   production_kwh: number | null;
@@ -38,6 +45,7 @@ export type Overview = {
   user: OverviewUser;
   rec: OverviewRec;
   trend: TrendItem[];
+  devices: MeterDevice[];
 };
 
 export type NotificationItem = {
