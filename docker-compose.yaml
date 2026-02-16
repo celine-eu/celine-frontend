@@ -8,6 +8,9 @@ services:
     environment:
       - NODE_ENV=production
     restart: unless-stopped
+    extra_hosts:
+      - "keycloak.celine.localhost:172.17.0.1"
+      - "api.celine.localhost:172.17.0.1"
 
   assistant:
     build:
@@ -18,3 +21,6 @@ services:
     environment:
       - NODE_ENV=production
     restart: unless-stopped
+    extra_hosts:
+      - "keycloak.celine.localhost:172.17.0.1"
+      - "api.celine.localhost:172.17.0.1"
