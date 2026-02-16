@@ -27,8 +27,8 @@ ENV NODE_ENV=production
 
 COPY --from=builder /out/ ./
 
-EXPOSE 3003
-ENV PORT=3003
+EXPOSE 3005
+ENV PORT=3005
 ENV HOST=0.0.0.0
 
 
