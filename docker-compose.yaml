@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: apps/webapp/Dockerfile
     ports:
-      - "3000:3000"
+      - "3005:3005"
     environment:
       - NODE_ENV=production
     restart: unless-stopped
@@ -14,7 +14,7 @@ services:
       context: .
       dockerfile: apps/assistant/Dockerfile
     ports:
-      - "3001:3000"
+      - "3003:3003"
     environment:
       - NODE_ENV=production
     restart: unless-stopped

@@ -14,7 +14,7 @@ COPY . .
 RUN pnpm install --frozen-lockfile --prod=false
 
 # Build
-RUN pnpm -F @celine-eu/assistant build
+RUN pnpm -F @celine-eu/webapp build
 
 # Deploy standalone runtime bundle
 RUN pnpm deploy --legacy --filter @celine-eu/webapp --prod /out
@@ -27,8 +27,9 @@ ENV NODE_ENV=production
 
 COPY --from=builder /out/ ./
 
-EXPOSE 3000
-ENV PORT=3000
+EXPOSE 3003
+ENV PORT=3003
 ENV HOST=0.0.0.0
+
 
 CMD ["node", "build"]
