@@ -9,6 +9,14 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+function flattenSubscription(sub: PushSubscription): { endpoint: string; p256dh: string; auth: string } {
+  const json = sub.toJSON();
+  const p256dh = json.keys?.p256dh;
+  const auth = json.keys?.auth;
+  if (!p256dh || !auth) throw new Error('Push subscription is missing encryption keys.');
+  return { endpoint: sub.endpoint, p256dh, auth };
+}
+
 export async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
   if (!('serviceWorker' in navigator)) throw new Error('Service workers not supported');
   const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
@@ -27,7 +35,7 @@ export async function requestAndSubscribeWebPush(): Promise<{ subscribed: boolea
 
   const existing = await reg.pushManager.getSubscription();
   if (existing) {
-    await api.subscribeWebPush(existing.toJSON());
+    await api.subscribeWebPush(flattenSubscription(existing));
     return { subscribed: true };
   }
 
@@ -35,8 +43,12 @@ export async function requestAndSubscribeWebPush(): Promise<{ subscribed: boolea
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(public_key)
   });
-  await api.subscribeWebPush(sub.toJSON());
+  await api.subscribeWebPush(flattenSubscription(sub));
   await api.enableNotifications();
+  await reg.showNotification('Notifications enabled!', {
+    body: 'You will now receive alerts from REC. If you change your mind, you can disable from the webapp or from the browser.',
+    icon: '/favicon.png',
+  });
   return { subscribed: true };
 }
 
@@ -44,8 +56,7 @@ export async function unsubscribeWebPush(): Promise<{ ok: boolean }> {
   const reg = await ensureServiceWorker();
   const sub = await reg.pushManager.getSubscription();
   if (!sub) return { ok: true };
-  const endpoint = sub.endpoint;
   await sub.unsubscribe();
-  await api.unsubscribeWebPush(endpoint);
+  await api.unsubscribeWebPush(sub.endpoint);
   return { ok: true };
 }

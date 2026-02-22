@@ -54,7 +54,17 @@
         <Icon name="leaf" size={24} class="brand-icon" />
         <span class="brand-text">REC</span>
       </div>
-      <ThemeToggle />
+      <div class="top-header__actions">
+        <ThemeToggle />
+        <a
+          href="/oauth2/sign_out"
+          class="logout-btn"
+          aria-label="Sign out"
+          title="Sign out"
+        >
+          <Icon name="log-out" size={20} />
+        </a>
+      </div>
     </div>
   </header>
 
@@ -143,6 +153,12 @@
     gap: var(--celine-space-sm);
   }
 
+  .top-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--celine-space-sm);
+  }
+
   :global(.brand-icon) {
     color: var(--celine-primary);
   }
@@ -151,6 +167,25 @@
     font-size: 1.125rem;
     font-weight: 700;
     color: var(--celine-text);
+  }
+
+  .logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--celine-radius-md);
+    color: var(--celine-text-secondary);
+    text-decoration: none;
+    transition:
+      color var(--celine-transition-fast),
+      background var(--celine-transition-fast);
+  }
+
+  .logout-btn:hover {
+    color: var(--celine-danger, #ef4444);
+    background: var(--celine-danger-bg, rgba(239, 68, 68, 0.08));
   }
 
   .content-wrap {
