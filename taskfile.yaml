@@ -5,6 +5,11 @@ vars:
   IMAGE_ASSISTANT: ghcr.io/celine-eu/celine-assistant
 
 tasks:
+  setup:
+    desc: Setup
+    cmds:
+      - pnpm install
+
   # Development
   dev:webapp:
     desc: Run webapp in development mode
