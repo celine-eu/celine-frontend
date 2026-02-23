@@ -198,7 +198,6 @@
         display: flex;
         flex-direction: column;
         gap: var(--celine-space-lg);
-        max-width: 600px;
     }
 
     .page-header {
