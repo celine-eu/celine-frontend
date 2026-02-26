@@ -37,6 +37,11 @@ tasks:
     cmds:
       - pnpm build:assistant
 
+  release:
+    cmds:
+      - release:webapp
+      - release:assistant
+
   # Release - auto version based on conventional commits
   release:webapp:
     desc: Release webapp (auto version from commits, generates changelog)
