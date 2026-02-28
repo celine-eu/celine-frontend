@@ -1,0 +1,18 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: celine-frontend
+
+build:
+  artifacts:
+    - image: ghcr.io/celine-eu/celine-frontend-assistant
+      docker:
+        dockerfile: Dockerfile.assistant
+    - image: ghcr.io/celine-eu/celine-frontend-webapp
+      docker:
+        dockerfile: Dockerfile.webapp
+  local:
+    push: false
+    useDockerCLI: true
+  tagPolicy:
+    sha256: {}
