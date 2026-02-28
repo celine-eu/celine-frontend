@@ -51,7 +51,7 @@
                     }
                 ]
             },
-            "infile": "apps/assistant/CHANGELOG.md"
+            "infile": "CHANGELOG.md"
         }
     },
     "hooks": {
