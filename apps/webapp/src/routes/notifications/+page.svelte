@@ -133,14 +133,14 @@
             <button
                 class="tab"
                 class:active={filter === "all"}
-                on:click={() => (filter = "all")}
+                onclick={() => (filter = "all")}
             >
                 All
             </button>
             <button
                 class="tab"
                 class:active={filter === "unread"}
-                on:click={() => (filter = "unread")}
+                onclick={() => (filter = "unread")}
             >
                 Unread {#if unreadCount > 0}<span class="badge"
                         >{unreadCount}</span
@@ -148,7 +148,7 @@
             </button>
         </div>
         {#if unreadCount > 0}
-            <button class="mark-all-btn" on:click={markAllRead}
+            <button class="mark-all-btn" onclick={markAllRead}
                 >Mark all read</button
             >
         {/if}
@@ -202,7 +202,7 @@
                         {#if !n.read_at}
                             <button
                                 class="mark-read-btn"
-                                on:click={() => markRead(n.id)}
+                                onclick={() => markRead(n.id)}
                             >
                                 Mark as read
                             </button>

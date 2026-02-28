@@ -39,8 +39,8 @@ tasks:
 
   release:
     cmds:
-      - release:webapp
-      - release:assistant
+      - task: release:webapp
+      - task: release:assistant
 
   # Release - auto version based on conventional commits
   release:webapp:

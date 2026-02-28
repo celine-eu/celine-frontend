@@ -51,7 +51,7 @@
 {#if !open}
   <button
     class="assistant-fab {position}"
-    on:click={() => (open = true)}
+    onclick={() => (open = true)}
     aria-label="Open Assistant"
   >
     <Icon name="bot" size={24} />
@@ -70,14 +70,14 @@
       <div class="window-controls">
         <button
           class="control-btn"
-          on:click={() => (minimized = !minimized)}
+          onclick={() => (minimized = !minimized)}
           aria-label={minimized ? "Expand" : "Minimize"}
         >
           <Icon name={minimized ? "chevron-up" : "chevron-down"} size={16} />
         </button>
         <button
           class="control-btn control-btn--close"
-          on:click={handleClose}
+          onclick={handleClose}
           aria-label="Close"
         >
           <Icon name="x" size={16} />

@@ -83,5 +83,5 @@ export interface ChatCoreProps {
   onConversationChange?: (id: string | null) => void;
   onError?: (error: Error) => void;
   onClose?: () => void;
-  onPanelsClose: (() => void) | undefined;
+  onPanelsClose?: (() => void) | undefined;
 }
