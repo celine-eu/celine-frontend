@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.2.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.1.0...assistant-v0.2.0) (2026-03-02)
+
 ## 0.1.0 (2026-02-28)
 
 ### Features
