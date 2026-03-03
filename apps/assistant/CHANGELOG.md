@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.2.0...assistant-v0.3.0) (2026-03-03)
+
+### Features
+
+* handle 401, add info page for unmatching users ([c863269](https://github.com/celine-eu/celine-frontend/commit/c863269fae4f1f18b2f68db7a9c9748e97e78333))
+
+### Bug Fixes
+
+* add users icon ([e8f1e42](https://github.com/celine-eu/celine-frontend/commit/e8f1e42da9b8e215f3c45747b7eeae751f1c19a3))
+
 ## [0.2.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.1.0...assistant-v0.2.0) (2026-03-02)
 
 ## 0.1.0 (2026-02-28)
