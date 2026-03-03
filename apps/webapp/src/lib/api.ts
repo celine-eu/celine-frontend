@@ -74,6 +74,10 @@ async function j<T>(url: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {})
     }
   });
+  if (res.status === 401) {
+    window.location.href = `/oauth2/sign_in?rd=${encodeURIComponent(window.location.pathname)}`;
+    return new Promise(() => {});
+  }
   if (!res.ok) {
     const txt = await res.text().catch(() => '');
     throw new Error(`${res.status} ${res.statusText}${txt ? `: ${txt}` : ''}`);

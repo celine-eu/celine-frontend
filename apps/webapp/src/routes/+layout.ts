@@ -3,14 +3,20 @@ import type { LayoutLoad } from './$types';
 
 export const load: LayoutLoad = async ({ url, fetch }) => {
   let me = null;
-  
+  let status = 0;
+
   try {
     const res = await fetch('/api/me', { credentials: 'include' });
+    status = res.status;
     if (res.ok) {
       me = await res.json();
     }
   } catch {
-    me = null;
+    // Network error — backend unreachable
+  }
+
+  if (status === 401) {
+    throw redirect(303, `/oauth2/sign_in?rd=${encodeURIComponent(url.pathname)}`);
   }
 
   // If backend is unavailable, still render a basic shell with an error message.

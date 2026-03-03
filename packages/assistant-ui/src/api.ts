@@ -10,6 +10,11 @@ import type {
   Message 
 } from './types.js';
 
+function redirectToLogin(): never {
+  window.location.href = `/oauth2/sign_in?rd=${encodeURIComponent(window.location.pathname)}`;
+  throw new Error('Redirecting to login');
+}
+
 export function createAssistantApi(baseUrl: string = '/api') {
   const base = baseUrl.replace(/\/$/, '');
 
@@ -23,6 +28,7 @@ export function createAssistantApi(baseUrl: string = '/api') {
       credentials: 'include',
     });
 
+    if (res.status === 401) redirectToLogin();
     const ct = res.headers.get('content-type') ?? '';
     if (!res.ok) {
       const err = ct.includes('json') ? JSON.stringify(await res.json()) : await res.text();
@@ -48,6 +54,7 @@ export function createAssistantApi(baseUrl: string = '/api') {
       credentials: 'include',
     });
 
+    if (res.status === 401) redirectToLogin();
     if (!res.ok || !res.body) {
       const txt = await res.text();
       throw new Error(txt || `HTTP ${res.status}`);
@@ -77,12 +84,14 @@ export function createAssistantApi(baseUrl: string = '/api') {
 
   async function getUser(): Promise<UserInfo | null> {
     const res = await fetch(`${base}/user`, { credentials: 'include' });
+    if (res.status === 401) redirectToLogin();
     if (!res.ok) return null;
     return res.json();
   }
 
   async function listConversations(): Promise<{ items: Conversation[] }> {
     const res = await fetch(`${base}/conversations`, { credentials: 'include' });
+    if (res.status === 401) redirectToLogin();
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   }
@@ -92,6 +101,7 @@ export function createAssistantApi(baseUrl: string = '/api') {
       method: 'DELETE',
       credentials: 'include',
     });
+    if (res.status === 401) redirectToLogin();
     if (!res.ok) throw new Error(await res.text());
   }
 
@@ -99,12 +109,14 @@ export function createAssistantApi(baseUrl: string = '/api') {
     const res = await fetch(`${base}/conversations/${encodeURIComponent(conversationId)}/messages`, {
       credentials: 'include',
     });
+    if (res.status === 401) redirectToLogin();
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   }
 
   async function listAttachments(): Promise<{ items: AttachmentItem[] }> {
     const res = await fetch(`${base}/attachments`, { credentials: 'include' });
+    if (res.status === 401) redirectToLogin();
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   }
@@ -118,17 +130,20 @@ export function createAssistantApi(baseUrl: string = '/api') {
       method: 'DELETE',
       credentials: 'include',
     });
+    if (res.status === 401) redirectToLogin();
     if (!res.ok) throw new Error(await res.text());
   }
 
   // Admin functions
   async function reindex(): Promise<void> {
     const res = await fetch(`${base}/admin/ingest`, { method: 'POST', credentials: 'include' });
+    if (res.status === 401) redirectToLogin();
     if (!res.ok) throw new Error(await res.text());
   }
 
   async function reload(): Promise<void> {
     const res = await fetch(`${base}/admin/reload`, { method: 'POST', credentials: 'include' });
+    if (res.status === 401) redirectToLogin();
     if (!res.ok) throw new Error(await res.text());
   }
 

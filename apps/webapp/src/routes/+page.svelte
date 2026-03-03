@@ -4,6 +4,7 @@
   import { deviceStore } from "$lib/stores";
   import { AskAssistantButton } from "@celine-eu/assistant-ui";
   import { Icon, Skeleton } from "@celine-eu/ui";
+  import { goto } from "$app/navigation";
   import { onMount } from "svelte";
 
   let overview: Overview | null = $state(null);
@@ -45,7 +46,12 @@
         $deviceStore = overview.devices;
       }
     } catch (e) {
-      err = e instanceof Error ? e.message : String(e);
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.startsWith('404')) {
+        goto('/not-a-participant');
+        return;
+      }
+      err = msg;
     } finally {
       loading = false;
     }
