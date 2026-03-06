@@ -8,8 +8,20 @@
     let loading = $state(true);
     let err = $state("");
     let saved = $state("");
+    let emailSaved = $state("");
+    let emailError = $state("");
     let pushMsg = $state("");
     let pushLoading = $state(false);
+
+    function isValidEmail(value: string): boolean {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    }
+
+    $effect(() => {
+        if (!settings?.notifications.email_enabled) {
+            emailError = "";
+        }
+    });
 
     async function load() {
         loading = true;
@@ -26,15 +38,32 @@
     async function save() {
         if (!settings) return;
         saved = "";
+        emailSaved = "";
+        emailError = "";
         err = "";
+        if (settings.notifications.email_enabled) {
+            const email = (settings.notifications.email ?? "").trim();
+            if (!email || !isValidEmail(email)) {
+                emailError =
+                    "Insert a valid email address to enable email notifications.";
+                return;
+            }
+            settings.notifications.email = email;
+        }
         try {
             settings = await api.settingsPut(settings);
             saved = "Settings saved";
+            if (settings.notifications.email_enabled) {
+                emailSaved = "Email saved";
+            }
             document.documentElement.style.setProperty(
                 "--celine-font-scale",
                 String(settings.font_scale ?? 1),
             );
-            setTimeout(() => (saved = ""), 3000);
+            setTimeout(() => {
+                saved = "";
+                emailSaved = "";
+            }, 3000);
         } catch (e) {
             err = e instanceof Error ? e.message : String(e);
         }
@@ -174,10 +203,53 @@
                 <div>
                     <span class="setting-label">Email notifications</span>
                     <span class="setting-description"
-                        >Receive updates via email (coming soon)</span
+                        >Receive updates via email</span
                     >
                 </div>
             </label>
+            {#if settings.notifications.email_enabled}
+                <div class="setting-row setting-row--column">
+                    <div>
+                        <span class="setting-label">Email address</span>
+                        <span class="setting-description"
+                            >Address used for email notifications</span
+                        >
+                    </div>
+                    <input
+                        class="email-input"
+                        class:email-input--error={!!emailError}
+                        type="email"
+                        placeholder="you@example.com"
+                        bind:value={settings.notifications.email}
+                    />
+                    {#if emailError}
+                        <span class="field-error">{emailError}</span>
+                    {/if}
+                </div>
+            {/if}
+
+            <div class="setting-row setting-row--column">
+                <div>
+                    <span class="setting-label">Notification limit</span>
+                    <span class="setting-description"
+                        >Choose how many notifications to show (1-10)</span
+                    >
+                </div>
+                <div class="slider-container">
+                    <span class="slider-label">1</span>
+                    <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="1"
+                        bind:value={settings.notifications.limit}
+                    />
+                    <span class="slider-label slider-label--large">10</span>
+                    <span class="slider-value"
+                        >{settings.notifications.limit}</span
+                    >
+                </div>
+            </div>
         </div>
 
         <!-- Save Button -->
@@ -187,6 +259,12 @@
                 <span class="saved-message">
                     <Icon name="check-circle" size={16} />
                     {saved}
+                </span>
+            {/if}
+            {#if emailSaved}
+                <span class="saved-message">
+                    <Icon name="check-circle" size={16} />
+                    {emailSaved}
                 </span>
             {/if}
         </div>
@@ -276,6 +354,27 @@
         display: block;
         font-weight: 500;
         color: var(--celine-text);
+    }
+
+    .email-input {
+        width: 100%;
+        max-width: 360px;
+        border: 1px solid var(--celine-border);
+        border-radius: var(--celine-radius-md);
+        padding: 0.55rem 0.7rem;
+        font-size: 0.9rem;
+        color: var(--celine-text);
+        background: var(--celine-bg);
+    }
+
+    .email-input--error {
+        border-color: var(--celine-danger-text);
+    }
+
+    .field-error {
+        font-size: 0.8125rem;
+        color: var(--celine-danger-text);
+        margin-top: 0.3rem;
     }
 
     .setting-description {

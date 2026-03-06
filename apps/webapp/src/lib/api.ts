@@ -62,6 +62,9 @@ export type Settings = {
   font_scale: number;
   notifications: {
     email_enabled: boolean;
+    email: string;
+    webpush_enabled: boolean;
+    limit: number;
   };
 };
 
@@ -75,7 +78,8 @@ async function j<T>(url: string, init?: RequestInit): Promise<T> {
     }
   });
   if (res.status === 401) {
-    window.location.href = `/oauth2/sign_in?rd=${encodeURIComponent(window.location.pathname)}`;
+    const returnTo = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+    window.location.href = `/oauth2/sign_in?rd=${encodeURIComponent(returnTo)}`;
     return new Promise(() => {});
   }
   if (!res.ok) {
