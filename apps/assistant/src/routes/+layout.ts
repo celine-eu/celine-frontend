@@ -12,6 +12,7 @@ export const load: LayoutLoad = async ({ url, fetch }) => {
   }
 
   if (status === 401) {
-    throw redirect(303, `/oauth2/sign_in?rd=${encodeURIComponent(url.pathname)}`);
+    const returnTo = `${url.origin}${url.pathname}${url.search}`;
+    throw redirect(303, `/oauth2/sign_in?rd=${encodeURIComponent(returnTo)}`);
   }
 };
