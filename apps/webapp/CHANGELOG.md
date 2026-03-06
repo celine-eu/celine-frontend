@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.8.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.7.0...webapp-v0.8.0) (2026-03-06)
+
+### Bug Fixes
+
+* handle redirect uri ([0823f04](https://github.com/celine-eu/celine-frontend/commit/0823f042be6e65a9f378835a073216fbc8c61cd0))
+
 ## [0.7.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.6.0...webapp-v0.7.0) (2026-03-06)
 
 ## [0.6.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.5.0...webapp-v0.6.0) (2026-03-03)
