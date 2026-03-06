@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.7.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.6.0...webapp-v0.7.0) (2026-03-06)
+
 ## [0.6.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.5.0...webapp-v0.6.0) (2026-03-03)
 
 ## [0.5.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.4.0...webapp-v0.5.0) (2026-03-03)
