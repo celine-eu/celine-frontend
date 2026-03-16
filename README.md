@@ -62,6 +62,15 @@ This monorepo contains the frontend applications and shared packages for the CEL
 └── package.json
 ```
 
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Packages](https://celine-eu.github.io/projects/celine-frontend/docs/packages.md) | @celine-eu/ui components, @celine-eu/assistant-ui exports |
+| [Apps](https://celine-eu.github.io/projects/celine-frontend/docs/apps.md) | standalone assistant app, webapp routes and BFF proxy |
+| [Theming](https://celine-eu.github.io/projects/celine-frontend/docs/theming.md) | CSS custom properties, design tokens, dark mode |
+| [Development](https://celine-eu.github.io/projects/celine-frontend/docs/development.md) | pnpm workspace setup, adding icons, creating components, build pipeline |
+
 ## Setup
 
 ```bash
