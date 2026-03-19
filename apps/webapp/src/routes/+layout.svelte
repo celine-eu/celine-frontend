@@ -57,7 +57,7 @@
       <div class="top-header__actions">
         <ThemeToggle />
         <a
-          href="/oauth2/sign_out"
+          href="/oauth2/sign_out?rd={encodeURIComponent($page.url.origin + '/oauth2/sign_in')}"
           class="logout-btn"
           aria-label="Sign out"
           title="Sign out"

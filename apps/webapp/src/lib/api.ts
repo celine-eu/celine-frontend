@@ -89,6 +89,97 @@ async function j<T>(url: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+export type WeatherCurrent = {
+  temp: number;
+  humidity: number;
+  uvi: number;
+  clouds: number;
+  wind_deg: number;
+  weather_main: string;
+  weather_description: string;
+  sunrise: string;
+  sunset: string;
+};
+
+export type WeatherDayItem = {
+  date: string;
+  temp_min: number;
+  temp_max: number;
+  temp_day: number;
+  pop: number;
+  rain: number | null;
+  clouds: number;
+  uvi: number;
+  weather_main: string;
+  weather_description: string;
+  summary: string | null;
+};
+
+export type WeatherAlertItem = {
+  event: string;
+  sender_name: string;
+  start_ts: string;
+  end_ts: string;
+  description: string;
+};
+
+export type WeatherIrradianceItem = {
+  ts: string;
+  shortwave_radiation: number;
+  diffuse_radiation: number;
+  global_tilted_irradiance: number;
+  cloud_cover: number;
+};
+
+export type WeatherResponse = {
+  current: WeatherCurrent | null;
+  daily: WeatherDayItem[];
+  hourly_irradiance: WeatherIrradianceItem[];
+  alerts: WeatherAlertItem[];
+};
+
+export type ForecastHourItem = {
+  ts: string;
+  value: number;
+  lower: number | null;
+  upper: number | null;
+  period: string;
+};
+
+export type ForecastResponse = {
+  user_forecast: ForecastHourItem[];
+  rec_forecast: ForecastHourItem[];
+};
+
+export type SuggestionItem = {
+  id: string;
+  suggestion_type: string;
+  period_start: string;
+  period_end: string;
+  from_label: string;
+  to_label: string;
+  impact_kwh_estimated: number;
+  reward_points: number;
+  confidence: number;
+  description: string;
+  reason: string;
+};
+
+export type BadgeItem = {
+  badge_id: string;
+  label: string;
+  icon: string;
+  earned_at: string;
+};
+
+export type GamificationResponse = {
+  total_points: number;
+  level: number;
+  next_level_at: number;
+  badges: BadgeItem[];
+  actions_taken: number;
+};
+
 export const api = {
   me: () => j<Me>('/api/me'),
   overview: () => j<Overview>('/api/overview'),
@@ -105,5 +196,14 @@ export const api = {
     j<{ ok: true }>('/api/notifications/webpush/subscribe', { method: 'POST', body: JSON.stringify(subscription) }),
   unsubscribeWebPush: (endpoint: string) =>
     j<{ ok: true }>('/api/notifications/webpush/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }),
-  enableNotifications: () => j<{ ok: true }>('/api/notifications/enable', { method: 'POST', body: JSON.stringify({ enable: true }) })
+  enableNotifications: () => j<{ ok: true }>('/api/notifications/enable', { method: 'POST', body: JSON.stringify({ enable: true }) }),
+  weather: () => j<WeatherResponse>('/api/weather'),
+  forecast: () => j<ForecastResponse>('/api/forecast'),
+  suggestions: () => j<SuggestionItem[]>('/api/suggestions'),
+  suggestionRespond: (id: string, response: 'accepted' | 'declined') =>
+    j<GamificationResponse>(`/api/suggestions/${id}/respond`, {
+      method: 'POST',
+      body: JSON.stringify({ response })
+    }),
+  gamification: () => j<GamificationResponse>('/api/gamification'),
 };

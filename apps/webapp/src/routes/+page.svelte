@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { api, type Overview } from "$lib/api";
-  import { EnergyChart, StatCard } from "$lib/components";
+  import { api, type Overview, type WeatherResponse, type SuggestionItem } from "$lib/api";
+  import { EnergyChart, StatCard, WeatherWidget } from "$lib/components";
   import { deviceStore } from "$lib/stores";
   import { AskAssistantButton } from "@celine-eu/assistant-ui";
   import { Icon, Skeleton } from "@celine-eu/ui";
@@ -10,6 +10,11 @@
   let overview: Overview | null = $state(null);
   let err = $state("");
   let loading = $state(true);
+
+  let weatherData = $state<WeatherResponse | null>(null);
+  let weatherLoading = $state(true);
+  let suggestions = $state<SuggestionItem[]>([]);
+  let suggestionsLoading = $state(true);
 
   /** Format a number to 1 decimal place, or return "—" for null/undefined */
   function fmt(value: number | null | undefined): string {
@@ -55,6 +60,10 @@
     } finally {
       loading = false;
     }
+
+    // Load weather and suggestions in background (non-blocking)
+    api.weather().then(w => { weatherData = w; }).catch(() => {}).finally(() => { weatherLoading = false; });
+    api.suggestions().then(s => { suggestions = s; }).catch(() => {}).finally(() => { suggestionsLoading = false; });
   });
 </script>
 
@@ -63,6 +72,25 @@
     <h1 class="page-title">Overview</h1>
     <p class="page-subtitle">Your renewable energy community at a glance</p>
   </header>
+
+  <!-- Compact weather strip -->
+  <a href="/suggestions" class="weather-strip">
+    <WeatherWidget data={weatherData} loading={weatherLoading} compact={true} />
+    <span class="weather-strip-link">Solar forecast →</span>
+  </a>
+
+  <!-- Flexibility opportunities teaser -->
+  {#if !suggestionsLoading && suggestions.length > 0}
+    {@const maxPoints = suggestions.reduce((s, i) => s + i.reward_points, 0)}
+    <div class="flex-teaser">
+      <Icon name="zap" size={18} />
+      <div class="flex-teaser-body">
+        <strong>You have {suggestions.length} load-shifting {suggestions.length === 1 ? 'opportunity' : 'opportunities'}.</strong>
+        Earn up to {maxPoints} pts!
+      </div>
+      <a href="/suggestions" class="flex-teaser-link">View →</a>
+    </div>
+  {/if}
 
   {#if !$deviceStore || $deviceStore.length === 0}
     <div class="rec-alert rec-alert--warning" role="status" aria-live="polite">
@@ -317,6 +345,49 @@
     color: var(--celine-text-secondary);
     margin: 0;
   }
+
+  /* Weather strip */
+  .weather-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--celine-bg-elevated);
+    border: 1px solid var(--celine-border);
+    border-radius: var(--celine-radius-md);
+    padding: var(--celine-space-sm) var(--celine-space-md);
+    text-decoration: none;
+    color: inherit;
+    gap: var(--celine-space-sm);
+    transition: border-color var(--celine-transition-fast);
+  }
+  .weather-strip:hover { border-color: var(--celine-primary); }
+  .weather-strip-link {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--celine-primary);
+    white-space: nowrap;
+  }
+
+  /* Flexibility teaser */
+  .flex-teaser {
+    display: flex;
+    align-items: center;
+    gap: var(--celine-space-sm);
+    background: var(--celine-primary-bg, rgba(99,102,241,0.08));
+    border: 1px solid var(--celine-primary);
+    border-radius: var(--celine-radius-md);
+    padding: var(--celine-space-sm) var(--celine-space-md);
+    color: var(--celine-text);
+    font-size: 0.875rem;
+  }
+  .flex-teaser-body { flex: 1; }
+  .flex-teaser-link {
+    font-weight: 600;
+    color: var(--celine-primary);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .flex-teaser-link:hover { text-decoration: underline; }
 
   /* Alert */
   .rec-alert {
