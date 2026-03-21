@@ -2,6 +2,7 @@
   import type { SuggestionItem, GamificationResponse } from '$lib/api';
   import { api } from '$lib/api';
   import { Icon } from '@celine-eu/ui';
+  import { t } from 'svelte-i18n';
 
   interface Props {
     suggestion: SuggestionItem;
@@ -10,20 +11,20 @@
 
   let { suggestion, ongamificationupdated }: Props = $props();
 
-  type State = 'idle' | 'loading' | 'committed' | 'accepted' | 'declined' | 'error';
-  let state = $state<State>('idle');
+  type CardState = 'idle' | 'loading' | 'committed' | 'accepted' | 'declined' | 'error';
+  let cardState: CardState = $state('idle');
   let earnedPoints = $state(0);
   let windowEnd = $state('');
   let errorMsg = $state('');
 
   const TYPE_ICONS: Record<string, string> = {
     'shift-consumption': 'clock',
-    'delay-load': 'pause-circle',
-    'avoid-peak': 'shield',
+    'delay-load': 'clock',
+    'avoid-peak': 'alert-triangle',
   };
 
-  function typeIcon(t: string): string {
-    return TYPE_ICONS[t] ?? 'zap';
+  function typeIcon(type: string): string {
+    return TYPE_ICONS[type] ?? 'zap';
   }
 
   function fmtPeriodEnd(isoStr: string): string {
@@ -35,7 +36,7 @@
   }
 
   async function respond(response: 'accepted' | 'declined') {
-    state = 'loading';
+    cardState = 'loading';
     try {
       const result = await api.suggestionRespond(suggestion.id, response, suggestion.reward_points);
       if (response === 'accepted') {
@@ -43,53 +44,53 @@
         if (result.pending_commitment) {
           if (result.pending_commitment.status === 'settled') {
             earnedPoints = result.pending_commitment.reward_points_actual ?? suggestion.reward_points;
-            state = 'accepted';
+            cardState = 'accepted';
           } else {
             earnedPoints = result.pending_commitment.reward_points_estimated;
             windowEnd = fmtPeriodEnd(result.pending_commitment.period_end);
-            state = 'committed';
+            cardState = 'committed';
           }
         } else {
           earnedPoints = suggestion.reward_points;
-          state = 'accepted';
+          cardState = 'accepted';
         }
       } else {
-        state = 'declined';
+        cardState = 'declined';
       }
     } catch (e) {
-      errorMsg = e instanceof Error ? e.message : 'Something went wrong';
-      state = 'error';
+      errorMsg = e instanceof Error ? e.message : String(e);
+      cardState = 'error';
     }
   }
 </script>
 
-{#if state !== 'declined'}
-  <div class="suggestion-card" class:accepted={state === 'accepted'} class:committed={state === 'committed'}>
-    {#if state === 'accepted'}
+{#if cardState !== 'declined'}
+  <div class="suggestion-card" class:accepted={cardState === 'accepted'} class:committed={cardState === 'committed'}>
+    {#if cardState === 'accepted'}
       <div class="confirmation">
         <Icon name="check-circle" size={20} class="check-icon" />
-        <span>Done! <strong>+{earnedPoints} pts</strong> added to your score.</span>
+        <span>{$t('suggestion_card.done', { values: { points: earnedPoints } })}</span>
       </div>
-    {:else if state === 'committed'}
+    {:else if cardState === 'committed'}
       <div class="commitment">
         <Icon name="clock" size={20} class="clock-icon" />
-        <span>Committed! <strong>~{earnedPoints} pts</strong> pending — we'll verify after {windowEnd}.</span>
+        <span>{$t('suggestion_card.committed', { values: { points: earnedPoints, time: windowEnd } })}</span>
       </div>
     {:else}
       <div class="card-header">
         <div class="type-badge">
-          <Icon name={typeIcon(suggestion.suggestion_type)} size={16} />
+          <Icon name={typeIcon(suggestion.suggestion_type) as any} size={16} />
         </div>
         <div class="shift-label">
-          <span class="from-label">{suggestion.from_label}</span>
-          <Icon name="arrow-right" size={14} class="arrow-icon" />
-          <span class="to-label">{suggestion.to_label}</span>
+          <span class="from-label">{$t('suggestion_card.from_label', { values: { period: $t(`suggestion_card.period.${suggestion.from_period}`), range: suggestion.clock_range } })}</span>
+          <Icon name="chevron-right" size={14} class="arrow-icon" />
+          <span class="to-label">{suggestion.to_is_tomorrow ? $t('suggestion_card.to_label_tomorrow', { values: { period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } }) : $t('suggestion_card.to_label_today', { values: { period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } })}</span>
         </div>
         <div class="reward-badge">+{suggestion.reward_points} pts</div>
       </div>
 
-      <p class="description">{suggestion.description}</p>
-      <p class="reason">{suggestion.reason}</p>
+      <p class="description">{$t('suggestion_card.description', { values: { period: $t(`suggestion_card.period.${suggestion.from_period}`), range: suggestion.clock_range, target_period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } })}</p>
+      <p class="reason">{$t('suggestion_card.reason')}</p>
 
       <div class="meta-row">
         <span class="impact-chip">
@@ -100,24 +101,24 @@
         </div>
       </div>
 
-      {#if state === 'error'}
+      {#if cardState === 'error'}
         <p class="error-msg">{errorMsg}</p>
       {/if}
 
       <div class="actions">
         <button
           class="btn btn-primary"
-          disabled={state === 'loading'}
+          disabled={cardState === 'loading'}
           onclick={() => respond('accepted')}
         >
-          {state === 'loading' ? 'Saving…' : 'Accept'}
+          {cardState === 'loading' ? $t('suggestion_card.saving') : $t('suggestion_card.accept')}
         </button>
         <button
           class="btn btn-ghost"
-          disabled={state === 'loading'}
+          disabled={cardState === 'loading'}
           onclick={() => respond('declined')}
         >
-          Not now
+          {$t('suggestion_card.not_now')}
         </button>
       </div>
     {/if}

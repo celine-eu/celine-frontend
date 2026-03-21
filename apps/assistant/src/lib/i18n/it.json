@@ -1,0 +1,37 @@
+{
+  "assistant": {
+    "page_title": "Assistente CELINE"
+  },
+  "assistant_ui": {
+    "title": "Assistente",
+    "history": "Cronologia",
+    "attachments": "Allegati",
+    "sources": "Fonti",
+    "close": "Chiudi",
+    "show_history": "Mostra cronologia",
+    "show_attachments": "Mostra allegati",
+    "show_sources": "Mostra fonti",
+    "close_assistant": "Chiudi assistente",
+    "reindex": "Reindicizza documenti",
+    "reload": "Ricarica",
+    "attach_files": "Allega file",
+    "type_message": "Scrivi un messaggio...",
+    "message_label": "Messaggio",
+    "send_message": "Invia messaggio",
+    "remove": "Rimuovi",
+    "start_conversation": "Inizia una conversazione",
+    "assistant_generating": "L'assistente sta generando",
+    "new_conversation": "Nuova conversazione",
+    "no_conversations": "Nessuna conversazione ancora",
+    "delete_conversation": "Elimina conversazione",
+    "delete_conversation_confirm": "Eliminare questa conversazione?",
+    "yesterday": "Ieri",
+    "msgs": "msg",
+    "no_attachments": "Nessun allegato ancora",
+    "attachments_hint": "I file caricati appariranno qui",
+    "delete_attachment": "Eliminare questo allegato?",
+    "open": "Apri",
+    "delete": "Elimina",
+    "source": "{count, plural, one {# fonte} other {# fonti}}"
+  }
+}

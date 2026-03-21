@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { ForecastResponse, ForecastHourItem } from '$lib/api';
   import { Icon, Skeleton } from '@celine-eu/ui';
+  import { t } from 'svelte-i18n';
+  import { get } from 'svelte/store';
 
   interface Props {
     data: ForecastResponse | null;
@@ -110,7 +112,7 @@
 
           ctx.fillStyle = 'rgba(100,100,100,0.7)';
           ctx.font = '10px sans-serif';
-          ctx.fillText('Now', x + 3, chartArea.top + 12);
+          ctx.fillText(get(t)('forecast.now'), x + 3, chartArea.top + 12);
         }
 
         ctx.restore();
@@ -138,7 +140,7 @@
             tension: 0.4,
           },
           {
-            label: isUser ? 'Community solar surplus (kWh)' : 'Your consumption (kWh)',
+            label: isUser ? get(t)('forecast.chart_solar_label') : get(t)('forecast.chart_consumption_label'),
             data: values,
             borderColor: lineColor,
             backgroundColor: 'transparent',
@@ -173,7 +175,7 @@
             ticks: { font: { size: 10 } },
             title: {
               display: true,
-              text: isUser ? 'kWh surplus (+) / import (−)' : 'kWh consumed',
+              text: isUser ? get(t)('forecast.chart_solar_axis') : get(t)('forecast.chart_consumption_axis'),
               font: { size: 10 },
             },
           },
@@ -203,21 +205,21 @@
       class:active={activeTab === 'user'}
       onclick={() => activeTab = 'user'}
     >
-      ☀️ Solar surplus
+      {$t('forecast.tab_solar')}
     </button>
     <button
       class="tab-btn"
       class:active={activeTab === 'rec'}
       onclick={() => activeTab = 'rec'}
     >
-      🏠 Your consumption
+      {$t('forecast.tab_consumption')}
     </button>
   </div>
 
   {#if data}
     <div class="surplus-legend">
       <span class="surplus-swatch"></span>
-      Solar surplus window
+      {$t('forecast.surplus_window')}
     </div>
   {/if}
 
@@ -228,7 +230,7 @@
       <canvas bind:this={canvasEl} style="height: 220px;"></canvas>
     {:else}
       <div class="empty">
-        <p>No forecast data available</p>
+        <p>{$t('forecast.no_data')}</p>
       </div>
     {/if}
   </div>

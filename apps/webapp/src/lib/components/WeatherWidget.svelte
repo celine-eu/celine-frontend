@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { WeatherResponse, WeatherDayItem, WeatherAlertItem } from '$lib/api';
   import { Icon, Skeleton } from '@celine-eu/ui';
+  import { t, locale } from 'svelte-i18n';
 
   interface Props {
     data: WeatherResponse | null;
@@ -55,7 +56,7 @@
   }
 
   function shortDay(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short' });
+    return new Date(dateStr).toLocaleDateString($locale ?? undefined, { weekday: 'short' });
   }
 
   function safeTemp(temp: number): string {
@@ -64,8 +65,8 @@
   }
 
   function irradianceDay(dateStr: string | null | undefined): string {
-    if (!dateStr) return 'today';
-    return new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    if (!dateStr) return $t('weather.today');
+    return new Date(dateStr).toLocaleDateString($locale ?? undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
   let alertsExpanded = $state<Record<number, boolean>>({});
@@ -120,7 +121,7 @@
               {#if alertsExpanded[i]}
                 <p class="alert-description">{alert.description}</p>
                 <p class="alert-meta">
-                  {alert.sender_name} · until {new Date(alert.end_ts).toLocaleString()}
+                  {alert.sender_name} · {$t('weather.until')} {new Date(alert.end_ts).toLocaleString($locale ?? undefined)}
                 </p>
               {/if}
             </div>
@@ -171,7 +172,7 @@
       <!-- 24h irradiance chart -->
       {#if data.hourly_irradiance && data.hourly_irradiance.length > 0}
         <div class="irradiance-section">
-          <p class="irradiance-label">Solar charging potential · {irradianceDay(data.irradiance_date)}</p>
+          <p class="irradiance-label">{$t('weather.solar_potential', { values: { day: irradianceDay(data.irradiance_date) } })}</p>
           <div class="irradiance-bars">
             {#each data.hourly_irradiance as item}
               {@const max = 1000}
@@ -185,7 +186,7 @@
         </div>
       {/if}
     {:else}
-      <p class="no-data">Weather data unavailable.</p>
+      <p class="no-data">{$t('weather.no_data')}</p>
     {/if}
   </div>
 {/if}

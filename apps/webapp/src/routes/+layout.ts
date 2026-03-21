@@ -1,6 +1,8 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
 import type { CommunityMeta } from '$lib/api';
+import { setupI18n } from '$lib/i18n';
+import { waitLocale } from 'svelte-i18n';
 
 export const load: LayoutLoad = async ({ url, fetch }) => {
   let me = null;
@@ -43,6 +45,9 @@ export const load: LayoutLoad = async ({ url, fetch }) => {
   } catch {
     // non-fatal
   }
+
+  setupI18n(me?.locale);
+  await waitLocale();
 
   return { me, needs_terms, community };
 };

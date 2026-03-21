@@ -3,6 +3,7 @@
     import { requestAndSubscribeWebPush } from "$lib/push";
     import { Button, Icon, Skeleton } from "@celine-eu/ui";
     import { onMount } from "svelte";
+    import { t, locale } from "svelte-i18n";
 
     let items: NotificationItem[] = $state([]);
     let loading = $state(true);
@@ -38,7 +39,7 @@
                 pushPermission = "granted";
                 pushBanner = "";
             } else {
-                pushBanner = res.message ?? "Could not enable web push.";
+                pushBanner = res.message ?? $t('settings.web_push_enabled');
             }
         } catch (e) {
             pushBanner = e instanceof Error ? e.message : String(e);
@@ -81,8 +82,8 @@
 
 <section class="notifications-page">
     <header class="page-header">
-        <h1 class="page-title">Notifications</h1>
-        <p class="page-subtitle">Consumption guidance and REC updates</p>
+        <h1 class="page-title">{$t('notifications.title')}</h1>
+        <p class="page-subtitle">{$t('notifications.subtitle')}</p>
     </header>
 
     <!-- Push notification banners -->
@@ -91,23 +92,16 @@
             <div class="push-banner push-banner--warning">
                 <Icon name="alert-triangle" size={20} />
                 <div class="push-banner__content">
-                    <strong>Web push is blocked</strong>
-                    <p>
-                        You can still read notifications here, but you won't
-                        receive real-time alerts. Re-enable in your browser's
-                        site settings.
-                    </p>
+                    <strong>{$t('notifications.push_blocked_title')}</strong>
+                    <p>{$t('notifications.push_blocked_body')}</p>
                 </div>
             </div>
         {:else if pushPermission !== "granted"}
             <div class="push-banner push-banner--info">
                 <Icon name="bell" size={20} />
                 <div class="push-banner__content">
-                    <strong>Enable push notifications</strong>
-                    <p>
-                        Get "when to consume" alerts delivered directly to your
-                        device.
-                    </p>
+                    <strong>{$t('notifications.push_enable_title')}</strong>
+                    <p>{$t('notifications.push_enable_body')}</p>
                 </div>
                 <Button
                     variant="primary"
@@ -115,7 +109,7 @@
                     onclick={enablePush}
                     disabled={pushLoading}
                 >
-                    {pushLoading ? "Enabling..." : "Enable"}
+                    {pushLoading ? $t('notifications.enabling') : $t('notifications.enable')}
                 </Button>
             </div>
         {/if}
@@ -135,21 +129,21 @@
                 class:active={filter === "all"}
                 onclick={() => (filter = "all")}
             >
-                All
+                {$t('notifications.filter_all')}
             </button>
             <button
                 class="tab"
                 class:active={filter === "unread"}
                 onclick={() => (filter = "unread")}
             >
-                Unread {#if unreadCount > 0}<span class="badge"
+                {$t('notifications.filter_unread')} {#if unreadCount > 0}<span class="badge"
                         >{unreadCount}</span
                     >{/if}
             </button>
         </div>
         {#if unreadCount > 0}
             <button class="mark-all-btn" onclick={markAllRead}
-                >Mark all read</button
+                >{$t('notifications.mark_all_read')}</button
             >
         {/if}
     </div>
@@ -174,12 +168,10 @@
             <Icon name="bell" size={48} />
             <p class="empty-title">
                 {filter === "unread"
-                    ? "No unread notifications"
-                    : "No notifications yet"}
+                    ? $t('notifications.no_unread')
+                    : $t('notifications.no_notifications')}
             </p>
-            <p class="empty-text">
-                You'll see updates about your energy community here
-            </p>
+            <p class="empty-text">{$t('notifications.empty_body')}</p>
         </div>
     {:else}
         <ul class="notification-list">
@@ -189,7 +181,7 @@
                         <span class="notification-title">{n.title}</span>
                         <span class="notification-time">
                             {new Date(n.created_at).toLocaleDateString(
-                                undefined,
+                                $locale ?? undefined,
                                 { month: "short", day: "numeric" },
                             )}
                         </span>
@@ -204,7 +196,7 @@
                                 class="mark-read-btn"
                                 onclick={() => markRead(n.id)}
                             >
-                                Mark as read
+                                {$t('notifications.mark_as_read')}
                             </button>
                         {/if}
                     </div>

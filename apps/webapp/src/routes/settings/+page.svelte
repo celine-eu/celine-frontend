@@ -3,6 +3,7 @@
     import { requestAndSubscribeWebPush, unsubscribeWebPush } from "$lib/push";
     import { Button, Icon } from "@celine-eu/ui";
     import { onMount } from "svelte";
+    import { t, locale } from "svelte-i18n";
 
     let settings: Settings | null = $state(null);
     let loading = $state(true);
@@ -44,17 +45,16 @@
         if (settings.notifications.email_enabled) {
             const email = (settings.notifications.email ?? "").trim();
             if (!email || !isValidEmail(email)) {
-                emailError =
-                    "Insert a valid email address to enable email notifications.";
+                emailError = $t('settings.email_error');
                 return;
             }
             settings.notifications.email = email;
         }
         try {
             settings = await api.settingsPut(settings);
-            saved = "Settings saved";
+            saved = $t('settings.settings_saved');
             if (settings.notifications.email_enabled) {
-                emailSaved = "Email saved";
+                emailSaved = $t('settings.email_saved');
             }
             document.documentElement.style.setProperty(
                 "--celine-font-scale",
@@ -75,8 +75,8 @@
         try {
             const res = await requestAndSubscribeWebPush();
             pushMsg = res.subscribed
-                ? "Web push enabled."
-                : (res.message ?? "Could not enable web push.");
+                ? $t('settings.web_push_enabled')
+                : (res.message ?? $t('settings.web_push_enabled'));
         } catch (e) {
             pushMsg = e instanceof Error ? e.message : String(e);
         } finally {
@@ -89,7 +89,7 @@
         pushLoading = true;
         try {
             await unsubscribeWebPush();
-            pushMsg = "Web push disabled.";
+            pushMsg = $t('settings.web_push_disabled');
         } catch (e) {
             pushMsg = e instanceof Error ? e.message : String(e);
         } finally {
@@ -102,15 +102,13 @@
 
 <section class="settings-page">
     <header class="page-header">
-        <h1 class="page-title">Settings</h1>
-        <p class="page-subtitle">
-            Make the app easier to read and configure notifications.
-        </p>
+        <h1 class="page-title">{$t('settings.title')}</h1>
+        <p class="page-subtitle">{$t('settings.subtitle')}</p>
     </header>
 
     {#if loading}
         <div class="loading-card">
-            <p>Loading settings...</p>
+            <p>{$t('settings.loading_settings')}</p>
         </div>
     {:else if err}
         <div class="error-banner">
@@ -118,29 +116,44 @@
             <span>{err}</span>
         </div>
     {:else if settings}
+        <!-- Language Section -->
+        <div class="settings-card">
+            <h2 class="section-title">
+                <Icon name="info" size={20} />
+                {$t('settings.language')}
+            </h2>
+            <div class="setting-row setting-row--column">
+                <div>
+                    <span class="setting-label">{$t('settings.language')}</span>
+                    <span class="setting-description">{$t('settings.language_description')}</span>
+                </div>
+                <select class="language-select" bind:value={$locale}>
+                    <option value="en">English</option>
+                    <option value="it">Italiano</option>
+                    <option value="es">Español</option>
+                </select>
+            </div>
+        </div>
+
         <!-- Accessibility Section -->
         <div class="settings-card">
             <h2 class="section-title">
                 <Icon name="eye" size={20} />
-                Accessibility
+                {$t('settings.accessibility')}
             </h2>
 
             <label class="setting-row">
                 <input type="checkbox" bind:checked={settings.simple_mode} />
                 <div>
-                    <span class="setting-label">Simple mode</span>
-                    <span class="setting-description"
-                        >Reduced layout, actionable info first</span
-                    >
+                    <span class="setting-label">{$t('settings.simple_mode')}</span>
+                    <span class="setting-description">{$t('settings.simple_mode_description')}</span>
                 </div>
             </label>
 
             <div class="setting-row setting-row--column">
                 <div>
-                    <span class="setting-label">Text size</span>
-                    <span class="setting-description"
-                        >Adjust for easier reading</span
-                    >
+                    <span class="setting-label">{$t('settings.text_size')}</span>
+                    <span class="setting-description">{$t('settings.text_size_description')}</span>
                 </div>
                 <div class="slider-container">
                     <span class="slider-label">A</span>
@@ -163,15 +176,14 @@
         <div class="settings-card">
             <h2 class="section-title">
                 <Icon name="bell" size={20} />
-                Notifications
+                {$t('settings.notifications_section')}
             </h2>
 
             <div class="setting-row setting-row--column">
                 <div>
-                    <span class="setting-label">Web push notifications</span>
+                    <span class="setting-label">{$t('settings.web_push')}</span>
                     <span class="setting-description">
-                        Receive "when to consume" indications directly in your
-                        browser. Requires browser permission.
+                        {$t('settings.web_push_description')}
                     </span>
                 </div>
                 <div class="push-buttons">
@@ -180,14 +192,14 @@
                         onclick={enablePush}
                         disabled={pushLoading}
                     >
-                        {pushLoading ? "Loading..." : "Enable"}
+                        {pushLoading ? $t('settings.loading') : $t('settings.enable')}
                     </Button>
                     <Button
                         variant="secondary"
                         onclick={disablePush}
                         disabled={pushLoading}
                     >
-                        Disable
+                        {$t('settings.disable')}
                     </Button>
                 </div>
                 {#if pushMsg}
@@ -201,25 +213,21 @@
                     bind:checked={settings.notifications.email_enabled}
                 />
                 <div>
-                    <span class="setting-label">Email notifications</span>
-                    <span class="setting-description"
-                        >Receive updates via email</span
-                    >
+                    <span class="setting-label">{$t('settings.email_notifications')}</span>
+                    <span class="setting-description">{$t('settings.email_description')}</span>
                 </div>
             </label>
             {#if settings.notifications.email_enabled}
                 <div class="setting-row setting-row--column">
                     <div>
-                        <span class="setting-label">Email address</span>
-                        <span class="setting-description"
-                            >Address used for email notifications</span
-                        >
+                        <span class="setting-label">{$t('settings.email_address')}</span>
+                        <span class="setting-description">{$t('settings.email_address_description')}</span>
                     </div>
                     <input
                         class="email-input"
                         class:email-input--error={!!emailError}
                         type="email"
-                        placeholder="you@example.com"
+                        placeholder={$t('settings.email_placeholder')}
                         bind:value={settings.notifications.email}
                     />
                     {#if emailError}
@@ -230,10 +238,8 @@
 
             <div class="setting-row setting-row--column">
                 <div>
-                    <span class="setting-label">Notification limit</span>
-                    <span class="setting-description"
-                        >Choose how many notifications to show (1-10)</span
-                    >
+                    <span class="setting-label">{$t('settings.notification_limit')}</span>
+                    <span class="setting-description">{$t('settings.notification_limit_description')}</span>
                 </div>
                 <div class="slider-container">
                     <span class="slider-label">1</span>
@@ -254,7 +260,7 @@
 
         <!-- Save Button -->
         <div class="actions">
-            <Button variant="primary" onclick={save}>Save changes</Button>
+            <Button variant="primary" onclick={save}>{$t('settings.save')}</Button>
             {#if saved}
                 <span class="saved-message">
                     <Icon name="check-circle" size={16} />
@@ -354,6 +360,18 @@
         display: block;
         font-weight: 500;
         color: var(--celine-text);
+    }
+
+    .language-select {
+        width: 100%;
+        max-width: 200px;
+        border: 1px solid var(--celine-border);
+        border-radius: var(--celine-radius-md);
+        padding: 0.55rem 0.7rem;
+        font-size: 0.9rem;
+        color: var(--celine-text);
+        background: var(--celine-bg);
+        cursor: pointer;
     }
 
     .email-input {

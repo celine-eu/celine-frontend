@@ -12,7 +12,8 @@
     "@celine-eu/ui": "workspace:*",
     "@celine-eu/assistant-ui": "workspace:*",
     "@sveltejs/kit": "^2.5.0",
-    "svelte": "^5.0.0"
+    "svelte": "^5.0.0",
+    "svelte-i18n": "^4.0.0"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.2.0",

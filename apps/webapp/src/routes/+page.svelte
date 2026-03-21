@@ -6,6 +6,7 @@
   import { Icon, Skeleton } from "@celine-eu/ui";
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
+  import { t, locale } from "svelte-i18n";
 
   let overview: Overview | null = $state(null);
   let err = $state("");
@@ -69,14 +70,14 @@
 
 <section class="overview">
   <header class="page-header">
-    <h1 class="page-title">Overview</h1>
-    <p class="page-subtitle">Your renewable energy community at a glance</p>
+    <h1 class="page-title">{$t('overview.title')}</h1>
+    <p class="page-subtitle">{$t('overview.subtitle')}</p>
   </header>
 
   <!-- Compact weather strip -->
   <a href="/suggestions" class="weather-strip">
     <WeatherWidget data={weatherData} loading={weatherLoading} compact={true} />
-    <span class="weather-strip-link">Solar forecast →</span>
+    <span class="weather-strip-link">{$t('overview.solar_forecast')}</span>
   </a>
 
   <!-- Flexibility opportunities teaser -->
@@ -85,10 +86,10 @@
     <div class="flex-teaser">
       <Icon name="zap" size={18} />
       <div class="flex-teaser-body">
-        <strong>You have {suggestions.length} load-shifting {suggestions.length === 1 ? 'opportunity' : 'opportunities'}.</strong>
-        Earn up to {maxPoints} pts!
+        <strong>{$t('overview.flex_teaser', { values: { count: suggestions.length } })}</strong>
+        {$t('overview.earn_up_to', { values: { points: maxPoints } })}
       </div>
-      <a href="/suggestions" class="flex-teaser-link">View →</a>
+      <a href="/suggestions" class="flex-teaser-link">{$t('overview.view')}</a>
     </div>
   {/if}
 
@@ -96,9 +97,9 @@
     <div class="rec-alert rec-alert--warning" role="status" aria-live="polite">
       <Icon name="alert-triangle" size={20} />
       <div>
-        <strong>No smart meter associated.</strong>
-        Most features are unavailable.
-        <a href="/no-smart-meter" class="alert-link">Learn more →</a>
+        <strong>{$t('overview.no_smart_meter_title')}</strong>
+        {$t('overview.no_smart_meter_body')}
+        <a href="/no-smart-meter" class="alert-link">{$t('overview.learn_more')}</a>
       </div>
     </div>
   {/if}
@@ -124,7 +125,7 @@
     <div class="rec-alert rec-alert--danger" role="alert">
       <Icon name="x-circle" size={20} />
       <div>
-        <strong>Error loading data</strong>
+        <strong>{$t('overview.error_loading')}</strong>
         <p style="margin: 0.25rem 0 0;">{err}</p>
       </div>
     </div>
@@ -134,8 +135,8 @@
       <header class="section-header">
         <Icon name="zap" size={22} class="section-icon" />
         <div>
-          <h2 class="section-title">Your Contribution</h2>
-          <p class="section-period">{overview.period}</p>
+          <h2 class="section-title">{$t('overview.your_contribution')}</h2>
+          <p class="section-period">{$t('overview.last_7_days')}</p>
         </div>
         <AskAssistantButton
           iconOnly
@@ -151,38 +152,35 @@
       {#if hasUserData(overview.user)}
         <div class="stats-grid">
           <StatCard
-            label="Consumption"
+            label={$t('overview.consumption')}
             value={fmt(overview.user.consumption_kwh)}
             unit="kWh"
             variant="consumption"
             icon="plug"
           />
           <StatCard
-            label="Production"
+            label={$t('overview.production')}
             value={fmt(overview.user.production_kwh)}
             unit="kWh"
             variant="production"
             icon="zap"
           />
           <StatCard
-            label="Self-consumption"
+            label={$t('overview.self_consumption')}
             value={fmt(overview.user.self_consumption_kwh)}
             unit="kWh"
             variant="self-consumption"
             icon="battery-charging"
             subtext={overview.user.self_consumption_rate != null
-              ? `${fmtPct(overview.user.self_consumption_rate)} of consumption`
+              ? $t('overview.pct_of_consumption', { values: { pct: fmtPct(overview.user.self_consumption_rate) } })
               : ""}
           />
         </div>
       {:else}
         <div class="empty-state">
           <Icon name="activity" size={40} class="empty-icon" />
-          <p class="empty-title">No personal data available</p>
-          <p class="empty-text">
-            Your energy data will appear here once your smart meter is
-            connected.
-          </p>
+          <p class="empty-title">{$t('overview.no_personal_data_title')}</p>
+          <p class="empty-text">{$t('overview.no_personal_data_body')}</p>
         </div>
       {/if}
     </section>
@@ -192,8 +190,8 @@
       <header class="section-header">
         <Icon name="trending-up" size={22} class="section-icon" />
         <div>
-          <h2 class="section-title">Community Trend</h2>
-          <p class="section-period">Last 7 days</p>
+          <h2 class="section-title">{$t('overview.community_trend')}</h2>
+          <p class="section-period">{$t('overview.last_7_days')}</p>
         </div>
         <AskAssistantButton
           iconOnly
@@ -215,23 +213,23 @@
         <details class="trend-details">
           <summary class="trend-summary">
             <Icon name="chevron-right" size={18} class="trend-chevron" />
-            <span>View detailed data</span>
+            <span>{$t('overview.view_detailed_data')}</span>
           </summary>
           <div class="table-wrapper">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th class="num">Production</th>
-                  <th class="num">Consumption</th>
-                  <th class="num">Self-cons.</th>
+                  <th>{$t('overview.date_col')}</th>
+                  <th class="num">{$t('overview.production')}</th>
+                  <th class="num">{$t('overview.consumption')}</th>
+                  <th class="num">{$t('overview.self_cons_col')}</th>
                 </tr>
               </thead>
               <tbody>
                 {#each overview.trend as row}
                   <tr>
                     <td
-                      >{new Date(row.date).toLocaleDateString(undefined, {
+                      >{new Date(row.date).toLocaleDateString($locale ?? undefined, {
                         weekday: "short",
                         month: "short",
                         day: "numeric",
@@ -251,10 +249,8 @@
       {:else}
         <div class="empty-state">
           <Icon name="activity" size={40} class="empty-icon" />
-          <p class="empty-title">No trend data available</p>
-          <p class="empty-text">
-            Historical data will appear here as it becomes available.
-          </p>
+          <p class="empty-title">{$t('overview.no_trend_title')}</p>
+          <p class="empty-text">{$t('overview.no_trend_body')}</p>
         </div>
       {/if}
     </section>
@@ -264,8 +260,8 @@
       <header class="section-header">
         <Icon name="leaf" size={22} class="section-icon" />
         <div>
-          <h2 class="section-title">Community Totals</h2>
-          <p class="section-period">{overview.period}</p>
+          <h2 class="section-title">{$t('overview.community_totals')}</h2>
+          <p class="section-period">{$t('overview.last_7_days')}</p>
         </div>
         <AskAssistantButton
           iconOnly
@@ -281,28 +277,28 @@
       {#if hasRecData(overview.rec)}
         <div class="stats-grid stats-grid--4">
           <StatCard
-            label="Production"
+            label={$t('overview.production')}
             value={fmt(overview.rec.production_kwh)}
             unit="kWh"
             variant="production"
             icon="zap"
           />
           <StatCard
-            label="Consumption"
+            label={$t('overview.consumption')}
             value={fmt(overview.rec.consumption_kwh)}
             unit="kWh"
             variant="consumption"
             icon="plug"
           />
           <StatCard
-            label="Self-consumed"
+            label={$t('overview.self_consumed')}
             value={fmt(overview.rec.self_consumption_kwh)}
             unit="kWh"
             variant="self-consumption"
             icon="battery-charging"
           />
           <StatCard
-            label="SC Rate"
+            label={$t('overview.sc_rate')}
             value={fmtPct(overview.rec.self_consumption_rate)}
             unit=""
             variant="self-consumption"
@@ -312,8 +308,8 @@
       {:else}
         <div class="empty-state">
           <Icon name="leaf" size={40} class="empty-icon" />
-          <p class="empty-title">No community data available</p>
-          <p class="empty-text">Community energy data will appear here.</p>
+          <p class="empty-title">{$t('overview.no_community_title')}</p>
+          <p class="empty-text">{$t('overview.no_community_body')}</p>
         </div>
       {/if}
     </section>

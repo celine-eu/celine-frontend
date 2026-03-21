@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Icon } from "@celine-eu/ui";
+    import { t } from "svelte-i18n";
 </script>
 
 <section class="not-participant-page">
@@ -7,17 +8,12 @@
         <div class="icon-wrapper">
             <Icon name="users" size={48} />
         </div>
-        <h1 class="page-title">Not yet a participant</h1>
-        <p class="page-text">
-            Your account is not yet registered in the renewable energy community.
-        </p>
-        <p class="page-text">
-            Contact your energy community administrator to register and start
-            participating.
-        </p>
+        <h1 class="page-title">{$t('not_a_participant.title')}</h1>
+        <p class="page-text">{$t('not_a_participant.body_1')}</p>
+        <p class="page-text">{$t('not_a_participant.body_2')}</p>
         <a href="/" class="back-link">
             <Icon name="chevron-left" size={16} />
-            Back to overview
+            {$t('not_a_participant.back')}
         </a>
     </div>
 </section>

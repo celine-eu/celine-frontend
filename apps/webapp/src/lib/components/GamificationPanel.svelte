@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { GamificationResponse } from '$lib/api';
   import { Icon, Skeleton } from '@celine-eu/ui';
+  import { t } from 'svelte-i18n';
 
   interface Props {
     data: GamificationResponse | null;
@@ -9,18 +10,10 @@
 
   let { data, loading = false }: Props = $props();
 
-  const LEVEL_LABELS: Record<number, string> = {
-    1: 'Energy Newcomer',
-    2: 'Grid Helper',
-    3: 'Eco Shifter',
-    4: 'Solar Mover',
-    5: 'Peak Buster',
-    6: 'REC Champion',
-    7: 'Community Hero',
-  };
-
   function levelLabel(level: number): string {
-    return LEVEL_LABELS[level] ?? `Level ${level}`;
+    const key = `gamification.levels.${level}` as Parameters<typeof $t>[0];
+    const label = $t(key);
+    return label !== key ? label : `Level ${level}`;
   }
 
   function progressPct(data: GamificationResponse): number {
@@ -37,7 +30,7 @@
   };
 
   function badgeIcon(badge_id: string, icon: string): string {
-    return BADGE_ICONS[badge_id] ?? icon ?? 'award';
+    return BADGE_ICONS[badge_id] ?? icon ?? 'zap';
   }
 </script>
 
@@ -53,25 +46,25 @@
     <div class="points-section">
       <div class="points-top">
         <span class="points-total">{data.total_points.toLocaleString()}</span>
-        <span class="points-unit">pts</span>
+        <span class="points-unit">{$t('gamification.pts')}</span>
         <span class="level-label">Level {data.level} — {levelLabel(data.level)}</span>
       </div>
-      <div class="progress-wrap" title="{data.total_points} / {data.next_level_at} pts">
+      <div class="progress-wrap" title="{data.total_points} / {data.next_level_at} {$t('gamification.pts')}">
         <div class="progress-bar" style="width: {progressPct(data)}%"></div>
       </div>
       <p class="progress-hint">
-        {data.next_level_at - data.total_points} pts to Level {data.level + 1}
+        {$t('gamification.pts_to_level', { values: { pts: data.next_level_at - data.total_points, level: data.level + 1 } })}
       </p>
     </div>
 
     {#if data.badges && data.badges.length > 0}
       <div class="badges-section">
-        <p class="badges-label">Your badges</p>
+        <p class="badges-label">{$t('gamification.your_badges')}</p>
         <div class="badges-grid">
           {#each data.badges as badge}
-            <div class="badge-chip" title="{badge.label} · earned {new Date(badge.earned_at).toLocaleDateString()}">
-              <Icon name={badgeIcon(badge.badge_id, badge.icon)} size={16} class="badge-icon" />
-              <span class="badge-label">{badge.label}</span>
+            <div class="badge-chip" title="{$t(`gamification.badges.${badge.badge_id}`)} · {$t('gamification.earned')} {new Date(badge.earned_at).toLocaleDateString()}">
+              <Icon name={badgeIcon(badge.badge_id, badge.icon) as any} size={16} class="badge-icon" />
+              <span class="badge-label">{$t(`gamification.badges.${badge.badge_id}`)}</span>
             </div>
           {/each}
         </div>
@@ -81,11 +74,11 @@
     <div class="footer-cta">
       <a href="/suggestions" class="cta-link">
         <Icon name="trending-up" size={14} />
-        Shift loads to earn more points →
+        {$t('gamification.earn_cta')}
       </a>
     </div>
   {:else}
-    <p class="empty">No gamification data yet.</p>
+    <p class="empty">{$t('gamification.no_data')}</p>
   {/if}
 </div>
 

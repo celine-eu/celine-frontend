@@ -2,6 +2,8 @@
   import { Icon, Panel, Skeleton } from '@celine-eu/ui';
   import type { AssistantApi } from '../api.js';
   import type { AttachmentItem } from '../types.js';
+  import { t } from 'svelte-i18n';
+  import { get } from 'svelte/store';
 
   interface Props {
     open: boolean;
@@ -29,7 +31,7 @@
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this attachment?')) return;
+    if (!confirm(get(t)('assistant_ui.delete_attachment'))) return;
     try {
       await api.deleteAttachment(id);
       await load();
@@ -69,7 +71,7 @@
   });
 </script>
 
-<Panel {open} title="Attachments" onClose={onClose}>
+<Panel {open} title={$t('assistant_ui.attachments')} onClose={onClose}>
   <div class="attachments-panel">
     {#if error}
       <div class="error-banner">
@@ -87,8 +89,8 @@
     {:else if items.length === 0}
       <div class="empty">
         <Icon name="folder" size={32} />
-        <p>No attachments yet</p>
-        <p class="hint">Files you upload will appear here</p>
+        <p>{$t('assistant_ui.no_attachments')}</p>
+        <p class="hint">{$t('assistant_ui.attachments_hint')}</p>
       </div>
     {:else}
       <div class="attachment-grid">
@@ -117,14 +119,14 @@
                 href={api.attachmentRawUrl(a.id)}
                 target="_blank"
                 rel="noreferrer"
-                title="Open"
+                title={$t('assistant_ui.open')}
               >
                 <Icon name="external-link" size={16} />
               </a>
               <button
                 class="action-btn action-btn--danger"
                 onclick={() => handleDelete(a.id)}
-                title="Delete"
+                title={$t('assistant_ui.delete')}
               >
                 <Icon name="trash-2" size={16} />
               </button>

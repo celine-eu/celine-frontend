@@ -1,5 +1,6 @@
 <script lang="ts">
     import { Icon } from "@celine-eu/ui";
+    import { t } from "svelte-i18n";
 </script>
 
 <section class="no-meter-page">
@@ -7,18 +8,12 @@
         <div class="icon-wrapper">
             <Icon name="plug" size={48} />
         </div>
-        <h1 class="page-title">Smart meter required</h1>
-        <p class="page-text">
-            Most features in this app require a smart meter associated with your
-            account.
-        </p>
-        <p class="page-text">
-            Please contact your energy community administrator to link your
-            smart meter to your account.
-        </p>
+        <h1 class="page-title">{$t('no_smart_meter.title')}</h1>
+        <p class="page-text">{$t('no_smart_meter.body_1')}</p>
+        <p class="page-text">{$t('no_smart_meter.body_2')}</p>
         <a href="/" class="back-link">
             <Icon name="chevron-left" size={16} />
-            Back to overview
+            {$t('no_smart_meter.back')}
         </a>
     </div>
 </section>

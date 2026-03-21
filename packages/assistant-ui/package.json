@@ -15,7 +15,8 @@
     "src"
   ],
   "peerDependencies": {
-    "svelte": "^5.0.0"
+    "svelte": "^5.0.0",
+    "svelte-i18n": "^4.0.0"
   },
   "dependencies": {
     "@celine-eu/ui": "workspace:*",

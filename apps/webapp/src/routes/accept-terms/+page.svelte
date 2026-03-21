@@ -1,6 +1,7 @@
 <script lang="ts">
     import { api } from "$lib/api";
     import { Button, Icon } from "@celine-eu/ui";
+    import { t } from "svelte-i18n";
 
     let err = $state("");
     let submitting = $state(false);
@@ -21,23 +22,17 @@
 
 <section class="accept-terms">
     <header class="page-header">
-        <h1 class="page-title">Before you continue</h1>
-        <p class="page-subtitle">
-            Please accept our Privacy Policy and Legal Terms.
-        </p>
+        <h1 class="page-title">{$t('accept_terms.title')}</h1>
+        <p class="page-subtitle">{$t('accept_terms.subtitle')}</p>
     </header>
 
     <div class="terms-card">
         <div class="terms-content">
             <ul class="terms-list">
-                <li><a href="/privacy">Privacy Policy</a></li>
-                <li><a href="/terms">Legal Terms</a></li>
+                <li><a href="/privacy">{$t('accept_terms.privacy_policy')}</a></li>
+                <li><a href="/terms">{$t('accept_terms.legal_terms')}</a></li>
             </ul>
-            <p class="terms-note">
-                We store your acceptance with your account identifier, the
-                policy version date, your IP address, and a timestamp. If the
-                policy version changes, you will be asked to accept again.
-            </p>
+            <p class="terms-note">{$t('accept_terms.note')}</p>
         </div>
 
         {#if err}
@@ -48,7 +43,7 @@
         {/if}
 
         <Button variant="primary" onclick={accept} disabled={submitting}>
-            {submitting ? "Saving…" : "I accept and continue"}
+            {submitting ? $t('accept_terms.saving') : $t('accept_terms.accept')}
         </Button>
     </div>
 </section>

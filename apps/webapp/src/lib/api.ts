@@ -10,6 +10,7 @@ export type Me = {
   font_scale: number;
   notification_permission: 'default' | 'granted' | 'denied';
   webpush_configured: boolean;
+  locale?: string;
 };
 
 export type OverviewUser = {
@@ -172,18 +173,18 @@ export type SuggestionItem = {
   suggestion_type: string;
   period_start: string;
   period_end: string;
-  from_label: string;
-  to_label: string;
+  from_period: string;
+  clock_range: string;
+  to_is_tomorrow: boolean;
+  to_period: string;
+  to_time: string;
   impact_kwh_estimated: number;
   reward_points: number;
   confidence: number;
-  description: string;
-  reason: string;
 };
 
 export type BadgeItem = {
   badge_id: string;
-  label: string;
   icon: string;
   earned_at: string;
 };

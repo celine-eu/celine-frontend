@@ -3,6 +3,7 @@
   import { WeatherWidget, ForecastCard, SuggestionCard, GamificationPanel } from '$lib/components';
   import { Icon, Skeleton } from '@celine-eu/ui';
   import { onMount } from 'svelte';
+  import { t } from 'svelte-i18n';
 
   let weatherData = $state<WeatherResponse | null>(null);
   let weatherLoading = $state(true);
@@ -44,17 +45,17 @@
 
 <section class="suggestions-page">
   <header class="page-header">
-    <h1 class="page-title">Load-Shifting Opportunities</h1>
-    <p class="page-subtitle">Shift your energy use to solar hours and earn points</p>
+    <h1 class="page-title">{$t('suggestions.title')}</h1>
+    <p class="page-subtitle">{$t('suggestions.subtitle')}</p>
   </header>
 
   <!-- Weather context -->
   <section class="section-card">
     <header class="section-header">
-      <Icon name="cloud" size={22} class="section-icon" />
+      <Icon name="sun" size={22} class="section-icon" />
       <div>
-        <h2 class="section-title">Weather & Solar Forecast</h2>
-        <p class="section-period">Current conditions and solar potential</p>
+        <h2 class="section-title">{$t('suggestions.weather_section_title')}</h2>
+        <p class="section-period">{$t('suggestions.weather_section_period')}</p>
       </div>
     </header>
     <WeatherWidget data={weatherData} loading={weatherLoading} />
@@ -65,8 +66,8 @@
     <header class="section-header">
       <Icon name="activity" size={22} class="section-icon" />
       <div>
-        <h2 class="section-title">48h Energy Outlook</h2>
-        <p class="section-period">Your meter and community forecast with confidence bands</p>
+        <h2 class="section-title">{$t('suggestions.forecast_section_title')}</h2>
+        <p class="section-period">{$t('suggestions.forecast_section_period')}</p>
       </div>
     </header>
     <ForecastCard data={forecastData} loading={forecastLoading} />
@@ -77,8 +78,8 @@
     <header class="section-header">
       <Icon name="zap" size={22} class="section-icon" />
       <div>
-        <h2 class="section-title">Your Opportunities</h2>
-        <p class="section-period">Ranked load-shifting suggestions</p>
+        <h2 class="section-title">{$t('suggestions.opportunities_title')}</h2>
+        <p class="section-period">{$t('suggestions.opportunities_period')}</p>
       </div>
     </header>
 
@@ -99,11 +100,8 @@
     {:else}
       <div class="empty-state">
         <Icon name="sun" size={40} class="empty-icon" />
-        <p class="empty-title">No opportunities right now</p>
-        <p class="empty-text">
-          Check back after the next forecast — opportunities appear when the community
-          has excess solar energy.
-        </p>
+        <p class="empty-title">{$t('suggestions.no_opportunities_title')}</p>
+        <p class="empty-text">{$t('suggestions.no_opportunities_body')}</p>
       </div>
     {/if}
   </section>
@@ -113,8 +111,8 @@
     <header class="section-header">
       <Icon name="trending-up" size={22} class="section-icon" />
       <div>
-        <h2 class="section-title">Your Progress</h2>
-        <p class="section-period">Points, level and badges</p>
+        <h2 class="section-title">{$t('suggestions.progress_title')}</h2>
+        <p class="section-period">{$t('suggestions.progress_period')}</p>
       </div>
     </header>
     <GamificationPanel data={gamification} loading={gamificationLoading} />

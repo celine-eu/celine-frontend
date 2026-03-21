@@ -1,0 +1,37 @@
+{
+  "assistant": {
+    "page_title": "CELINE Assistant"
+  },
+  "assistant_ui": {
+    "title": "Assistant",
+    "history": "History",
+    "attachments": "Attachments",
+    "sources": "Sources",
+    "close": "Close",
+    "show_history": "Show history",
+    "show_attachments": "Show attachments",
+    "show_sources": "Show sources",
+    "close_assistant": "Close assistant",
+    "reindex": "Reindex documents",
+    "reload": "Reload",
+    "attach_files": "Attach files",
+    "type_message": "Type a message...",
+    "message_label": "Message",
+    "send_message": "Send message",
+    "remove": "Remove",
+    "start_conversation": "Start a conversation",
+    "assistant_generating": "Assistant is generating",
+    "new_conversation": "New conversation",
+    "no_conversations": "No conversations yet",
+    "delete_conversation": "Delete conversation",
+    "delete_conversation_confirm": "Delete this conversation?",
+    "yesterday": "Yesterday",
+    "msgs": "msgs",
+    "no_attachments": "No attachments yet",
+    "attachments_hint": "Files you upload will appear here",
+    "delete_attachment": "Delete this attachment?",
+    "open": "Open",
+    "delete": "Delete",
+    "source": "{count, plural, one {# source} other {# sources}}"
+  }
+}

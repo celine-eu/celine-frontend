@@ -3,6 +3,7 @@
   import { Icon } from '@celine-eu/ui';
   import Markdown from './Markdown.svelte';
   import type { Message } from '../types.js';
+  import { t } from 'svelte-i18n';
 
   interface Props {
     messages: Message[];
@@ -32,14 +33,14 @@
       <div class="empty-icon">
         <Icon name="message-circle" size={48} strokeWidth={1.5} />
       </div>
-      <p>Start a conversation</p>
+      <p>{$t('assistant_ui.start_conversation')}</p>
     </div>
   {:else}
     {#each messages as m, idx (idx)}
       <div class="message message--{m.role}">
         <div class="bubble">
           {#if m.role === 'assistant' && assistantLoading && idx === messages.length - 1 && (!m.content || m.content.trim().length === 0)}
-            <div class="typing" aria-label="Assistant is generating">
+            <div class="typing" aria-label={$t('assistant_ui.assistant_generating')}>
               <span class="dot"></span>
               <span class="dot"></span>
               <span class="dot"></span>
@@ -74,7 +75,7 @@
             <details class="sources">
               <summary>
                 <Icon name="file" size={14} />
-                <span>{m.sources.length} source{m.sources.length > 1 ? 's' : ''}</span>
+                <span>{$t('assistant_ui.source', { values: { count: m.sources.length } })}</span>
               </summary>
               <ul>
                 {#each m.sources as s (s.source + (s.title ?? ''))}

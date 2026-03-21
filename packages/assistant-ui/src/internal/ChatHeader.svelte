@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Icon } from "@celine-eu/ui";
+  import { t } from "svelte-i18n";
 
   interface Props {
     title?: string;
@@ -16,7 +17,7 @@
   }
 
   let {
-    title = "Assistant",
+    title = $t('assistant_ui.title'),
     showCitations = $bindable(true),
     enableHistory = true,
     enableAttachments = true,
@@ -49,8 +50,8 @@
       <button
         class="header-btn"
         onclick={onToggleHistory}
-        title="History"
-        aria-label="Show history"
+        title={$t('assistant_ui.history')}
+        aria-label={$t('assistant_ui.show_history')}
       >
         <Icon name="history" size={18} />
       </button>
@@ -60,20 +61,20 @@
       <button
         class="header-btn"
         onclick={onToggleAttachments}
-        title="Attachments"
-        aria-label="Show attachments"
+        title={$t('assistant_ui.attachments')}
+        aria-label={$t('assistant_ui.show_attachments')}
       >
         <Icon name="folder" size={18} />
       </button>
     {/if}
 
-    <label class="citations-toggle" title="Show sources">
+    <label class="citations-toggle" title={$t('assistant_ui.show_sources')}>
       <input
         type="checkbox"
         checked={showCitations}
         onchange={handleCitationsChange}
       />
-      <span class="toggle-label">Sources</span>
+      <span class="toggle-label">{$t('assistant_ui.sources')}</span>
     </label>
 
     {#if isAdmin}
@@ -81,14 +82,14 @@
         <button
           class="header-btn header-btn--admin"
           onclick={onReindex}
-          title="Reindex documents"
+          title={$t('assistant_ui.reindex')}
         >
           <Icon name="refresh-cw" size={16} />
         </button>
         <button
           class="header-btn header-btn--admin"
           onclick={onReload}
-          title="Reload"
+          title={$t('assistant_ui.reload')}
         >
           <Icon name="download" size={16} />
         </button>
@@ -99,8 +100,8 @@
       <button
         class="header-btn header-btn--close"
         onclick={onClose}
-        title="Close"
-        aria-label="Close assistant"
+        title={$t('assistant_ui.close')}
+        aria-label={$t('assistant_ui.close_assistant')}
       >
         <Icon name="x" size={20} />
       </button>

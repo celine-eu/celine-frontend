@@ -1,5 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
+import { setupI18n } from '$lib/i18n';
+import { waitLocale } from 'svelte-i18n';
 
 export const load: LayoutLoad = async ({ url, fetch }) => {
   let status = 0;
@@ -15,4 +17,7 @@ export const load: LayoutLoad = async ({ url, fetch }) => {
     const returnTo = `${url.origin}${url.pathname}${url.search}`;
     throw redirect(303, `/oauth2/sign_in?rd=${encodeURIComponent(returnTo)}`);
   }
+
+  setupI18n();
+  await waitLocale();
 };

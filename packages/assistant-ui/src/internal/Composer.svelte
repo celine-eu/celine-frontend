@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Icon } from "@celine-eu/ui";
   import { tick } from "svelte";
+  import { t } from "svelte-i18n";
   import type { Attachment } from "../types.js";
 
   interface Props {
@@ -97,8 +98,8 @@
             class="chip-remove"
             onclick={() => onRemoveAttachment(a.id)}
             disabled={busy}
-            aria-label="Remove {a.filename}"
-            title="Remove"
+            aria-label="{$t('assistant_ui.remove')} {a.filename}"
+            title={$t('assistant_ui.remove')}
           >
             <Icon name="x" size={14} />
           </button>
@@ -114,8 +115,8 @@
         class="btn-icon"
         onclick={pickFiles}
         disabled={busy}
-        title="Attach files"
-        aria-label="Attach files"
+        title={$t('assistant_ui.attach_files')}
+        aria-label={$t('assistant_ui.attach_files')}
       >
         <Icon name="paperclip" size={20} />
       </button>
@@ -125,9 +126,9 @@
       class="input"
       bind:this={inputEl}
       bind:value
-      placeholder="Type a message..."
+      placeholder={$t('assistant_ui.type_message')}
       readonly={busy}
-      aria-label="Message"
+      aria-label={$t('assistant_ui.message_label')}
       rows="1"
       onkeydown={handleKeydown}
     ></textarea>
@@ -136,8 +137,8 @@
       type="submit"
       class="btn-send"
       disabled={busy || (!value.trim() && attachments.length === 0)}
-      title="Send message"
-      aria-label="Send message"
+      title={$t('assistant_ui.send_message')}
+      aria-label={$t('assistant_ui.send_message')}
     >
       <Icon name="send" size={20} />
     </button>

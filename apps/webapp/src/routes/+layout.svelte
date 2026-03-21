@@ -6,6 +6,7 @@
   import "@celine-eu/ui/theme.css";
   import type { Snippet } from "svelte";
   import { onMount } from "svelte";
+  import { t, locale } from "svelte-i18n";
 
   interface Props {
     data: { me: Me | null; needs_terms: boolean; community: CommunityMeta | null };
@@ -18,11 +19,17 @@
     meStore.set(data.me);
   });
 
+  $effect(() => {
+    if ($locale) {
+      localStorage.setItem('locale', $locale);
+    }
+  });
+
   const navItems = [
-    { href: "/", label: "Overview", icon: "home" as const },
-    { href: "/notifications", label: "Alerts", icon: "bell" as const },
-    { href: "/assistant", label: "Assistant", icon: "bot" as const },
-    { href: "/settings", label: "Settings", icon: "settings" as const },
+    { href: "/", labelKey: "nav.overview", icon: "home" as const },
+    { href: "/notifications", labelKey: "nav.alerts", icon: "bell" as const },
+    { href: "/assistant", labelKey: "nav.assistant", icon: "bot" as const },
+    { href: "/settings", labelKey: "nav.settings", icon: "settings" as const },
   ];
 
   function isActive(href: string, pathname: string): boolean {
@@ -59,8 +66,8 @@
         <a
           href="/oauth2/sign_out?rd={encodeURIComponent($page.url.origin + '/oauth2/sign_in')}"
           class="logout-btn"
-          aria-label="Sign out"
-          title="Sign out"
+          aria-label={$t('layout.sign_out')}
+          title={$t('layout.sign_out')}
         >
           <Icon name="log-out" size={20} />
         </a>
@@ -73,8 +80,8 @@
       <div class="rec-alert rec-alert--warning">
         <Icon name="alert-circle" size={20} />
         <div>
-          <strong>Backend not reachable.</strong>
-          The UI shell is loaded, but data is unavailable.
+          <strong>{$t('layout.backend_unreachable_title')}</strong>
+          {$t('layout.backend_unreachable_body')}
         </div>
       </div>
     {/if}
@@ -93,7 +100,7 @@
         {/if}
         {#if data.community.vat}
           <span class="footer-sep">·</span>
-          <span>VAT {data.community.vat}</span>
+          <span>{$t('layout.vat')} {data.community.vat}</span>
         {/if}
         {#if data.community.email}
           <span class="footer-sep">·</span>
@@ -101,7 +108,7 @@
         {/if}
         {#if data.community.pec}
           <span class="footer-sep">·</span>
-          <a href="mailto:{data.community.pec}" class="footer-link">PEC: {data.community.pec}</a>
+          <a href="mailto:{data.community.pec}" class="footer-link">{$t('layout.pec')} {data.community.pec}</a>
         {/if}
         {#if data.community.phone}
           <span class="footer-sep">·</span>
@@ -109,15 +116,15 @@
         {/if}
         {#if data.community.website}
           <span class="footer-sep">·</span>
-          <a href={data.community.website} class="footer-link" target="_blank" rel="noopener">Website</a>
+          <a href={data.community.website} class="footer-link" target="_blank" rel="noopener">{$t('layout.website')}</a>
         {/if}
         {#if data.community.terms_url}
           <span class="footer-sep">·</span>
-          <a href={data.community.terms_url} class="footer-link" target="_blank" rel="noopener">Terms</a>
+          <a href={data.community.terms_url} class="footer-link" target="_blank" rel="noopener">{$t('layout.terms')}</a>
         {/if}
         {#if data.community.privacy_url}
           <span class="footer-sep">·</span>
-          <a href={data.community.privacy_url} class="footer-link" target="_blank" rel="noopener">Privacy</a>
+          <a href={data.community.privacy_url} class="footer-link" target="_blank" rel="noopener">{$t('layout.privacy')}</a>
         {/if}
       </div>
     </footer>
@@ -131,7 +138,7 @@
           <span class="nav-item__icon">
             <Icon name={item.icon} size={22} />
           </span>
-          <span class="nav-item__label">{item.label}</span>
+          <span class="nav-item__label">{$t(item.labelKey)}</span>
         </a>
       {/each}
     </div>

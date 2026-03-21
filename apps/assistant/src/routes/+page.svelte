@@ -1,13 +1,14 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { ChatCore } from '@celine-eu/assistant-ui';
+  import { t } from 'svelte-i18n';
 
   // Get conversation_id from URL if present
   const conversationId = $derived($page.url.searchParams.get('conversation_id'));
 </script>
 
 <svelte:head>
-  <title>CELINE Assistant</title>
+  <title>{$t('assistant.page_title')}</title>
 </svelte:head>
 
 <main class="chat-page">

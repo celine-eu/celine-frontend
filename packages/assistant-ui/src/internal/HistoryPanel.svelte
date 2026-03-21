@@ -2,6 +2,8 @@
   import { Icon, Panel, Skeleton } from "@celine-eu/ui";
   import type { AssistantApi } from "../api.js";
   import type { Conversation } from "../types.js";
+  import { t } from "svelte-i18n";
+  import { get } from "svelte/store";
 
   interface Props {
     open: boolean;
@@ -40,7 +42,7 @@
 
   async function handleDelete(id: string, e: MouseEvent) {
     e.stopPropagation();
-    if (!confirm("Delete this conversation?")) return;
+    if (!confirm(get(t)('assistant_ui.delete_conversation_confirm'))) return;
     try {
       await api.deleteConversation(id);
       await load();
@@ -63,7 +65,7 @@
           minute: "2-digit",
         });
       } else if (diffDays === 1) {
-        return "Yesterday";
+        return get(t)('assistant_ui.yesterday');
       } else if (diffDays < 7) {
         return date.toLocaleDateString([], { weekday: "short" });
       } else {
@@ -81,11 +83,11 @@
   });
 </script>
 
-<Panel {open} title="History" {onClose}>
+<Panel {open} title={$t('assistant_ui.history')} {onClose}>
   <div class="history-panel">
     <button class="new-chat-btn" onclick={onNewConversation}>
       <Icon name="message-square" size={18} />
-      <span>New conversation</span>
+      <span>{$t('assistant_ui.new_conversation')}</span>
     </button>
 
     {#if error}
@@ -107,7 +109,7 @@
     {:else if items.length === 0}
       <div class="empty">
         <Icon name="message-circle" size={32} />
-        <p>No conversations yet</p>
+        <p>{$t('assistant_ui.no_conversations')}</p>
       </div>
     {:else}
       <ul class="conversation-list">
@@ -128,7 +130,7 @@
                   <span class="conversation-date"
                     >{formatDate(c.last_message_at)}</span
                   >
-                  <span class="conversation-count">{c.message_count} msgs</span>
+                  <span class="conversation-count">{c.message_count} {$t('assistant_ui.msgs')}</span>
                 </div>
                 {#if c.last_snippet}
                   <div class="conversation-snippet">
@@ -139,8 +141,8 @@
               <button
                 class="delete-btn"
                 onclick={(e) => handleDelete(c.conversation_id, e)}
-                title="Delete conversation"
-                aria-label="Delete conversation"
+                title={$t('assistant_ui.delete_conversation')}
+                aria-label={$t('assistant_ui.delete_conversation')}
               >
                 <Icon name="trash-2" size={16} />
               </button>
