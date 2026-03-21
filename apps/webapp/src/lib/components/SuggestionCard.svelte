@@ -10,9 +10,10 @@
 
   let { suggestion, ongamificationupdated }: Props = $props();
 
-  type State = 'idle' | 'loading' | 'accepted' | 'declined' | 'error';
+  type State = 'idle' | 'loading' | 'committed' | 'accepted' | 'declined' | 'error';
   let state = $state<State>('idle');
   let earnedPoints = $state(0);
+  let windowEnd = $state('');
   let errorMsg = $state('');
 
   const TYPE_ICONS: Record<string, string> = {
@@ -25,14 +26,33 @@
     return TYPE_ICONS[t] ?? 'zap';
   }
 
+  function fmtPeriodEnd(isoStr: string): string {
+    try {
+      return new Date(isoStr).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return isoStr;
+    }
+  }
+
   async function respond(response: 'accepted' | 'declined') {
     state = 'loading';
     try {
-      const result = await api.suggestionRespond(suggestion.id, response);
+      const result = await api.suggestionRespond(suggestion.id, response, suggestion.reward_points);
       if (response === 'accepted') {
-        earnedPoints = suggestion.reward_points;
-        state = 'accepted';
         ongamificationupdated?.(result);
+        if (result.pending_commitment) {
+          if (result.pending_commitment.status === 'settled') {
+            earnedPoints = result.pending_commitment.reward_points_actual ?? suggestion.reward_points;
+            state = 'accepted';
+          } else {
+            earnedPoints = result.pending_commitment.reward_points_estimated;
+            windowEnd = fmtPeriodEnd(result.pending_commitment.period_end);
+            state = 'committed';
+          }
+        } else {
+          earnedPoints = suggestion.reward_points;
+          state = 'accepted';
+        }
       } else {
         state = 'declined';
       }
@@ -44,11 +64,16 @@
 </script>
 
 {#if state !== 'declined'}
-  <div class="suggestion-card" class:accepted={state === 'accepted'}>
+  <div class="suggestion-card" class:accepted={state === 'accepted'} class:committed={state === 'committed'}>
     {#if state === 'accepted'}
       <div class="confirmation">
         <Icon name="check-circle" size={20} class="check-icon" />
         <span>Done! <strong>+{earnedPoints} pts</strong> added to your score.</span>
+      </div>
+    {:else if state === 'committed'}
+      <div class="commitment">
+        <Icon name="clock" size={20} class="clock-icon" />
+        <span>Committed! <strong>~{earnedPoints} pts</strong> pending — we'll verify after {windowEnd}.</span>
       </div>
     {:else}
       <div class="card-header">
@@ -116,6 +141,11 @@
     background: var(--celine-success-bg, rgba(34,197,94,0.05));
   }
 
+  .suggestion-card.committed {
+    border-color: var(--celine-warning, #f59e0b);
+    background: rgba(245,158,11,0.05);
+  }
+
   .confirmation {
     display: flex;
     align-items: center;
@@ -125,6 +155,16 @@
     padding: var(--celine-space-sm) 0;
   }
   :global(.check-icon) { color: var(--celine-success); }
+
+  .commitment {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--celine-warning-text, #92400e);
+    font-size: 0.875rem;
+    padding: var(--celine-space-sm) 0;
+  }
+  :global(.clock-icon) { color: var(--celine-warning, #f59e0b); }
 
   .card-header {
     display: flex;

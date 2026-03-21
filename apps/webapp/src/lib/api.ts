@@ -89,6 +89,21 @@ async function j<T>(url: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+export type CommunityMeta = {
+  key: string;
+  name: string;
+  description?: string | null;
+  legal_name?: string | null;
+  legal_form?: string | null;
+  vat?: string | null;
+  email?: string | null;
+  pec?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  terms_url?: string | null;
+  privacy_url?: string | null;
+};
+
 export type WeatherCurrent = {
   temp: number;
   humidity: number;
@@ -136,6 +151,7 @@ export type WeatherResponse = {
   daily: WeatherDayItem[];
   hourly_irradiance: WeatherIrradianceItem[];
   alerts: WeatherAlertItem[];
+  irradiance_date?: string | null;
 };
 
 export type ForecastHourItem = {
@@ -172,12 +188,24 @@ export type BadgeItem = {
   earned_at: string;
 };
 
+export type FlexibilityCommitmentItem = {
+  id: string;
+  suggestion_id: string;
+  status: 'committed' | 'settled' | 'rejected';
+  period_end: string;
+  reward_points_estimated: number;
+  reward_points_actual?: number | null;
+  committed_at: string;
+  settled_at?: string | null;
+};
+
 export type GamificationResponse = {
   total_points: number;
   level: number;
   next_level_at: number;
   badges: BadgeItem[];
   actions_taken: number;
+  pending_commitment?: FlexibilityCommitmentItem | null;
 };
 
 export const api = {
@@ -197,13 +225,14 @@ export const api = {
   unsubscribeWebPush: (endpoint: string) =>
     j<{ ok: true }>('/api/notifications/webpush/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }),
   enableNotifications: () => j<{ ok: true }>('/api/notifications/enable', { method: 'POST', body: JSON.stringify({ enable: true }) }),
+  community: () => j<CommunityMeta>('/api/community'),
   weather: () => j<WeatherResponse>('/api/weather'),
   forecast: () => j<ForecastResponse>('/api/forecast'),
   suggestions: () => j<SuggestionItem[]>('/api/suggestions'),
-  suggestionRespond: (id: string, response: 'accepted' | 'declined') =>
+  suggestionRespond: (id: string, response: 'accepted' | 'declined', reward_points?: number) =>
     j<GamificationResponse>(`/api/suggestions/${id}/respond`, {
       method: 'POST',
-      body: JSON.stringify({ response })
+      body: JSON.stringify({ response, ...(reward_points !== undefined ? { reward_points } : {}) })
     }),
   gamification: () => j<GamificationResponse>('/api/gamification'),
 };

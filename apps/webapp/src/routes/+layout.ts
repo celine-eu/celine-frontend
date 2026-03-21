@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
+import type { CommunityMeta } from '$lib/api';
 
 export const load: LayoutLoad = async ({ url, fetch }) => {
   let me = null;
@@ -15,18 +16,19 @@ export const load: LayoutLoad = async ({ url, fetch }) => {
     // Network error — backend unreachable
   }
 
+  // 401 here means JWT validation failed inside the app (not a missing session).
+  // Caddy/oauth2-proxy redirects unauthenticated users before SvelteKit runs,
+  // so redirecting to /oauth2/sign_in from here would just loop.
+  // Return null user and let the UI handle it gracefully.
   if (status === 401) {
-    const returnTo = `${url.origin}${url.pathname}${url.search}`;
-    throw redirect(303, `/oauth2/sign_in?rd=${encodeURIComponent(returnTo)}`);
+    return { me: null, needs_terms: false, community: null };
   }
 
-  // If backend is unavailable, still render a basic shell with an error message.
   if (!me) {
-    return { me: null, needs_terms: false };
+    return { me: null, needs_terms: false, community: null };
   }
 
   const path = url.pathname;
-
   const publicRoutes = new Set(['/privacy', '/terms', '/accept-terms']);
   const needs_terms = me.terms_required;
 
@@ -34,5 +36,13 @@ export const load: LayoutLoad = async ({ url, fetch }) => {
     throw redirect(303, '/accept-terms');
   }
 
-  return { me, needs_terms };
+  let community: CommunityMeta | null = null;
+  try {
+    const res = await fetch('/api/community', { credentials: 'include' });
+    if (res.ok) community = await res.json();
+  } catch {
+    // non-fatal
+  }
+
+  return { me, needs_terms, community };
 };

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import type { Me } from "$lib/api";
+  import type { Me, CommunityMeta } from "$lib/api";
   import { meStore } from "$lib/stores";
   import { Icon, ThemeToggle } from "@celine-eu/ui";
   import "@celine-eu/ui/theme.css";
@@ -8,7 +8,7 @@
   import { onMount } from "svelte";
 
   interface Props {
-    data: { me: Me | null; needs_terms: boolean };
+    data: { me: Me | null; needs_terms: boolean; community: CommunityMeta | null };
     children: Snippet;
   }
 
@@ -44,7 +44,7 @@
 </script>
 
 <svelte:head>
-  <title>REC Webapp</title>
+  <title>{data.community?.name ?? 'REC'} Webapp</title>
 </svelte:head>
 
 <div class="app-shell" class:app-shell--fixed={isAssistantPage}>
@@ -52,7 +52,7 @@
     <div class="top-header__content">
       <div class="top-header__brand">
         <Icon name="leaf" size={24} class="brand-icon" />
-        <span class="brand-text">REC</span>
+        <a href="/" class="brand-link">{data.community?.name ?? 'REC'}</a>
       </div>
       <div class="top-header__actions">
         <ThemeToggle />
@@ -80,6 +80,48 @@
     {/if}
     {@render children()}
   </div>
+
+  {#if data.community && (data.community.vat || data.community.email || data.community.pec || data.community.phone || data.community.website || data.community.terms_url || data.community.privacy_url)}
+    <footer class="app-footer">
+      <div class="app-footer__inner">
+        {#if data.community.legal_name}
+          <span class="footer-name">{data.community.legal_name}</span>
+        {/if}
+        {#if data.community.legal_form}
+          <span class="footer-sep">·</span>
+          <span>{data.community.legal_form}</span>
+        {/if}
+        {#if data.community.vat}
+          <span class="footer-sep">·</span>
+          <span>VAT {data.community.vat}</span>
+        {/if}
+        {#if data.community.email}
+          <span class="footer-sep">·</span>
+          <a href="mailto:{data.community.email}" class="footer-link">{data.community.email}</a>
+        {/if}
+        {#if data.community.pec}
+          <span class="footer-sep">·</span>
+          <a href="mailto:{data.community.pec}" class="footer-link">PEC: {data.community.pec}</a>
+        {/if}
+        {#if data.community.phone}
+          <span class="footer-sep">·</span>
+          <a href="tel:{data.community.phone}" class="footer-link">{data.community.phone}</a>
+        {/if}
+        {#if data.community.website}
+          <span class="footer-sep">·</span>
+          <a href={data.community.website} class="footer-link" target="_blank" rel="noopener">Website</a>
+        {/if}
+        {#if data.community.terms_url}
+          <span class="footer-sep">·</span>
+          <a href={data.community.terms_url} class="footer-link" target="_blank" rel="noopener">Terms</a>
+        {/if}
+        {#if data.community.privacy_url}
+          <span class="footer-sep">·</span>
+          <a href={data.community.privacy_url} class="footer-link" target="_blank" rel="noopener">Privacy</a>
+        {/if}
+      </div>
+    </footer>
+  {/if}
 
   <nav class="bottom-nav" aria-label="Primary">
     <div class="bottom-nav__container">
@@ -163,10 +205,50 @@
     color: var(--celine-primary);
   }
 
-  .brand-text {
+  .brand-link {
     font-size: 1.125rem;
     font-weight: 700;
     color: var(--celine-text);
+    text-decoration: none;
+  }
+
+  .brand-link:hover {
+    color: var(--celine-primary);
+  }
+
+  .app-footer {
+    max-width: 900px;
+    margin: var(--celine-space-lg) auto var(--celine-space-sm);
+    padding: 0 var(--celine-space-md);
+  }
+
+  .app-footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--celine-text-secondary);
+    padding: var(--celine-space-sm) 0;
+    border-top: 1px solid var(--celine-border);
+  }
+
+  .footer-name {
+    font-weight: 600;
+  }
+
+  .footer-sep {
+    opacity: 0.4;
+  }
+
+  .footer-link {
+    color: var(--celine-text-secondary);
+    text-decoration: none;
+  }
+
+  .footer-link:hover {
+    color: var(--celine-primary);
+    text-decoration: underline;
   }
 
   .logout-btn {

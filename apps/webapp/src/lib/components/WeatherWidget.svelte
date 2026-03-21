@@ -28,12 +28,44 @@
     Tornado: 'wind',
   };
 
+  const WEATHER_EMOJI: Record<string, string> = {
+    Clear: '☀️',
+    Clouds: '☁️',
+    Rain: '🌧️',
+    Drizzle: '🌦️',
+    Thunderstorm: '⛈️',
+    Snow: '❄️',
+    Mist: '🌫️',
+    Fog: '🌫️',
+    Haze: '🌫️',
+    Smoke: '🌫️',
+    Dust: '🌪️',
+    Sand: '🌪️',
+    Ash: '🌋',
+    Squall: '💨',
+    Tornado: '🌪️',
+  };
+
   function weatherIcon(main: string): string {
     return WEATHER_ICONS[main] ?? 'cloud';
   }
 
+  function weatherEmoji(main: string): string {
+    return WEATHER_EMOJI[main] ?? '🌡️';
+  }
+
   function shortDay(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short' });
+  }
+
+  function safeTemp(temp: number): string {
+    if (temp < -50 || temp > 60) return '—';
+    return temp.toFixed(0);
+  }
+
+  function irradianceDay(dateStr: string | null | undefined): string {
+    if (!dateStr) return 'today';
+    return new Date(dateStr).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
   let alertsExpanded = $state<Record<number, boolean>>({});
@@ -45,8 +77,8 @@
     {#if loading}
       <Skeleton variant="text" width="120px" />
     {:else if data?.current}
-      <Icon name={weatherIcon(data.current.weather_main)} size={18} />
-      <span class="compact-temp">{data.current.temp.toFixed(0)}°C</span>
+      <span class="weather-emoji-sm" aria-label={data.current.weather_main}>{weatherEmoji(data.current.weather_main)}</span>
+      <span class="compact-temp">{safeTemp(data.current.temp)}°C</span>
       <span class="compact-desc">{data.current.weather_description}</span>
       {#if data.alerts && data.alerts.length > 0}
         <span class="alert-badge" title={data.alerts[0].event}>
@@ -100,17 +132,17 @@
       {#if data.current}
         <div class="current-row">
           <div class="current-main">
-            <Icon name={weatherIcon(data.current.weather_main)} size={48} class="weather-icon-lg" />
+            <span class="weather-emoji-lg" aria-label={data.current.weather_main}>{weatherEmoji(data.current.weather_main)}</span>
             <div>
-              <span class="current-temp">{data.current.temp.toFixed(0)}°C</span>
+              <span class="current-temp">{safeTemp(data.current.temp)}°C</span>
               <span class="current-desc">{data.current.weather_description}</span>
             </div>
           </div>
           <div class="current-chips">
-            <span class="chip"><Icon name="droplets" size={14} /> {data.current.humidity}%</span>
-            <span class="chip"><Icon name="sun" size={14} /> UV {data.current.uvi.toFixed(1)}</span>
-            <span class="chip"><Icon name="wind" size={14} /> {data.current.wind_deg}°</span>
-            <span class="chip"><Icon name="cloud" size={14} /> {data.current.clouds}%</span>
+            <span class="chip">💧 {data.current.humidity}%</span>
+            <span class="chip">☀️ UV {data.current.uvi.toFixed(1)}</span>
+            <span class="chip">💨 {data.current.wind_deg}°</span>
+            <span class="chip">☁️ {data.current.clouds}%</span>
           </div>
         </div>
       {/if}
@@ -121,10 +153,10 @@
           {#each data.daily as day}
             <div class="day-card">
               <span class="day-label">{shortDay(day.date)}</span>
-              <Icon name={weatherIcon(day.weather_main)} size={22} class="day-icon" />
+              <span class="weather-emoji-md" aria-label={day.weather_main}>{weatherEmoji(day.weather_main)}</span>
               <span class="day-range">
-                <span class="temp-max">{day.temp_max.toFixed(0)}°</span>
-                <span class="temp-min">{day.temp_min.toFixed(0)}°</span>
+                <span class="temp-max">{safeTemp(day.temp_max)}°</span>
+                <span class="temp-min">{safeTemp(day.temp_min)}°</span>
               </span>
               {#if day.pop > 0}
                 <div class="rain-bar-wrap" title="{(day.pop * 100).toFixed(0)}% rain">
@@ -139,7 +171,7 @@
       <!-- 24h irradiance chart -->
       {#if data.hourly_irradiance && data.hourly_irradiance.length > 0}
         <div class="irradiance-section">
-          <p class="irradiance-label">Solar charging potential (next 24h)</p>
+          <p class="irradiance-label">Solar charging potential · {irradianceDay(data.irradiance_date)}</p>
           <div class="irradiance-bars">
             {#each data.hourly_irradiance as item}
               {@const max = 1000}
@@ -170,6 +202,11 @@
   .compact-temp { font-weight: 600; }
   .compact-desc { color: var(--celine-text-secondary); }
   .alert-badge { color: var(--celine-warning-text); display: flex; align-items: center; }
+
+  /* Weather emoji */
+  .weather-emoji-sm { font-size: 1.125rem; line-height: 1; }
+  .weather-emoji-md { font-size: 1.375rem; line-height: 1; }
+  .weather-emoji-lg { font-size: 3rem; line-height: 1; }
 
   /* Full widget */
   .weather-widget {
@@ -214,7 +251,6 @@
   .current-main { display: flex; align-items: center; gap: var(--celine-space-md); }
   .current-temp { font-size: 2.5rem; font-weight: 700; color: var(--celine-text); display: block; }
   .current-desc { font-size: 0.875rem; color: var(--celine-text-secondary); display: block; }
-  :global(.weather-icon-lg) { color: var(--celine-primary); }
   .current-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
   .chip {
     display: flex;
@@ -248,7 +284,6 @@
     padding: 0.5rem 0.25rem;
   }
   .day-label { font-size: 0.6875rem; color: var(--celine-text-secondary); font-weight: 600; text-transform: uppercase; }
-  :global(.day-icon) { color: var(--celine-primary); }
   .day-range { display: flex; flex-direction: column; align-items: center; gap: 1px; }
   .temp-max { font-size: 0.8125rem; font-weight: 600; color: var(--celine-text); }
   .temp-min { font-size: 0.75rem; color: var(--celine-text-tertiary); }
