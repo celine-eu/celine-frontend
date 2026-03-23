@@ -59,8 +59,8 @@
   let attachmentsPanelOpen = $state(false);
 
   // Component refs
-  let messageList: InstanceType<typeof MessageList> | null = $state(null);
-  let composer: InstanceType<typeof Composer> | null = $state(null);
+  let messageList: { scrollToBottom: (force?: boolean) => Promise<void> } | null = $state(null);
+  let composer: { focusInput: () => Promise<void> } | null = $state(null);
 
   // Initialize
   onMount(async () => {
