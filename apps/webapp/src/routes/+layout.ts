@@ -18,6 +18,9 @@ export const load: LayoutLoad = async ({ url, fetch }) => {
     // Network error — backend unreachable
   }
 
+  setupI18n(me?.locale);
+  await waitLocale();
+
   // 401 here means JWT validation failed inside the app (not a missing session).
   // Caddy/oauth2-proxy redirects unauthenticated users before SvelteKit runs,
   // so redirecting to /oauth2/sign_in from here would just loop.
@@ -45,9 +48,6 @@ export const load: LayoutLoad = async ({ url, fetch }) => {
   } catch {
     // non-fatal
   }
-
-  setupI18n(me?.locale);
-  await waitLocale();
 
   return { me, needs_terms, community };
 };

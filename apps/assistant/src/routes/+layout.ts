@@ -13,11 +13,11 @@ export const load: LayoutLoad = async ({ url, fetch }) => {
     // Network error — backend unreachable, let the app render
   }
 
+  setupI18n();
+  await waitLocale();
+
   if (status === 401) {
     const returnTo = `${url.origin}${url.pathname}${url.search}`;
     throw redirect(303, `/oauth2/sign_in?rd=${encodeURIComponent(returnTo)}`);
   }
-
-  setupI18n();
-  await waitLocale();
 };
