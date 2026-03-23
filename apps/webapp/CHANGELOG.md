@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.11.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.10.0...webapp-v0.11.0) (2026-03-23)
+
+### Bug Fixes
+
+* set default language ([a74c882](https://github.com/celine-eu/celine-frontend/commit/a74c882225bba051a5560fdffd89414a8958f0e9))
+
 ## [0.10.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.9.0...webapp-v0.10.0) (2026-03-23)
 
 ### Features
