@@ -35,7 +35,7 @@
     if (f.status === 'fulfilled') forecastData = f.value;
     forecastLoading = false;
 
-    if (s.status === 'fulfilled') suggestions = s.value;
+    if (s.status === 'fulfilled') suggestions = s.value.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i);
     suggestionsLoading = false;
 
     if (g.status === 'fulfilled') gamification = g.value;
