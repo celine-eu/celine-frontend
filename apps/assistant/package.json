@@ -11,7 +11,7 @@
   "dependencies": {
     "@celine-eu/ui": "workspace:*",
     "@celine-eu/assistant-ui": "workspace:*",
-    "@sveltejs/kit": "^2.5.0",
+    "@sveltejs/kit": "^2.55.0",
     "svelte": "^5.0.0",
     "svelte-i18n": "^4.0.0"
   },
