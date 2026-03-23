@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.8.0...assistant-v0.9.0) (2026-03-23)
+
+### Bug Fixes
+
+* set default language ([a74c882](https://github.com/celine-eu/celine-frontend/commit/a74c882225bba051a5560fdffd89414a8958f0e9))
+
 ## [0.8.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.7.0...assistant-v0.8.0) (2026-03-23)
 
 ### Features
