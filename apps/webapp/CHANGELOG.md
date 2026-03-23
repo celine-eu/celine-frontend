@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.8.0...webapp-v0.9.0) (2026-03-23)
+
+### Features
+
+* add forecast fix ([86adb4d](https://github.com/celine-eu/celine-frontend/commit/86adb4ddfbad0dff47cf704e5df5859019f9ebb5))
+* add translations ([394cb3b](https://github.com/celine-eu/celine-frontend/commit/394cb3b346a91103914becc83912d207fbeff94f))
+* add webapp flexibility suggestions ([0299183](https://github.com/celine-eu/celine-frontend/commit/0299183c46aa14d537869d92ef7b85322c87c279))
+
 ## [0.8.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.7.0...webapp-v0.8.0) (2026-03-06)
 
 ### Bug Fixes
