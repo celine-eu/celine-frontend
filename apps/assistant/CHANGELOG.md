@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.7.0...assistant-v0.8.0) (2026-03-23)
+
+### Features
+
+* upgrade svelte ([2a0238c](https://github.com/celine-eu/celine-frontend/commit/2a0238c5dd490c7237b215c459658e6a8f900f91))
+
+### Bug Fixes
+
+* correct instance type ([caa4bac](https://github.com/celine-eu/celine-frontend/commit/caa4bac7705548b6edf17bb9ef688cd2fc480ebb))
+* corrected loop, i18n localStorage access ([fbaf593](https://github.com/celine-eu/celine-frontend/commit/fbaf59350692d294c03ab0e0749c12e2e97f0d44))
+
 ## [0.7.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.6.0...assistant-v0.7.0) (2026-03-23)
 
 ### Features
