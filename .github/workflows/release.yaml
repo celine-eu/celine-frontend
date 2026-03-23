@@ -20,7 +20,7 @@ jobs:
       webapp: ${{ steps.filter.outputs.webapp }}
       assistant: ${{ steps.filter.outputs.assistant }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v4
         id: filter
         with:
@@ -43,7 +43,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.vars.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
@@ -109,7 +109,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.vars.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
