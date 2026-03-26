@@ -9,7 +9,13 @@
   import { t, locale } from "svelte-i18n";
 
   interface Props {
-    data: { me: Me | null; needs_terms: boolean; community: CommunityMeta | null };
+    data: {
+      me: Me | null;
+      needs_terms: boolean;
+      community: CommunityMeta | null;
+      auth_error: boolean;
+      unread_count: number;
+    };
     children: Snippet;
   }
 
@@ -39,6 +45,13 @@
 
   const isAssistantPage = $derived($page.url.pathname === "/assistant");
 
+  // User initials for avatar
+  const userInitials = $derived.by(() => {
+    const name = data.me?.user?.name;
+    if (!name) return '?';
+    return name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2);
+  });
+
   onMount(() => {
     const root = document.documentElement;
     if (data.me) {
@@ -62,21 +75,70 @@
         <a href="/" class="brand-link">{data.community?.name ?? 'REC'}</a>
       </div>
       <div class="top-header__actions">
-        <ThemeToggle />
+        <!-- Notifications bell -->
         <a
-          href="/oauth2/sign_out?rd={encodeURIComponent($page.url.origin + '/oauth2/sign_in')}"
-          class="logout-btn"
-          aria-label={$t('layout.sign_out')}
-          title={$t('layout.sign_out')}
+          href="/notifications"
+          class="header-icon-btn"
+          aria-label={$t('layout.open_notifications')}
+          title={$t('layout.open_notifications')}
         >
-          <Icon name="log-out" size={20} />
+          <Icon name="bell" size={20} />
+          {#if data.unread_count > 0}
+            <span class="notif-badge" aria-label="{data.unread_count} unread">
+              {data.unread_count > 9 ? '9+' : data.unread_count}
+            </span>
+          {/if}
         </a>
+
+        <!-- Profile dropdown -->
+        <details class="profile-dropdown">
+          <summary
+            class="profile-avatar"
+            aria-label={$t('layout.profile')}
+            title={$t('layout.profile')}
+          >
+            {userInitials}
+          </summary>
+          <div class="profile-menu">
+            {#if data.me?.user?.name}
+              <div class="profile-menu__name">{data.me.user.name}</div>
+            {/if}
+            <a href="/settings" class="profile-menu__item">
+              <Icon name="settings" size={16} />
+              {$t('nav.settings')}
+            </a>
+            <div class="profile-menu__item profile-menu__item--toggle">
+              <Icon name="sun" size={16} />
+              <ThemeToggle />
+            </div>
+            <div class="profile-menu__divider"></div>
+            <a
+              href="/oauth2/sign_out?rd={encodeURIComponent($page.url.origin + '/oauth2/sign_in')}"
+              class="profile-menu__item profile-menu__item--danger"
+            >
+              <Icon name="log-out" size={16} />
+              {$t('layout.sign_out')}
+            </a>
+          </div>
+        </details>
       </div>
     </div>
   </header>
 
   <div class="content-wrap" class:content-wrap--fixed={isAssistantPage}>
-    {#if data.me === null}
+    {#if data.auth_error}
+      <div class="rec-alert rec-alert--warning">
+        <Icon name="alert-circle" size={20} />
+        <div>
+          <strong>{$t('layout.session_expired_title')}</strong>
+          {$t('layout.session_expired_body')}
+          <a
+            href="/oauth2/sign_in?rd={encodeURIComponent($page.url.href)}"
+            class="alert-link"
+          >{$t('layout.login_again')}</a>
+        </div>
+      </div>
+    {:else if data.me === null}
       <div class="rec-alert rec-alert--warning">
         <Icon name="alert-circle" size={20} />
         <div>
@@ -137,6 +199,9 @@
         <a href={item.href} class="nav-item" class:nav-item--active={active}>
           <span class="nav-item__icon">
             <Icon name={item.icon} size={22} />
+            {#if item.href === '/notifications' && data.unread_count > 0}
+              <span class="nav-badge"></span>
+            {/if}
           </span>
           <span class="nav-item__label">{$t(item.labelKey)}</span>
         </a>
@@ -162,7 +227,6 @@
     padding-bottom: 72px;
   }
 
-  /* Fixed height mode for assistant - no scroll on shell */
   .app-shell--fixed {
     height: 100vh;
     height: 100dvh;
@@ -205,7 +269,7 @@
   .top-header__actions {
     display: flex;
     align-items: center;
-    gap: var(--celine-space-sm);
+    gap: var(--celine-space-xs);
   }
 
   :global(.brand-icon) {
@@ -223,6 +287,133 @@
     color: var(--celine-primary);
   }
 
+  /* Notification bell button */
+  .header-icon-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--celine-radius-md);
+    color: var(--celine-text-secondary);
+    text-decoration: none;
+    transition: color var(--celine-transition-fast), background var(--celine-transition-fast);
+  }
+
+  .header-icon-btn:hover {
+    color: var(--celine-text);
+    background: var(--celine-bg-hover);
+  }
+
+  .notif-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    background: var(--celine-danger, #ef4444);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  /* Profile dropdown */
+  .profile-dropdown {
+    position: relative;
+  }
+
+  .profile-dropdown summary {
+    list-style: none;
+  }
+
+  .profile-dropdown summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .profile-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: var(--celine-primary);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+    border: 2px solid transparent;
+    transition: border-color var(--celine-transition-fast);
+  }
+
+  .profile-dropdown[open] .profile-avatar {
+    border-color: var(--celine-primary);
+    background: var(--celine-primary-dark, color-mix(in srgb, var(--celine-primary) 85%, #000));
+  }
+
+  .profile-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 180px;
+    background: var(--celine-bg-elevated);
+    border: 1px solid var(--celine-border);
+    border-radius: var(--celine-radius-lg);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+    padding: var(--celine-space-xs) 0;
+    overflow: hidden;
+  }
+
+  .profile-menu__name {
+    padding: var(--celine-space-sm) var(--celine-space-md);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--celine-text);
+    border-bottom: 1px solid var(--celine-border);
+    margin-bottom: var(--celine-space-xs);
+  }
+
+  .profile-menu__item {
+    display: flex;
+    align-items: center;
+    gap: var(--celine-space-sm);
+    padding: var(--celine-space-sm) var(--celine-space-md);
+    font-size: 0.875rem;
+    color: var(--celine-text-secondary);
+    text-decoration: none;
+    transition: background var(--celine-transition-fast), color var(--celine-transition-fast);
+    cursor: pointer;
+  }
+
+  .profile-menu__item:hover {
+    background: var(--celine-bg-hover);
+    color: var(--celine-text);
+  }
+
+  .profile-menu__item--toggle {
+    justify-content: space-between;
+  }
+
+  .profile-menu__item--danger:hover {
+    background: var(--celine-danger-bg, rgba(239, 68, 68, 0.08));
+    color: var(--celine-danger, #ef4444);
+  }
+
+  .profile-menu__divider {
+    height: 1px;
+    background: var(--celine-border);
+    margin: var(--celine-space-xs) 0;
+  }
+
+  /* Footer */
   .app-footer {
     max-width: 900px;
     margin: var(--celine-space-lg) auto var(--celine-space-sm);
@@ -240,13 +431,8 @@
     border-top: 1px solid var(--celine-border);
   }
 
-  .footer-name {
-    font-weight: 600;
-  }
-
-  .footer-sep {
-    opacity: 0.4;
-  }
+  .footer-name { font-weight: 600; }
+  .footer-sep { opacity: 0.4; }
 
   .footer-link {
     color: var(--celine-text-secondary);
@@ -258,25 +444,7 @@
     text-decoration: underline;
   }
 
-  .logout-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: var(--celine-radius-md);
-    color: var(--celine-text-secondary);
-    text-decoration: none;
-    transition:
-      color var(--celine-transition-fast),
-      background var(--celine-transition-fast);
-  }
-
-  .logout-btn:hover {
-    color: var(--celine-danger, #ef4444);
-    background: var(--celine-danger-bg, rgba(239, 68, 68, 0.08));
-  }
-
+  /* Alert banners */
   .content-wrap {
     max-width: 900px;
     margin: 0 auto;
@@ -286,7 +454,6 @@
     box-sizing: border-box;
   }
 
-  /* Fixed mode for assistant */
   .content-wrap--fixed {
     flex: 1;
     min-height: 0;
@@ -309,6 +476,17 @@
     color: var(--celine-warning-text);
   }
 
+  .alert-link {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    margin-left: 0.25rem;
+  }
+
+  .alert-link:hover { text-decoration: none; }
+
+  /* Bottom nav */
   .bottom-nav {
     position: fixed;
     bottom: 0;
@@ -339,15 +517,11 @@
     min-width: 64px;
   }
 
-  .nav-item:hover {
-    color: var(--celine-text);
-  }
-
-  .nav-item--active {
-    color: var(--celine-primary);
-  }
+  .nav-item:hover { color: var(--celine-text); }
+  .nav-item--active { color: var(--celine-primary); }
 
   .nav-item__icon {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -358,6 +532,17 @@
 
   .nav-item--active .nav-item__icon {
     background: var(--celine-primary-light);
+  }
+
+  .nav-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--celine-danger, #ef4444);
+    border: 2px solid var(--celine-bg-elevated);
   }
 
   .nav-item__label {

@@ -2,6 +2,8 @@
   import { browser } from "$app/environment";
   import type { Chart as ChartType } from "chart.js";
   import { onDestroy, onMount, tick } from "svelte";
+  import { get } from "svelte/store";
+  import { t } from "svelte-i18n";
 
   type TrendItem = {
     date: string;
@@ -78,21 +80,21 @@
         labels,
         datasets: [
           {
-            label: "Production",
+            label: get(t)('chart.production'),
             data: data.map((d) => d.production_kwh),
             backgroundColor: productionColor,
             borderRadius: 4,
             borderSkipped: false,
           },
           {
-            label: "Consumption",
+            label: get(t)('chart.consumption'),
             data: data.map((d) => d.consumption_kwh),
             backgroundColor: consumptionColor,
             borderRadius: 4,
             borderSkipped: false,
           },
           {
-            label: "Self-consumption",
+            label: get(t)('chart.self_consumption'),
             data: data.map((d) => d.self_consumption_kwh),
             backgroundColor: selfConsumptionColor,
             borderRadius: 4,

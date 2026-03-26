@@ -70,6 +70,18 @@
   }
 
   let alertsExpanded = $state<Record<number, boolean>>({});
+
+  // Deduplicate alerts by event + start_ts to avoid showing duplicates from multiple sources
+  const uniqueAlerts = $derived.by(() => {
+    if (!data?.alerts) return [];
+    const seen = new Set<string>();
+    return data.alerts.filter(a => {
+      const key = `${a.event}__${a.start_ts}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  });
 </script>
 
 {#if compact}
@@ -103,12 +115,18 @@
       </div>
     {:else if data}
       <!-- Alert banner -->
-      {#if data.alerts && data.alerts.length > 0}
+      {#if uniqueAlerts.length > 0}
         <div class="alert-section">
-          {#each data.alerts as alert, i}
+          <p class="alert-section-title">
+            <Icon name="alert-triangle" size={14} />
+            {$t('weather.alerts_title')}
+            {#if data.alerts && data.alerts.length > uniqueAlerts.length}
+              <span class="alert-dedup-note">{$t('weather.alert_duplicate_note')}</span>
+            {/if}
+          </p>
+          {#each uniqueAlerts as alert, i}
             <div class="alert-banner">
               <div class="alert-header">
-                <Icon name="alert-triangle" size={16} />
                 <strong>{alert.event}</strong>
                 <button
                   class="alert-toggle"
@@ -151,9 +169,9 @@
       <!-- 7-day daily strip -->
       {#if data.daily && data.daily.length > 0}
         <div class="daily-strip">
-          {#each data.daily as day}
-            <div class="day-card">
-              <span class="day-label">{shortDay(day.date)}</span>
+          {#each data.daily as day, i}
+            <div class="day-card" class:day-card--today={i === 0}>
+              <span class="day-label">{i === 0 ? $t('weather.today') : shortDay(day.date)}</span>
               <span class="weather-emoji-md" aria-label={day.weather_main}>{weatherEmoji(day.weather_main)}</span>
               <span class="day-range">
                 <span class="temp-max">{safeTemp(day.temp_max)}°</span>
@@ -172,12 +190,18 @@
       <!-- 24h irradiance chart -->
       {#if data.hourly_irradiance && data.hourly_irradiance.length > 0}
         <div class="irradiance-section">
-          <p class="irradiance-label">{$t('weather.solar_potential', { values: { day: irradianceDay(data.irradiance_date) } })}</p>
+          <p class="irradiance-label">
+            {$t('weather.solar_potential', { values: { day: irradianceDay(data.irradiance_date) } })}
+            {#if data.hourly_irradiance.some(i => i.shortwave_radiation === null)}
+              <span class="irr-gap-note">{$t('weather.irradiance_gap_note')}</span>
+            {/if}
+          </p>
           <div class="irradiance-bars">
             {#each data.hourly_irradiance as item}
               {@const max = 1000}
-              {@const pct = Math.min(100, (item.shortwave_radiation / max) * 100)}
-              <div class="irr-bar-wrap" title="{item.shortwave_radiation.toFixed(0)} W/m²">
+              {@const rad = item.shortwave_radiation ?? 0}
+              {@const pct = Math.min(100, (rad / max) * 100)}
+              <div class="irr-bar-wrap" title="{rad.toFixed(0)} W/m²">
                 <div class="irr-bar" style="height: {pct}%"></div>
                 <span class="irr-label">{new Date(item.ts).getHours()}h</span>
               </div>
@@ -218,6 +242,21 @@
 
   /* Alert */
   .alert-section { display: flex; flex-direction: column; gap: var(--celine-space-xs); }
+  .alert-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--celine-warning-text);
+    margin: 0;
+  }
+  .alert-dedup-note {
+    font-size: 0.6875rem;
+    font-weight: 400;
+    opacity: 0.75;
+    margin-left: 0.25rem;
+  }
   .alert-banner {
     background: var(--celine-warning-bg);
     color: var(--celine-warning-text);
@@ -284,6 +323,11 @@
     border-radius: var(--celine-radius-md);
     padding: 0.5rem 0.25rem;
   }
+  .day-card--today {
+    border-color: var(--celine-primary);
+    background: var(--celine-primary-bg, rgba(99,102,241,0.08));
+  }
+  .day-card--today .day-label { color: var(--celine-primary); }
   .day-label { font-size: 0.6875rem; color: var(--celine-text-secondary); font-weight: 600; text-transform: uppercase; }
   .day-range { display: flex; flex-direction: column; align-items: center; gap: 1px; }
   .temp-max { font-size: 0.8125rem; font-weight: 600; color: var(--celine-text); }
@@ -295,7 +339,8 @@
 
   /* Irradiance */
   .irradiance-section { }
-  .irradiance-label { font-size: 0.8125rem; color: var(--celine-text-secondary); margin: 0 0 0.5rem; font-weight: 500; }
+  .irradiance-label { font-size: 0.8125rem; color: var(--celine-text-secondary); margin: 0 0 0.5rem; font-weight: 500; display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; }
+  .irr-gap-note { font-size: 0.6875rem; font-weight: 400; opacity: 0.7; }
   .irradiance-bars {
     display: flex;
     align-items: flex-end;

@@ -1,12 +1,9 @@
 <script lang="ts">
-  import { api, type WeatherResponse, type ForecastResponse, type SuggestionItem, type GamificationResponse } from '$lib/api';
-  import { WeatherWidget, ForecastCard, SuggestionCard, GamificationPanel } from '$lib/components';
+  import { api, type ForecastResponse, type SuggestionItem, type GamificationResponse, type CommitmentHistoryResponse } from '$lib/api';
+  import { ForecastCard, SuggestionCard, GamificationPanel } from '$lib/components';
   import { Icon, Skeleton } from '@celine-eu/ui';
   import { onMount } from 'svelte';
-  import { t } from 'svelte-i18n';
-
-  let weatherData = $state<WeatherResponse | null>(null);
-  let weatherLoading = $state(true);
+  import { t, locale } from 'svelte-i18n';
 
   let forecastData = $state<ForecastResponse | null>(null);
   let forecastLoading = $state(true);
@@ -17,20 +14,42 @@
   let gamification = $state<GamificationResponse | null>(null);
   let gamificationLoading = $state(true);
 
+  let history = $state<CommitmentHistoryResponse | null>(null);
+  let historyLoading = $state(true);
+
   function handleGamificationUpdated(data: GamificationResponse) {
     gamification = data;
   }
 
+  function fmtDate(isoStr: string): string {
+    try {
+      return new Date(isoStr).toLocaleDateString($locale ?? undefined, {
+        weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+    } catch {
+      return isoStr;
+    }
+  }
+
+  function statusLabel(status: string): string {
+    if (status === 'settled') return $t('suggestions.history_settled');
+    if (status === 'committed') return $t('suggestions.history_committed');
+    return $t('suggestions.history_rejected');
+  }
+
+  function statusVariant(status: string): string {
+    if (status === 'settled') return 'settled';
+    if (status === 'committed') return 'committed';
+    return 'rejected';
+  }
+
   onMount(async () => {
-    const [w, f, s, g] = await Promise.allSettled([
-      api.weather(),
+    const [f, s, g, h] = await Promise.allSettled([
       api.forecast(),
       api.suggestions(),
       api.gamification(),
+      api.gamificationHistory(),
     ]);
-
-    if (w.status === 'fulfilled') weatherData = w.value;
-    weatherLoading = false;
 
     if (f.status === 'fulfilled') forecastData = f.value;
     forecastLoading = false;
@@ -40,25 +59,50 @@
 
     if (g.status === 'fulfilled') gamification = g.value;
     gamificationLoading = false;
+
+    if (h.status === 'fulfilled') history = h.value;
+    historyLoading = false;
   });
 </script>
 
 <section class="suggestions-page">
   <header class="page-header">
+    <a href="/" class="back-link">
+      <Icon name="chevron-left" size={18} />
+      {$t('suggestions.back')}
+    </a>
     <h1 class="page-title">{$t('suggestions.title')}</h1>
     <p class="page-subtitle">{$t('suggestions.subtitle')}</p>
   </header>
 
-  <!-- Weather context -->
+  <!-- Progress + Ranking -->
   <section class="section-card">
     <header class="section-header">
-      <Icon name="sun" size={22} class="section-icon" />
+      <Icon name="trending-up" size={22} class="section-icon" />
       <div>
-        <h2 class="section-title">{$t('suggestions.weather_section_title')}</h2>
-        <p class="section-period">{$t('suggestions.weather_section_period')}</p>
+        <h2 class="section-title">{$t('suggestions.progress_title')}</h2>
+        <p class="section-period">{$t('suggestions.progress_period')}</p>
       </div>
     </header>
-    <WeatherWidget data={weatherData} loading={weatherLoading} />
+    <div class="progress-ranking-grid">
+      <GamificationPanel data={gamification} loading={gamificationLoading} />
+
+      {#if !gamificationLoading && gamification?.ranking}
+        {@const r = gamification.ranking}
+        <div class="ranking-card">
+          <div class="ranking-badge">
+            <Icon name="trending-up" size={28} class="ranking-icon" />
+            <div>
+              <p class="ranking-position">{$t('suggestions.ranking_position', { values: { position: r.position, total: r.total_members } })}</p>
+              <p class="ranking-top">{$t('suggestions.ranking_top', { values: { pct: r.percentile } })}</p>
+            </div>
+          </div>
+          <p class="ranking-period">
+            {r.period === 'week' ? $t('suggestions.ranking_week') : $t('suggestions.ranking_month')}
+          </p>
+        </div>
+      {/if}
+    </div>
   </section>
 
   <!-- 48h energy outlook -->
@@ -73,8 +117,8 @@
     <ForecastCard data={forecastData} loading={forecastLoading} />
   </section>
 
-  <!-- Suggestions -->
-  <section class="section-card">
+  <!-- Suggestions (anchored for flex banner link) -->
+  <section class="section-card" id="opportunities">
     <header class="section-header">
       <Icon name="zap" size={22} class="section-icon" />
       <div>
@@ -106,16 +150,62 @@
     {/if}
   </section>
 
-  <!-- Gamification -->
+  <!-- Flexibility History -->
   <section class="section-card">
     <header class="section-header">
-      <Icon name="trending-up" size={22} class="section-icon" />
+      <Icon name="clock" size={22} class="section-icon" />
       <div>
-        <h2 class="section-title">{$t('suggestions.progress_title')}</h2>
-        <p class="section-period">{$t('suggestions.progress_period')}</p>
+        <h2 class="section-title">{$t('suggestions.history_title')}</h2>
+        <p class="section-period">{$t('suggestions.history_period')}</p>
       </div>
     </header>
-    <GamificationPanel data={gamification} loading={gamificationLoading} />
+
+    {#if historyLoading}
+      <div class="history-list">
+        <Skeleton variant="card" />
+        <Skeleton variant="card" />
+        <Skeleton variant="card" />
+      </div>
+    {:else if history && history.items.length > 0}
+      <div class="history-list">
+        {#each history.items as item (item.id)}
+          <div class="history-item history-item--{statusVariant(item.status)}">
+            <div class="history-item__left">
+              <span class="history-status">{statusLabel(item.status)}</span>
+              <span class="history-date">{fmtDate(item.committed_at)}</span>
+              <span class="history-type">{item.suggestion_type.replace(/-/g, ' ')}</span>
+            </div>
+            <div class="history-item__right">
+              {#if item.status === 'settled' && item.reward_points_actual != null}
+                <span class="history-pts history-pts--earned">
+                  {$t('suggestions.history_earned', { values: { pts: item.reward_points_actual } })}
+                </span>
+                {#if item.impact_kwh_actual != null}
+                  <span class="history-impact">{item.impact_kwh_actual.toFixed(1)} kWh</span>
+                {/if}
+              {:else if item.status === 'committed'}
+                <span class="history-pts history-pts--pending">
+                  {$t('suggestions.history_estimated', { values: { pts: item.reward_points_estimated } })}
+                </span>
+              {:else}
+                <span class="history-pts history-pts--missed">—</span>
+              {/if}
+            </div>
+          </div>
+        {/each}
+      </div>
+      {#if history.total_points_earned > 0}
+        <p class="history-total">
+          Total earned: <strong>{history.total_points_earned} pts</strong>
+        </p>
+      {/if}
+    {:else}
+      <div class="empty-state">
+        <Icon name="clock" size={40} class="empty-icon" />
+        <p class="empty-title">{$t('suggestions.history_empty_title')}</p>
+        <p class="empty-text">{$t('suggestions.history_empty_body')}</p>
+      </div>
+    {/if}
   </section>
 </section>
 
@@ -127,6 +217,20 @@
   }
 
   .page-header { margin-bottom: var(--celine-space-sm); }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--celine-space-xs);
+    font-size: 0.875rem;
+    color: var(--celine-text-secondary);
+    text-decoration: none;
+    margin-bottom: var(--celine-space-sm);
+    transition: color var(--celine-transition-fast);
+  }
+
+  .back-link:hover { color: var(--celine-primary); }
+
   .page-title {
     font-size: 1.5rem;
     font-weight: 700;
@@ -134,6 +238,7 @@
     margin: 0 0 var(--celine-space-xs);
     line-height: 1.2;
   }
+
   .page-subtitle {
     font-size: 0.9375rem;
     color: var(--celine-text-secondary);
@@ -153,8 +258,10 @@
     gap: var(--celine-space-sm);
     margin-bottom: var(--celine-space-lg);
   }
+
   .section-header > div { flex: 1; }
   :global(.section-icon) { color: var(--celine-primary); margin-top: 2px; }
+
   .section-title {
     font-size: 1rem;
     font-weight: 600;
@@ -162,42 +269,172 @@
     margin: 0;
     line-height: 1.3;
   }
+
   .section-period {
     font-size: 0.8125rem;
     color: var(--celine-text-tertiary);
     margin: 2px 0 0;
   }
 
+  /* Progress + ranking grid */
+  .progress-ranking-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--celine-space-lg);
+  }
+
+  .ranking-card {
+    background: var(--celine-bg);
+    border: 1px solid var(--celine-border);
+    border-radius: var(--celine-radius-md);
+    padding: var(--celine-space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--celine-space-sm);
+  }
+
+  .ranking-badge {
+    display: flex;
+    align-items: center;
+    gap: var(--celine-space-md);
+  }
+
+  :global(.ranking-icon) { color: var(--celine-warning, #f59e0b); flex-shrink: 0; }
+
+  .ranking-position {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--celine-text);
+    margin: 0;
+  }
+
+  .ranking-top {
+    font-size: 0.875rem;
+    color: var(--celine-primary);
+    font-weight: 600;
+    margin: 2px 0 0;
+  }
+
+  .ranking-period {
+    font-size: 0.75rem;
+    color: var(--celine-text-tertiary);
+    margin: 0;
+  }
+
+  /* Suggestions list */
   .suggestions-list {
     display: flex;
     flex-direction: column;
     gap: var(--celine-space-md);
   }
 
-  .empty-state {
-    text-align: center;
-    padding: var(--celine-space-xl) var(--celine-space-md);
+  /* History list */
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--celine-space-sm);
   }
-  :global(.empty-icon) {
-    color: var(--celine-text-tertiary);
-    opacity: 0.5;
-    margin-bottom: var(--celine-space-sm);
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--celine-space-md);
+    padding: var(--celine-space-sm) var(--celine-space-md);
+    border-radius: var(--celine-radius-md);
+    border: 1px solid var(--celine-border);
+    background: var(--celine-bg);
   }
-  .empty-title {
-    font-size: 0.9375rem;
-    font-weight: 600;
+
+  .history-item--settled {
+    border-color: rgba(16,185,129,0.3);
+    background: rgba(16,185,129,0.04);
+  }
+
+  .history-item--committed {
+    border-color: rgba(245,158,11,0.3);
+    background: rgba(245,158,11,0.04);
+  }
+
+  .history-item--rejected {
+    opacity: 0.65;
+  }
+
+  .history-item__left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .history-status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--celine-text-secondary);
+  }
+
+  .history-item--settled .history-status { color: var(--celine-success, #10b981); }
+  .history-item--committed .history-status { color: var(--celine-warning, #f59e0b); }
+
+  .history-date {
+    font-size: 0.8125rem;
     color: var(--celine-text);
-    margin: 0 0 var(--celine-space-xs);
+    font-weight: 500;
   }
-  .empty-text {
+
+  .history-type {
+    font-size: 0.75rem;
+    color: var(--celine-text-tertiary);
+    text-transform: capitalize;
+  }
+
+  .history-item__right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .history-pts {
+    font-size: 0.9375rem;
+    font-weight: 700;
+  }
+
+  .history-pts--earned { color: var(--celine-success, #10b981); }
+  .history-pts--pending { color: var(--celine-warning, #f59e0b); }
+  .history-pts--missed { color: var(--celine-text-tertiary); }
+
+  .history-impact {
+    font-size: 0.75rem;
+    color: var(--celine-text-tertiary);
+  }
+
+  .history-total {
+    margin: var(--celine-space-md) 0 0;
     font-size: 0.875rem;
     color: var(--celine-text-secondary);
-    margin: 0;
+    text-align: right;
   }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: var(--celine-space-xl) var(--celine-space-md); }
+  :global(.empty-icon) { color: var(--celine-text-tertiary); opacity: 0.5; margin-bottom: var(--celine-space-sm); }
+  .empty-title { font-size: 0.9375rem; font-weight: 600; color: var(--celine-text); margin: 0 0 var(--celine-space-xs); }
+  .empty-text { font-size: 0.875rem; color: var(--celine-text-secondary); margin: 0; }
 
   @media (min-width: 640px) {
     .section-card { padding: var(--celine-space-lg); }
     .page-title { font-size: 1.75rem; }
+
+    .progress-ranking-grid {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+
+    .ranking-card { flex: 0 0 240px; }
   }
 
   @media (min-width: 768px) {

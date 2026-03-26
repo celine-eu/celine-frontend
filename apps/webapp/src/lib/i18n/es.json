@@ -9,13 +9,27 @@
     "sign_out": "Cerrar sesión",
     "backend_unreachable_title": "Backend no disponible.",
     "backend_unreachable_body": "La interfaz está cargada, pero los datos no están disponibles.",
+    "session_expired_title": "Sesión expirada.",
+    "session_expired_body": "Tu sesión ha expirado o ya no es válida.",
+    "login_again": "Iniciar sesión de nuevo",
     "vat": "NIF",
     "pec": "PEC:",
     "website": "Sitio web",
     "terms": "Términos",
-    "privacy": "Privacidad"
+    "privacy": "Privacidad",
+    "profile": "Tu perfil",
+    "open_notifications": "Notificaciones"
   },
   "overview": {
+    "welcome": "¡Bienvenido, {name}!",
+    "welcome_generic": "¡Bienvenido!",
+    "engaging_morning": "¿Listo para marcar la diferencia hoy?",
+    "engaging_afternoon": "Tu energía importa — ¡sigue así!",
+    "engaging_evening": "¡Gran contribución hoy!",
+    "period_7d": "7 días",
+    "period_30d": "30 días",
+    "last_7_days": "Últimos 7 días",
+    "last_30_days": "Últimos 30 días",
     "title": "Resumen",
     "subtitle": "Tu comunidad de energía renovable de un vistazo",
     "solar_forecast": "Previsión solar →",
@@ -23,8 +37,8 @@
     "earn_up_to": "¡Gana hasta {points} puntos!",
     "view": "Ver →",
     "your_contribution": "Tu contribución",
+    "vs_community": "vs Comunidad",
     "community_trend": "Tendencia de la comunidad",
-    "last_7_days": "Últimos 7 días",
     "community_totals": "Totales de la comunidad",
     "consumption": "Consumo",
     "production": "Producción",
@@ -44,7 +58,13 @@
     "no_trend_title": "No hay datos de tendencia disponibles",
     "no_trend_body": "Los datos históricos aparecerán aquí cuando estén disponibles.",
     "no_community_title": "No hay datos de comunidad disponibles",
-    "no_community_body": "Los datos energéticos de la comunidad aparecerán aquí."
+    "no_community_body": "Los datos energéticos de la comunidad aparecerán aquí.",
+    "co2_section_title": "Impacto Ambiental",
+    "co2_saved": "{kg} kg CO₂ ahorrados",
+    "co2_trees": "≈ {trees} árboles",
+    "co2_context": "comparado con electricidad de red",
+    "weather_section_title": "Tiempo y Previsión Solar",
+    "weather_section_period": "Condiciones actuales y potencial solar"
   },
   "notifications": {
     "title": "Notificaciones",
@@ -66,8 +86,7 @@
   "suggestions": {
     "title": "Oportunidades de desplazamiento de carga",
     "subtitle": "Desplaza tu consumo a las horas solares y gana puntos",
-    "weather_section_title": "Tiempo y previsión solar",
-    "weather_section_period": "Condiciones actuales y potencial solar",
+    "back": "← Resumen",
     "forecast_section_title": "Perspectiva energética 48h",
     "forecast_section_period": "Previsión de tu contador y la comunidad con bandas de confianza",
     "opportunities_title": "Tus oportunidades",
@@ -75,12 +94,27 @@
     "no_opportunities_title": "Sin oportunidades en este momento",
     "no_opportunities_body": "Vuelve tras la próxima previsión — las oportunidades aparecen cuando la comunidad tiene excedente solar.",
     "progress_title": "Tu progreso",
-    "progress_period": "Puntos, nivel e insignias"
+    "progress_period": "Puntos, nivel e insignias",
+    "ranking_title": "Tu clasificación",
+    "ranking_week": "Esta semana",
+    "ranking_month": "Este mes",
+    "ranking_position": "#{position} de {total} participantes",
+    "ranking_top": "Top {pct}% de tu comunidad",
+    "history_title": "Historial de flexibilidad",
+    "history_period": "Tu actividad reciente de desplazamiento",
+    "history_empty_title": "Sin historial aún",
+    "history_empty_body": "Las oportunidades aceptadas aparecerán aquí una vez liquidadas.",
+    "history_settled": "Liquidado",
+    "history_committed": "Comprometido",
+    "history_rejected": "No completado",
+    "history_earned": "+{pts} pts",
+    "history_estimated": "~{pts} pts"
   },
   "suggestion_card": {
     "done": "¡Hecho! +{points} puntos añadidos a tu puntuación.",
-    "committed": "¡Comprometido! ~{points} puntos pendientes — verificaremos después de {time}.",
+    "committed": "¡Recordatorio establecido! ~{points} puntos pendientes — verificaremos después de {time}.",
     "saving": "Guardando…",
+    "remind_me": "Recuérdamelo",
     "accept": "Aceptar",
     "not_now": "Ahora no",
     "from_label": "Esta {period} ({range})",
@@ -161,15 +195,24 @@
     "chart_consumption_label": "Tu consumo (kWh)",
     "chart_solar_axis": "kWh excedente (+) / importación (−)",
     "chart_consumption_axis": "kWh consumidos",
-    "now": "Ahora"
+    "now": "Ahora",
+    "tab_hint": "Consejo: cambia de pestaña para comparar el excedente solar con tu consumo"
   },
   "weather": {
     "no_data": "Datos meteorológicos no disponibles.",
     "solar_potential": "Potencial solar · {day}",
-    "today": "hoy",
+    "today": "Hoy",
     "until": "hasta",
     "uv": "UV",
-    "clouds": "Nubosidad"
+    "clouds": "Nubosidad",
+    "alerts_title": "Alertas meteorológicas",
+    "alert_duplicate_note": "Alertas similares de múltiples fuentes",
+    "irradiance_gap_note": "Algunas horas pueden tener datos solares incompletos"
+  },
+  "chart": {
+    "production": "Producción",
+    "consumption": "Consumo",
+    "self_consumption": "Autoconsumo"
   },
   "accept_terms": {
     "title": "Antes de continuar",

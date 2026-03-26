@@ -141,10 +141,10 @@ export type WeatherAlertItem = {
 
 export type WeatherIrradianceItem = {
   ts: string;
-  shortwave_radiation: number;
-  diffuse_radiation: number;
-  global_tilted_irradiance: number;
-  cloud_cover: number;
+  shortwave_radiation: number | null;
+  diffuse_radiation: number | null;
+  global_tilted_irradiance: number | null;
+  cloud_cover: number | null;
 };
 
 export type WeatherResponse = {
@@ -200,6 +200,13 @@ export type FlexibilityCommitmentItem = {
   settled_at?: string | null;
 };
 
+export type RankingInfo = {
+  position: number;
+  total_members: number;
+  percentile: number;
+  period: 'week' | 'month';
+};
+
 export type GamificationResponse = {
   total_points: number;
   level: number;
@@ -207,15 +214,46 @@ export type GamificationResponse = {
   badges: BadgeItem[];
   actions_taken: number;
   pending_commitment?: FlexibilityCommitmentItem | null;
+  ranking?: RankingInfo | null;
+};
+
+export type FlexibilityHistoryItem = {
+  id: string;
+  suggestion_type: string;
+  period_start: string;
+  period_end: string;
+  committed_at: string;
+  settled_at?: string | null;
+  status: 'committed' | 'settled' | 'rejected';
+  reward_points_estimated: number;
+  reward_points_actual?: number | null;
+  impact_kwh_actual?: number | null;
+};
+
+export type CommitmentHistoryResponse = {
+  items: FlexibilityHistoryItem[];
+  total_points_earned: number;
+};
+
+export type Co2LocaleSettings = {
+  country_code: string;
+  country_name: string;
+  kg_per_kwh: number;
+  trees_per_ton: number;
+};
+
+export type Co2SettingsResponse = {
+  current: Co2LocaleSettings;
+  available: Co2LocaleSettings[];
 };
 
 export const api = {
   me: () => j<Me>('/api/me'),
-  overview: () => j<Overview>('/api/overview'),
+  overview: (days: number = 7) => j<Overview>(`/api/overview?days=${days}`),
   notifications: () => j<NotificationItem[]>('/api/notifications'),
-  notificationMarkRead: (id: string) => 
+  notificationMarkRead: (id: string) =>
     j<{ ok: true }>(`/api/notifications/${id}/read`, { method: 'POST' }),
-  notificationMarkAllRead: () => 
+  notificationMarkAllRead: () =>
     j<{ ok: true }>('/api/notifications/read-all', { method: 'POST' }),
   acceptTerms: () => j<{ ok: true }>('/api/terms/accept', { method: 'POST', body: JSON.stringify({ accept: true }) }),
   settingsGet: () => j<Settings>('/api/settings'),
@@ -236,4 +274,6 @@ export const api = {
       body: JSON.stringify({ response, ...(reward_points !== undefined ? { reward_points } : {}) })
     }),
   gamification: () => j<GamificationResponse>('/api/gamification'),
+  gamificationHistory: () => j<CommitmentHistoryResponse>('/api/gamification/history'),
+  co2Settings: () => j<Co2SettingsResponse>('/api/settings/co2'),
 };

@@ -5,6 +5,7 @@
   let showHistory = $state(false);
   let showAttachments = $state(false);
   let chatCore: ChatCore | null = $state(null);
+  let hasConversation = $state(false);
 
   function closePanels() {
     showHistory = false;
@@ -17,6 +18,10 @@
       chatCore.startNewConversation?.();
     }
     closePanels();
+  }
+
+  function handleConversationChange(id: string | null) {
+    hasConversation = id !== null;
   }
 </script>
 
@@ -33,16 +38,6 @@
 
     <div class="toolbar">
       <div class="tab-group">
-        <button
-          class="tab"
-          class:active={!showHistory && !showAttachments}
-          onclick={() => {
-            closePanels();
-          }}
-        >
-          <Icon name="message-circle" size={16} />
-          Chat
-        </button>
         <button
           class="tab"
           class:active={showHistory}
@@ -69,10 +64,12 @@
         </button>
       </div>
 
-      <button class="tab new-chat" onclick={handleNewChat}>
-        <Icon name="bot" size={16} />
-        New chat
-      </button>
+      {#if hasConversation}
+        <button class="tab new-chat" onclick={handleNewChat}>
+          <Icon name="bot" size={16} />
+          New chat
+        </button>
+      {/if}
     </div>
   </header>
 
@@ -85,6 +82,7 @@
       enableHistory={true}
       enableAttachments={true}
       enableUpload={true}
+      onConversationChange={handleConversationChange}
       onPanelsClose={() => {
         showHistory = false;
         showAttachments = false;

@@ -22,6 +22,20 @@
     return activeTab === 'user' ? data.user_forecast : data.rec_forecast;
   }
 
+  /** Compute shared Y-axis bounds across both tabs for visual comparability */
+  function globalYRange(): { min: number; max: number } {
+    if (!data) return { min: 0, max: 1 };
+    const allValues = [
+      ...data.user_forecast.flatMap(i => [i.value, i.lower ?? i.value, i.upper ?? i.value]),
+      ...data.rec_forecast.flatMap(i => [i.value, i.lower ?? i.value, i.upper ?? i.value]),
+    ].filter(v => !isNaN(v));
+    if (!allValues.length) return { min: 0, max: 1 };
+    return {
+      min: Math.floor(Math.min(0, ...allValues) * 1.05),
+      max: Math.ceil(Math.max(...allValues) * 1.05),
+    };
+  }
+
   /** Map of label-index → net_exchange_kwh for surplus hours (value > 0) */
   function surplusMap(items: ForecastHourItem[]): Map<number, number> {
     if (!data) return new Map();
@@ -124,6 +138,9 @@
     const lineColor = isUser ? 'rgb(99,102,241)' : 'rgb(245,158,11)';
     const bandColor = isUser ? 'rgba(99,102,241,0.12)' : 'rgba(245,158,11,0.12)';
 
+    // Shared Y-axis range so switching tabs doesn't rescale
+    const yRange = globalYRange();
+
     chartInstance = new Chart(canvasEl, {
       type: 'line',
       plugins: [backgroundPlugin],
@@ -172,6 +189,8 @@
             grid: { display: false },
           },
           y: {
+            min: yRange.min,
+            max: yRange.max,
             ticks: { font: { size: 10 } },
             title: {
               display: true,
@@ -221,6 +240,7 @@
       <span class="surplus-swatch"></span>
       {$t('forecast.surplus_window')}
     </div>
+    <p class="tab-hint">{$t('forecast.tab_hint')}</p>
   {/if}
 
   <div class="chart-wrap">
@@ -290,6 +310,13 @@
     height: 12px;
     border-radius: 2px;
     background: rgba(34, 197, 94, 0.35);
+  }
+
+  .tab-hint {
+    font-size: 0.75rem;
+    color: var(--celine-text-tertiary);
+    margin: 0;
+    font-style: italic;
   }
 
   .chart-wrap { min-height: 220px; }

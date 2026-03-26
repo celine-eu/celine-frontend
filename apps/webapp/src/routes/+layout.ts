@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
-import type { CommunityMeta } from '$lib/api';
+import type { CommunityMeta, NotificationItem } from '$lib/api';
 import { setupI18n } from '$lib/i18n';
 import { waitLocale } from 'svelte-i18n';
 
@@ -21,16 +21,14 @@ export const load: LayoutLoad = async ({ url, fetch }) => {
   setupI18n(me?.locale);
   await waitLocale();
 
-  // 401 here means JWT validation failed inside the app (not a missing session).
-  // Caddy/oauth2-proxy redirects unauthenticated users before SvelteKit runs,
-  // so redirecting to /oauth2/sign_in from here would just loop.
-  // Return null user and let the UI handle it gracefully.
+  // 401 means the JWT is expired or invalid. Return auth_error so the UI can
+  // show a "session expired" banner with a login link.
   if (status === 401) {
-    return { me: null, needs_terms: false, community: null };
+    return { me: null, needs_terms: false, community: null, auth_error: true, unread_count: 0 };
   }
 
   if (!me) {
-    return { me: null, needs_terms: false, community: null };
+    return { me: null, needs_terms: false, community: null, auth_error: false, unread_count: 0 };
   }
 
   const path = url.pathname;
@@ -41,13 +39,25 @@ export const load: LayoutLoad = async ({ url, fetch }) => {
     throw redirect(303, '/accept-terms');
   }
 
+  // Fetch community and notifications in parallel (non-blocking on error)
   let community: CommunityMeta | null = null;
-  try {
-    const res = await fetch('/api/community', { credentials: 'include' });
-    if (res.ok) community = await res.json();
-  } catch {
-    // non-fatal
+  let unread_count = 0;
+
+  const [communityRes, notificationsRes] = await Promise.allSettled([
+    fetch('/api/community', { credentials: 'include' }),
+    fetch('/api/notifications', { credentials: 'include' }),
+  ]);
+
+  if (communityRes.status === 'fulfilled' && communityRes.value.ok) {
+    try { community = await communityRes.value.json(); } catch { /* non-fatal */ }
   }
 
-  return { me, needs_terms, community };
+  if (notificationsRes.status === 'fulfilled' && notificationsRes.value.ok) {
+    try {
+      const notifications: NotificationItem[] = await notificationsRes.value.json();
+      unread_count = notifications.filter(n => !n.read_at).length;
+    } catch { /* non-fatal */ }
+  }
+
+  return { me, needs_terms, community, auth_error: false, unread_count };
 };

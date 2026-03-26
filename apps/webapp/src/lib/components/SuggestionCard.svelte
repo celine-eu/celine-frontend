@@ -111,14 +111,7 @@
           disabled={cardState === 'loading'}
           onclick={() => respond('accepted')}
         >
-          {cardState === 'loading' ? $t('suggestion_card.saving') : $t('suggestion_card.accept')}
-        </button>
-        <button
-          class="btn btn-ghost"
-          disabled={cardState === 'loading'}
-          onclick={() => respond('declined')}
-        >
-          {$t('suggestion_card.not_now')}
+          {cardState === 'loading' ? $t('suggestion_card.saving') : $t('suggestion_card.remind_me')}
         </button>
       </div>
     {/if}
@@ -280,13 +273,4 @@
   }
   .btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
 
-  .btn-ghost {
-    background: transparent;
-    color: var(--celine-text-secondary);
-    border-color: var(--celine-border);
-  }
-  .btn-ghost:hover:not(:disabled) {
-    background: var(--celine-bg);
-    color: var(--celine-text);
-  }
 </style>
