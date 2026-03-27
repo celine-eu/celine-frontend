@@ -21,6 +21,11 @@ tasks:
     cmds:
       - pnpm dev:assistant
 
+  dev:roi:
+    desc: Run ROI estimator in development mode
+    cmds:
+      - pnpm dev:roi
+
   # Build
   build:
     desc: Build all apps

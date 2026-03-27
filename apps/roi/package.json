@@ -1,0 +1,25 @@
+{
+  "name": "@celine-eu/roi",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --host 0.0.0.0 --port 3004",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+  },
+  "dependencies": {
+    "@celine-eu/ui": "workspace:*",
+    "@celine-eu/roi-ui": "workspace:*",
+    "@sveltejs/kit": "^2.55.0",
+    "svelte": "^5.54.1"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "^5.5.4",
+    "@sveltejs/vite-plugin-svelte": "^7.0.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.6.3",
+    "vite": "^8.0.0"
+  },
+  "version": "0.1.0"
+}

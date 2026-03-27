@@ -10,6 +10,13 @@ export const load: LayoutLoad = async ({ url, fetch }) => {
 
   try {
     const res = await fetch('/api/me', { credentials: 'include' });
+    // oauth2-proxy redirects unauthenticated requests to SSO (302 → HTML page).
+    // Fetch follows the redirect, so res.status may be 200 but body is HTML.
+    // Detect this by checking res.redirected — a true API response is never
+    // redirected. Also handle an explicit 401 for belt-and-suspenders.
+    if (res.redirected) {
+      return { me: null, needs_terms: false, community: null, auth_error: true, unread_count: 0 };
+    }
     status = res.status;
     if (res.ok) {
       me = await res.json();

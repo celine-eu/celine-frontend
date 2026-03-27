@@ -61,7 +61,7 @@
     background: var(--celine-bg-elevated);
     border: 1px solid var(--celine-border);
     border-radius: var(--celine-radius-lg);
-    padding: var(--celine-space-md);
+    padding: var(--celine-space-sm);
     transition: all var(--celine-transition-base);
   }
 
@@ -102,7 +102,7 @@
   }
 
   .stat-card__value {
-    font-size: 1.75rem;
+    font-size: 1.375rem;
     font-weight: 700;
     line-height: 1.1;
     color: var(--celine-text);
@@ -171,11 +171,19 @@
   }
 
   /* Responsive */
+  @media (min-width: 640px) {
+    .stat-card {
+      padding: var(--celine-space-md);
+    }
+    .stat-card__value {
+      font-size: 1.75rem;
+    }
+  }
+
   @media (min-width: 768px) {
     .stat-card {
       padding: var(--celine-space-lg);
     }
-
     .stat-card__value {
       font-size: 2rem;
     }

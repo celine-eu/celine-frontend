@@ -290,40 +290,6 @@
       </div>
     </section>
 
-    <!-- CO2 Impact section -->
-    {#if co2Settings && overview.rec.production_kwh != null && overview.rec.production_kwh > 0}
-      {@const co2Kg = calcCo2Kg(overview.rec.production_kwh, co2Settings.kg_per_kwh)}
-      {@const trees = calcTrees(co2Kg, co2Settings.trees_per_ton)}
-      <section class="section-card co2-card">
-        <header class="section-header">
-          <Icon name="leaf" size={22} class="section-icon" />
-          <div>
-            <h2 class="section-title">{$t('overview.co2_section_title')}</h2>
-            <p class="section-period">{periodLabel}</p>
-          </div>
-          <AskAssistantButton
-            iconOnly
-            context={{ page: "overview", section: "co2", data: { co2_kg: co2Kg, trees } }}
-            prompt="Explain the environmental impact of our community's renewable production"
-          />
-        </header>
-        <div class="co2-stats">
-          <div class="co2-stat">
-            <span class="co2-value">{co2Kg < 1000 ? co2Kg.toFixed(1) : (co2Kg / 1000).toFixed(2) + ' t'}</span>
-            <span class="co2-unit">{co2Kg < 1000 ? 'kg' : ''} CO₂</span>
-            <span class="co2-label">{$t('overview.co2_saved', { values: { kg: '' } }).replace('{kg} ', '')}</span>
-          </div>
-          <div class="co2-sep">≈</div>
-          <div class="co2-stat co2-stat--trees">
-            <span class="co2-value">{trees < 1 ? '<1' : trees.toFixed(trees < 10 ? 1 : 0)}</span>
-            <span class="co2-unit">🌳</span>
-            <span class="co2-label">{$t('overview.co2_trees', { values: { trees: '' } }).replace('{trees} ', '')}</span>
-          </div>
-        </div>
-        <p class="co2-context">{$t('overview.co2_context')}</p>
-      </section>
-    {/if}
-
     <!-- Community Trend -->
     <section class="section-card">
       <header class="section-header">
@@ -397,6 +363,40 @@
       </header>
       <WeatherWidget data={weatherData} loading={weatherLoading} />
     </section>
+
+    <!-- CO2 Impact section -->
+    {#if co2Settings && overview.rec.production_kwh != null && overview.rec.production_kwh > 0}
+      {@const co2Kg = calcCo2Kg(overview.rec.production_kwh, co2Settings.kg_per_kwh)}
+      {@const trees = calcTrees(co2Kg, co2Settings.trees_per_ton)}
+      <section class="section-card co2-card">
+        <header class="section-header">
+          <Icon name="leaf" size={22} class="section-icon" />
+          <div>
+            <h2 class="section-title">{$t('overview.co2_section_title')}</h2>
+            <p class="section-period">{periodLabel}</p>
+          </div>
+          <AskAssistantButton
+            iconOnly
+            context={{ page: "overview", section: "co2", data: { co2_kg: co2Kg, trees } }}
+            prompt="Explain the environmental impact of our community's renewable production"
+          />
+        </header>
+        <div class="co2-stats">
+          <div class="co2-stat">
+            <span class="co2-value">{co2Kg < 1000 ? co2Kg.toFixed(1) : (co2Kg / 1000).toFixed(2) + ' t'}</span>
+            <span class="co2-unit">{co2Kg < 1000 ? 'kg' : ''} CO₂</span>
+            <span class="co2-label">{$t('overview.co2_saved', { values: { kg: '' } }).replace('{kg} ', '')}</span>
+          </div>
+          <div class="co2-sep">≈</div>
+          <div class="co2-stat co2-stat--trees">
+            <span class="co2-value">{trees < 1 ? '<1' : trees.toFixed(trees < 10 ? 1 : 0)}</span>
+            <span class="co2-unit">🌳</span>
+            <span class="co2-label">{$t('overview.co2_trees', { values: { trees: '' } }).replace('{trees} ', '')}</span>
+          </div>
+        </div>
+        <p class="co2-context">{$t('overview.co2_context')}</p>
+      </section>
+    {/if}
 
   {/if}
 </section>
@@ -576,11 +576,16 @@
     margin: 0;
   }
 
-  /* Stats Grid */
+  /* Stats Grid — 2 columns on mobile to avoid a long vertical list */
   .stats-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--celine-space-md);
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--celine-space-sm);
+  }
+
+  /* If the last card is alone in a row (odd total), span full width */
+  .stats-grid > :global(:last-child:nth-child(odd)) {
+    grid-column: 1 / -1;
   }
 
   /* CO2 card */
@@ -706,6 +711,19 @@
 
   /* Responsive */
   @media (min-width: 640px) {
+    .section-card { padding: var(--celine-space-lg); }
+    .page-title { font-size: 1.75rem; }
+    /* Standalone stats grid (e.g. loading skeleton) gets 3 columns when space allows */
+    .stats-grid {
+      gap: var(--celine-space-md);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .section-card { padding: var(--celine-space-xl); }
+    .section-title { font-size: 1.125rem; }
+
+    /* Side-by-side contribution layout only at 768px+ where there's enough room */
     .contribution-grid {
       flex-direction: row;
       align-items: flex-start;
@@ -719,20 +737,9 @@
 
     .contribution-col { flex: 1; }
 
-    .stats-grid {
-      grid-template-columns: repeat(3, 1fr);
-    }
-
-    .stats-grid--2 {
+    /* Inside a half-width column, 2 cols is plenty — 3 would be too cramped */
+    .contribution-col .stats-grid {
       grid-template-columns: repeat(2, 1fr);
     }
-
-    .section-card { padding: var(--celine-space-lg); }
-    .page-title { font-size: 1.75rem; }
-  }
-
-  @media (min-width: 768px) {
-    .section-card { padding: var(--celine-space-xl); }
-    .section-title { font-size: 1.125rem; }
   }
 </style>
