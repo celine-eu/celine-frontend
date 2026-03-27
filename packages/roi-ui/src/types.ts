@@ -26,6 +26,7 @@ export interface ConfigOverrides {
   rid_tariff?: number;
   cer_tip?: number;
   cer_cacv?: number;
+  load_profile?: string;
 }
 
 export interface PickedLocation {
@@ -70,6 +71,10 @@ export interface IncentiveResult {
   rid_revenue: number[];
   cer_tip: number[];
   cer_cacv: number[];
+  cer_tip_libero: number[];
+  cer_cacv_libero: number[];
+  cer_tip_vincolato: number[];
+  cer_cacv_vincolato: number[];
   ammortamento: number[];
   tax_shield: number[];
   ires_irap: number[];
@@ -104,4 +109,26 @@ export interface ScenarioResult {
   incentives: IncentiveResult;
   finance: FinanceResult;
   validation: ValidationReport;
+}
+
+export interface PanelSpecs {
+  watt_peak: number;
+  area_m2: number;
+  efficiency_pct: number;
+}
+
+export interface CapexEstimateResponse {
+  panel: PanelSpecs;
+  min_panels: number;
+  max_panels: number;
+  num_panels: number | null;
+  kwp: number | null;
+  capex_eur: number | null;
+  eur_per_kwp: number | null;
+  rooftop_utilization_pct: number | null;
+}
+
+export interface CompareResponse {
+  scenarios: Record<string, ScenarioResult>;
+  summary_table: string;
 }

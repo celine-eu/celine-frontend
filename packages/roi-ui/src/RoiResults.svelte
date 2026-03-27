@@ -208,6 +208,35 @@
     </div>
   </div>
 
+  <!-- CER incentive split -->
+  {#if result.incentives.cer_tip_libero && result.incentives.cer_tip_libero[0] > 0}
+    {@const tipTotal = result.incentives.cer_tip[0]}
+    {@const tipLibero = result.incentives.cer_tip_libero[0]}
+    {@const tipVincolato = result.incentives.cer_tip_vincolato[0]}
+    {@const cacvLibero = result.incentives.cer_cacv_libero[0]}
+    {@const cacvVincolato = result.incentives.cer_cacv_vincolato[0]}
+    {@const totalLibero = tipLibero + cacvLibero}
+    {@const totalVincolato = tipVincolato + cacvVincolato}
+    <div class="cer-split">
+      <h3 class="chart-title">CER incentive split (Year 1)</h3>
+      <p class="cer-hint">
+        55% of the CER incentive is freely available to the producer (libero).
+        45% must be distributed to CER members (vincolato).
+        Only the libero portion enters the cashflow above.
+      </p>
+      <div class="cer-grid">
+        <div class="cer-card">
+          <div class="cer-label">Libero (producer)</div>
+          <div class="cer-value positive">{formatEur(totalLibero)}/yr</div>
+        </div>
+        <div class="cer-card">
+          <div class="cer-label">Vincolato (CER members)</div>
+          <div class="cer-value">{formatEur(totalVincolato)}/yr</div>
+        </div>
+      </div>
+    </div>
+  {/if}
+
   <!-- ── Monthly production chart ────────────────────────────────────────── -->
   <div class="chart-block">
     <div class="chart-header">
@@ -750,5 +779,44 @@
 
   .negative {
     color: var(--celine-danger);
+  }
+
+  /* ── CER split ── */
+  .cer-split {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .cer-hint {
+    font-size: 0.75rem;
+    color: var(--celine-text-tertiary);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  .cer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  .cer-card {
+    background: var(--celine-bg-elevated);
+    border: 1px solid var(--celine-border);
+    border-radius: var(--celine-radius-sm);
+    padding: 0.625rem 0.875rem;
+  }
+
+  .cer-label {
+    font-size: 0.75rem;
+    color: var(--celine-text-secondary);
+    margin-bottom: 0.25rem;
+  }
+
+  .cer-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--celine-text);
   }
 </style>

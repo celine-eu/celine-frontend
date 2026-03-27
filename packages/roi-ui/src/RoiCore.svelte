@@ -2,7 +2,7 @@
   import MapPicker from './MapPicker.svelte';
   import RoiResults from './RoiResults.svelte';
   import { createRoiApi } from './api.js';
-  import type { PickedLocation, ScenarioResult, UserType, Regime } from './types.js';
+  import type { PickedLocation, ScenarioResult, UserType, Regime, CapexEstimateResponse } from './types.js';
 
   interface Props {
     apiBaseUrl?: string;
@@ -25,6 +25,15 @@
   // kWp estimation
   let kwpAuto = $state(true);
   let kwp = $state(10);
+
+  // Panel-based CAPEX estimation
+  let useCapexEstimator = $state(false);
+  let numPanels = $state(10);
+  let capexEstimate: CapexEstimateResponse | null = $state(null);
+  let capexEstimateLoading = $state(false);
+
+  // Load profile selection
+  let loadProfile = $state('residential_default.json');
 
   // Advanced options
   let showAdvanced = $state(false);
@@ -66,7 +75,10 @@
         location: location.name || '',
         ...(useWkt ? { rooftop_wkt: location.wkt } : {}),
       };
-      result = await api.runScenario(system);
+      const overrides = loadProfile !== 'residential_default.json'
+        ? { load_profile: loadProfile }
+        : {};
+      result = await api.runScenario(system, overrides);
     } catch (e) {
       error = e instanceof Error ? e.message : 'Calculation failed';
     } finally {
@@ -78,6 +90,33 @@
     location = loc;
     result = null;
     error = '';
+  }
+
+  async function fetchCapexEstimate() {
+    if (!location?.wkt) return;
+    capexEstimateLoading = true;
+    try {
+      // Rough area estimate from WKT (use bounding box area * 0.8 as approximation)
+      const coords = location.wkt.match(/[\d.]+\s+[\d.]+/g) ?? [];
+      let areaM2 = 50; // fallback
+      if (coords.length >= 4) {
+        const lats = coords.map(c => parseFloat(c.split(/\s+/)[1]));
+        const lngs = coords.map(c => parseFloat(c.split(/\s+/)[0]));
+        const dLat = (Math.max(...lats) - Math.min(...lats)) * 111320;
+        const dLng = (Math.max(...lngs) - Math.min(...lngs)) * 111320 * Math.cos(Math.min(...lats) * Math.PI / 180);
+        areaM2 = Math.abs(dLat * dLng) * 0.8; // 80% usable
+      }
+      capexEstimate = await api.estimateCapex(areaM2, numPanels);
+      if (capexEstimate.capex_eur != null) {
+        capex = Math.round(capexEstimate.capex_eur);
+        if (capexEstimate.kwp != null) kwp = capexEstimate.kwp;
+      }
+    } catch (e) {
+      // silently fall back to manual input
+      capexEstimate = null;
+    } finally {
+      capexEstimateLoading = false;
+    }
   }
 </script>
 
@@ -127,6 +166,52 @@
           <span class="field-hint">Total project cost (materials + labour). Typical range: €1,200–2,000/kWp for residential.</span>
         </label>
 
+        <!-- Panel-based CAPEX estimator -->
+        {#if location?.wkt}
+          <div class="field" style="grid-column: 1 / -1">
+            <label class="checkbox-row">
+              <input type="checkbox" bind:checked={useCapexEstimator} />
+              <span>
+                Estimate cost from number of panels
+                <span class="badge">Power Law</span>
+              </span>
+            </label>
+            {#if useCapexEstimator}
+              <div style="display: flex; gap: 0.75rem; align-items: flex-end; margin-top: 0.5rem; flex-wrap: wrap">
+                <label class="field" style="max-width: 160px">
+                  <span class="field-label">Panels <span class="field-unit">{capexEstimate ? `(${capexEstimate.min_panels}–${capexEstimate.max_panels})` : ''}</span></span>
+                  <input
+                    type="number"
+                    class="field-input"
+                    bind:value={numPanels}
+                    min={capexEstimate?.min_panels ?? 4}
+                    max={capexEstimate?.max_panels ?? 500}
+                    step="1"
+                    onchange={fetchCapexEstimate}
+                  />
+                </label>
+                <button class="btn-link" onclick={fetchCapexEstimate} disabled={capexEstimateLoading}>
+                  {capexEstimateLoading ? 'Estimating...' : 'Update estimate'}
+                </button>
+                {#if capexEstimate?.capex_eur != null}
+                  <span class="field-hint" style="font-size: 0.8125rem">
+                    <strong>{capexEstimate.kwp?.toFixed(1)} kWp</strong> ·
+                    {Math.round(capexEstimate.capex_eur).toLocaleString('it-IT')} € ·
+                    {Math.round(capexEstimate.eur_per_kwp ?? 0).toLocaleString('it-IT')} €/kWp ·
+                    {capexEstimate.rooftop_utilization_pct}% rooftop used
+                  </span>
+                {/if}
+              </div>
+              {#if capexEstimate}
+                <span class="field-hint">
+                  Panel: {capexEstimate.panel.watt_peak} Wp, {capexEstimate.panel.area_m2} m², {capexEstimate.panel.efficiency_pct}% efficiency.
+                  Cost curve: Italian market 2025-2026 (pre-IVA, chiavi in mano).
+                </span>
+              {/if}
+            {/if}
+          </div>
+        {/if}
+
         <!-- Consumption -->
         <label class="field">
           <span class="field-label">
@@ -168,6 +253,18 @@
           </select>
           <span class="field-hint">
             RID: earn revenue selling excess energy back to the grid. CER: share energy within a community for additional incentives.
+          </span>
+        </label>
+
+        <!-- Load profile -->
+        <label class="field">
+          <span class="field-label">Consumption profile</span>
+          <select class="field-input" bind:value={loadProfile}>
+            <option value="residential_default.json">Standard residential</option>
+            <option value="residential_heat_pump.json">Residential + heat pump</option>
+          </select>
+          <span class="field-hint">
+            Heat pump profile shifts consumption to daytime (higher self-consumption, +5-15pp autoconsumo).
           </span>
         </label>
       </div>
