@@ -190,8 +190,8 @@
   }
 
   // ── Formatters ──────────────────────────────────────────────────────────────
-  function formatEur(v: number): string {
-    if (!isFinite(v)) return '∞';
+  function formatEur(v: number | null | undefined): string {
+    if (v == null || !isFinite(v)) return '∞';
     return new Intl.NumberFormat('it-IT', {
       style: 'currency',
       currency: 'EUR',
@@ -208,8 +208,8 @@
     return `${sign}€${abs.toFixed(0)}`;
   }
 
-  function formatNum(v: number, decimals = 1): string {
-    if (!isFinite(v)) return '∞';
+  function formatNum(v: number | null | undefined, decimals = 1): string {
+    if (v == null || !isFinite(v)) return '∞';
     return new Intl.NumberFormat('it-IT', { maximumFractionDigits: decimals }).format(v);
   }
 
