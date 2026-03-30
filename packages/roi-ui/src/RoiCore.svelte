@@ -31,6 +31,7 @@
   let numPanels = $state(10);
   let capexEstimate: CapexEstimateResponse | null = $state(null);
   let capexEstimateLoading = $state(false);
+  let rooftopAreaM2 = $state(0);
 
   // Load profile selection
   let loadProfile = $state('residential_default.json');
@@ -92,30 +93,58 @@
     error = '';
   }
 
+  function computeRooftopArea(): number {
+    if (!location?.wkt) return 0;
+    const coords = location.wkt.match(/[\d.]+\s+[\d.]+/g) ?? [];
+    if (coords.length < 4) return 0;
+    const lats = coords.map(c => parseFloat(c.split(/\s+/)[1]));
+    const lngs = coords.map(c => parseFloat(c.split(/\s+/)[0]));
+    const dLat = (Math.max(...lats) - Math.min(...lats)) * 111320;
+    const dLng = (Math.max(...lngs) - Math.min(...lngs)) * 111320 * Math.cos(Math.min(...lats) * Math.PI / 180);
+    return Math.abs(dLat * dLng) * 0.8; // 80% usable area
+  }
+
   async function fetchCapexEstimate() {
-    if (!location?.wkt) return;
+    if (rooftopAreaM2 <= 0) {
+      rooftopAreaM2 = computeRooftopArea();
+    }
+    if (rooftopAreaM2 <= 0) return;
+
     capexEstimateLoading = true;
     try {
-      // Rough area estimate from WKT (use bounding box area * 0.8 as approximation)
-      const coords = location.wkt.match(/[\d.]+\s+[\d.]+/g) ?? [];
-      let areaM2 = 50; // fallback
-      if (coords.length >= 4) {
-        const lats = coords.map(c => parseFloat(c.split(/\s+/)[1]));
-        const lngs = coords.map(c => parseFloat(c.split(/\s+/)[0]));
-        const dLat = (Math.max(...lats) - Math.min(...lats)) * 111320;
-        const dLng = (Math.max(...lngs) - Math.min(...lngs)) * 111320 * Math.cos(Math.min(...lats) * Math.PI / 180);
-        areaM2 = Math.abs(dLat * dLng) * 0.8; // 80% usable
-      }
-      capexEstimate = await api.estimateCapex(areaM2, numPanels);
+      capexEstimate = await api.estimateCapex(rooftopAreaM2, numPanels);
       if (capexEstimate.capex_eur != null) {
         capex = Math.round(capexEstimate.capex_eur);
-        if (capexEstimate.kwp != null) kwp = capexEstimate.kwp;
+        if (capexEstimate.kwp != null) {
+          kwp = capexEstimate.kwp;
+          kwpAuto = false; // user is choosing panels, disable LIDAR auto
+        }
       }
     } catch (e) {
-      // silently fall back to manual input
+      console.error('CAPEX estimate failed:', e);
       capexEstimate = null;
     } finally {
       capexEstimateLoading = false;
+    }
+  }
+
+  async function onCapexEstimatorToggle() {
+    if (useCapexEstimator) {
+      rooftopAreaM2 = computeRooftopArea();
+      // First call without num_panels to get min/max range
+      if (rooftopAreaM2 > 0) {
+        try {
+          const rangeInfo = await api.estimateCapex(rooftopAreaM2);
+          capexEstimate = rangeInfo;
+          // Clamp numPanels to valid range
+          if (numPanels < rangeInfo.min_panels) numPanels = rangeInfo.min_panels;
+          if (numPanels > rangeInfo.max_panels) numPanels = rangeInfo.max_panels;
+          // Now fetch with the clamped panel count
+          await fetchCapexEstimate();
+        } catch (e) {
+          console.error('CAPEX range fetch failed:', e);
+        }
+      }
     }
   }
 </script>
@@ -162,15 +191,22 @@
             min="1000"
             step="500"
             placeholder="15000"
+            disabled={useCapexEstimator}
           />
-          <span class="field-hint">Total project cost (materials + labour). Typical range: €1,200–2,000/kWp for residential.</span>
+          <span class="field-hint">
+            {#if useCapexEstimator}
+              Auto-calculated from panel count below.
+            {:else}
+              Total project cost (materials + labour). Typical range: €1,200–2,000/kWp for residential.
+            {/if}
+          </span>
         </label>
 
         <!-- Panel-based CAPEX estimator -->
         {#if location?.wkt}
           <div class="field" style="grid-column: 1 / -1">
             <label class="checkbox-row">
-              <input type="checkbox" bind:checked={useCapexEstimator} onchange={() => { if (useCapexEstimator) fetchCapexEstimate(); }} />
+              <input type="checkbox" bind:checked={useCapexEstimator} onchange={onCapexEstimatorToggle} />
               <span>
                 Estimate cost from number of panels
                 <span class="badge">Power Law</span>
@@ -178,19 +214,21 @@
             </label>
             {#if useCapexEstimator}
               <div style="display: flex; gap: 0.75rem; align-items: flex-end; margin-top: 0.5rem; flex-wrap: wrap">
-                <label class="field" style="max-width: 160px">
+                <label class="field" style="max-width: 200px">
                   <span class="field-label">
-                    Panels
-                    <span class="field-unit">
-                      (min {capexEstimate?.min_panels ?? 4}, max {capexEstimate?.max_panels ?? '...'})
-                    </span>
+                    Number of panels
+                    {#if capexEstimate}
+                      <span class="field-unit">
+                        ({capexEstimate.min_panels}–{capexEstimate.max_panels} for {Math.round(rooftopAreaM2)} m²)
+                      </span>
+                    {/if}
                   </span>
                   <input
                     type="number"
                     class="field-input"
                     bind:value={numPanels}
-                    min={capexEstimate?.min_panels ?? 4}
-                    max={capexEstimate?.max_panels ?? 500}
+                    min={capexEstimate?.min_panels ?? 1}
+                    max={capexEstimate?.max_panels ?? 999}
                     step="1"
                     oninput={fetchCapexEstimate}
                   />
