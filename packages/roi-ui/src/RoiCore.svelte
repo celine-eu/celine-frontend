@@ -170,7 +170,7 @@
         {#if location?.wkt}
           <div class="field" style="grid-column: 1 / -1">
             <label class="checkbox-row">
-              <input type="checkbox" bind:checked={useCapexEstimator} />
+              <input type="checkbox" bind:checked={useCapexEstimator} onchange={() => { if (useCapexEstimator) fetchCapexEstimate(); }} />
               <span>
                 Estimate cost from number of panels
                 <span class="badge">Power Law</span>
@@ -179,7 +179,12 @@
             {#if useCapexEstimator}
               <div style="display: flex; gap: 0.75rem; align-items: flex-end; margin-top: 0.5rem; flex-wrap: wrap">
                 <label class="field" style="max-width: 160px">
-                  <span class="field-label">Panels <span class="field-unit">{capexEstimate ? `(${capexEstimate.min_panels}–${capexEstimate.max_panels})` : ''}</span></span>
+                  <span class="field-label">
+                    Panels
+                    <span class="field-unit">
+                      (min {capexEstimate?.min_panels ?? 4}, max {capexEstimate?.max_panels ?? '...'})
+                    </span>
+                  </span>
                   <input
                     type="number"
                     class="field-input"
@@ -187,12 +192,9 @@
                     min={capexEstimate?.min_panels ?? 4}
                     max={capexEstimate?.max_panels ?? 500}
                     step="1"
-                    onchange={fetchCapexEstimate}
+                    oninput={fetchCapexEstimate}
                   />
                 </label>
-                <button class="btn-link" onclick={fetchCapexEstimate} disabled={capexEstimateLoading}>
-                  {capexEstimateLoading ? 'Estimating...' : 'Update estimate'}
-                </button>
                 {#if capexEstimate?.capex_eur != null}
                   <span class="field-hint" style="font-size: 0.8125rem">
                     <strong>{capexEstimate.kwp?.toFixed(1)} kWp</strong> ·
@@ -458,7 +460,7 @@
         <span class="step-num">3</span>
         <h2 class="section-title">ROI results</h2>
       </header>
-      <RoiResults {result} />
+      <RoiResults {result} {apiBaseUrl} />
     </section>
   {/if}
 </div>

@@ -1,11 +1,88 @@
 <script lang="ts">
-  import type { ScenarioResult } from './types.js';
+  import type { ScenarioResult, CompareResponse } from './types.js';
+  import { createRoiApi } from './api.js';
 
   interface Props {
     result: ScenarioResult;
+    apiBaseUrl?: string;
   }
 
-  let { result }: Props = $props();
+  let { result, apiBaseUrl = '/api' }: Props = $props();
+
+  const api = $derived(createRoiApi(apiBaseUrl));
+
+  // ── Report download ───────────────────────────────────────────────────────
+  function downloadReport() {
+    const s = result.summary;
+    const e = result.energy;
+    const f = result.finance;
+    const inc = result.incentives;
+
+    const lines: string[] = [
+      '# CELINE ROI — Report',
+      '',
+      `| KPI | Value |`,
+      `|-----|-------|`,
+      `| NPV (25yr) | ${formatEur(s.npv_eur)} |`,
+      `| IRR | ${formatNum(s.irr_pct)}% |`,
+      `| Simple payback | ${formatNum(s.payback_simple_years)} years |`,
+      `| Discounted payback | ${formatNum(s.payback_discounted_years)} years |`,
+      `| Annual production | ${formatNum(s.annual_production_kwh, 0)} kWh |`,
+      `| Self-consumption | ${formatNum(s.tasso_autoconsumo_pct)}% |`,
+      '',
+      '## 25-Year Cashflow',
+      '',
+      '| Year | Annual CF | Cumulative |',
+      '|-----:|----------:|-----------:|',
+    ];
+    for (let y = 0; y < f.cashflows.length; y++) {
+      lines.push(`| ${y} | ${formatEur(f.cashflows[y])} | ${formatEur(f.cumulative[y])} |`);
+    }
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'celine-roi-report.md';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Quick scenario comparison ─────────────────────────────────────────────
+  let compareResult: CompareResponse | null = $state(null);
+  let compareLoading = $state(false);
+  let compareError = $state('');
+
+  async function runQuickCompare() {
+    compareLoading = true;
+    compareError = '';
+    compareResult = null;
+    try {
+      // Reconstruct system input from result
+      const si = result.summary;
+      const sys = {
+        kwp: result.production.effective_kwp ?? 10,
+        latitude: 45.9,
+        longitude: 11.3,
+        capex: 15000,
+        annual_consumption_kwh: 5000,
+        regime: 'RID_CER' as const,
+        equity_fraction: 1.0,
+        loan_rate: 0,
+        loan_duration_years: 0,
+        annual_production_kwh: si.annual_production_kwh,
+      };
+      compareResult = await api.compareScenarios(sys, {
+        'Base (RID+CER)': {},
+        'Solo RID': { regime: 'RID' },
+        'Heat Pump': { load_profile: 'residential_heat_pump.json' },
+      });
+    } catch (e) {
+      compareError = e instanceof Error ? e.message : 'Comparison failed';
+    } finally {
+      compareLoading = false;
+    }
+  }
 
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const MONTHS_FULL = [
@@ -482,6 +559,45 @@
       </div>
     {/if}
   </div>
+
+  <!-- ── Actions: Export + Compare ──────────────────────────────────────── -->
+  <div class="actions-row">
+    <button class="btn-action" onclick={downloadReport}>
+      📄 Download report (.md)
+    </button>
+    <button class="btn-action btn-action-secondary" onclick={runQuickCompare} disabled={compareLoading}>
+      {compareLoading ? 'Comparing...' : '⚡ Quick compare (CER / RID / Heat Pump)'}
+    </button>
+  </div>
+
+  {#if compareError}
+    <div class="alert alert-error" role="alert">
+      <strong>Compare error:</strong> {compareError}
+    </div>
+  {/if}
+
+  {#if compareResult}
+    <div class="chart-block">
+      <h3 class="chart-title">Scenario comparison</h3>
+      <div class="compare-table-wrap">
+        {@html compareResult.summary_table
+          .split('\n')
+          .map(line => {
+            if (line.startsWith('|---')) return line.replace(/---+/g, m => '-'.repeat(m.length));
+            return line;
+          })
+          .join('\n')
+          .replace(/^\|(.+)\|$/gm, (_, content) => {
+            const cells = content.split('|').map((c: string) => c.trim());
+            return '<tr>' + cells.map((c: string, i: number) => i === 0 ? `<td class="kpi-name">${c}</td>` : `<td class="num">${c}</td>`).join('') + '</tr>';
+          })
+          .replace(/^(<tr>.*<\/tr>\n<tr>)/, '<table class="data-table"><thead>$1')
+          .replace(/<\/tr>\n/, '</tr></thead><tbody>\n')
+          .concat('</tbody></table>')
+        }
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -779,6 +895,57 @@
 
   .negative {
     color: var(--celine-danger);
+  }
+
+  /* ── Actions row ── */
+  .actions-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    background: var(--celine-primary);
+    color: var(--celine-primary-text);
+    border: none;
+    border-radius: var(--celine-radius-sm);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background var(--celine-transition-fast);
+  }
+
+  .btn-action:hover:not(:disabled) {
+    background: var(--celine-primary-hover);
+  }
+
+  .btn-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-action-secondary {
+    background: var(--celine-bg-elevated);
+    color: var(--celine-text);
+    border: 1px solid var(--celine-border);
+  }
+
+  .btn-action-secondary:hover:not(:disabled) {
+    background: var(--celine-bg-sunken);
+  }
+
+  .compare-table-wrap {
+    overflow-x: auto;
+  }
+
+  .kpi-name {
+    font-weight: 500;
+    white-space: nowrap;
   }
 
   /* ── CER split ── */
