@@ -13,7 +13,7 @@
     "check": "pnpm -r check"
   },
   "devDependencies": {
-    "@release-it/conventional-changelog": "^10.0.5",
+    "@release-it/conventional-changelog": "^10.0.6",
     "release-it": "^19.0.0",
     "typescript": "^5.6.3"
   }
