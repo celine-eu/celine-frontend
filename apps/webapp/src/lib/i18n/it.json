@@ -64,7 +64,13 @@
     "co2_trees": "≈ {trees} alberi",
     "co2_context": "rispetto all'energia elettrica da rete",
     "weather_section_title": "Meteo e Previsione Solare",
-    "weather_section_period": "Condizioni attuali e potenziale solare"
+    "weather_section_period": "Condizioni attuali e potenziale solare",
+    "ask_ai": {
+      "user-contribution": "Spiegami i valori del mio contributo nella panoramica e confrontali con i totali della comunità.",
+      "community-trend": "Analizza l'andamento della comunità mostrato nella panoramica e spiegami i cambiamenti principali di questo periodo.",
+      "weather": "Spiegami le condizioni meteo e il potenziale solare mostrati nella panoramica e come possono influenzare la mia produzione energetica.",
+      "co2": "Spiegami i valori di impatto ambientale mostrati nella panoramica, inclusi la CO2 risparmiata e l'equivalente in alberi."
+    }
   },
   "notifications": {
     "title": "Notifiche",

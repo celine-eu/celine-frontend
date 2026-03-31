@@ -64,7 +64,13 @@
     "co2_trees": "≈ {trees} trees",
     "co2_context": "compared to grid electricity",
     "weather_section_title": "Weather & Solar Forecast",
-    "weather_section_period": "Current conditions and solar potential"
+    "weather_section_period": "Current conditions and solar potential",
+    "ask_ai": {
+      "user-contribution": "Explain the values in my contribution section and compare them with the community totals.",
+      "community-trend": "Analyze the community trend shown in Overview and explain the main changes over this period.",
+      "weather": "Explain the weather and solar conditions shown in Overview and how they can affect my energy production.",
+      "co2": "Explain the environmental impact values shown in Overview, including CO2 saved and tree equivalent."
+    }
   },
   "notifications": {
     "title": "Notifications",
