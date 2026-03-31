@@ -60,7 +60,8 @@
     result = null;
 
     try {
-      const useWkt = kwpAuto && !!location.wkt;
+      // When CAPEX estimator is active, use its kwp directly (not LIDAR)
+      const useWkt = kwpAuto && !useCapexEstimator && !!location.wkt;
       const system = {
         kwp: useWkt ? 0 : kwp,
         latitude: location.lat,
