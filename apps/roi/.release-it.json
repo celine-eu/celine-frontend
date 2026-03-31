@@ -1,0 +1,62 @@
+{
+    "git": {
+        "commitMessage": "chore(roi): release v${version}",
+        "tagName": "roi-v${version}",
+        "tagAnnotation": "Release roi v${version}",
+        "requireBranch": "main",
+        "push": true,
+        "pushArgs": [
+            "--follow-tags"
+        ]
+    },
+    "npm": {
+        "publish": false
+    },
+    "plugins": {
+        "@release-it/conventional-changelog": {
+            "preset": {
+                "name": "conventionalcommits",
+                "types": [
+                    {
+                        "type": "feat",
+                        "section": "Features"
+                    },
+                    {
+                        "type": "fix",
+                        "section": "Bug Fixes"
+                    },
+                    {
+                        "type": "perf",
+                        "section": "Performance"
+                    },
+                    {
+                        "type": "refactor",
+                        "section": "Refactoring"
+                    },
+                    {
+                        "type": "docs",
+                        "section": "Documentation"
+                    },
+                    {
+                        "type": "chore",
+                        "hidden": true
+                    },
+                    {
+                        "type": "style",
+                        "hidden": true
+                    },
+                    {
+                        "type": "test",
+                        "hidden": true
+                    }
+                ]
+            },
+            "infile": "CHANGELOG.md"
+        }
+    },
+    "hooks": {
+        "before:init": [
+            "pnpm --filter @celine-eu/roi check"
+        ]
+    }
+}
