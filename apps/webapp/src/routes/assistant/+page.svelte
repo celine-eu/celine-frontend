@@ -1,11 +1,88 @@
 <script lang="ts">
+  import { page } from "$app/state";
+  import {
+    api,
+    type Co2LocaleSettings,
+    type Overview,
+    type WeatherResponse,
+  } from "$lib/api";
   import { ChatCore } from "@celine-eu/assistant-ui";
   import { Icon } from "@celine-eu/ui";
+  import { onMount } from "svelte";
 
   let showHistory = $state(false);
   let showAttachments = $state(false);
   let chatCore: ChatCore | null = $state(null);
   let hasConversation = $state(false);
+  let contextReady = $state(false);
+  let resolvedInitialContext = $state<Record<string, unknown> | null>(null);
+  const conversationId = $derived(page.url.searchParams.get("conversation_id"));
+  const initialPrompt = $derived(page.url.searchParams.get("prompt") ?? "");
+  const urlContext = $derived.by(() => {
+    const pageName = page.url.searchParams.get("page");
+    const section = page.url.searchParams.get("section");
+    if (!pageName && !section) return null;
+    return {
+      page: pageName ?? undefined,
+      section: section ?? undefined,
+    };
+  });
+
+  function buildOverviewContextData(
+    overview: Overview,
+    weather: WeatherResponse | null,
+    co2Settings: Co2LocaleSettings | null,
+  ) {
+    const data: Record<string, unknown> = {
+      overview,
+    };
+
+    if (weather) {
+      data.weather = weather;
+    }
+
+    if (
+      co2Settings &&
+      overview.rec.production_kwh != null &&
+      overview.rec.production_kwh > 0
+    ) {
+      const co2Kg = overview.rec.production_kwh * co2Settings.kg_per_kwh;
+      const trees =
+        Math.round((co2Kg / 1000) * co2Settings.trees_per_ton * 10) / 10;
+      data.co2 = {
+        kg: co2Kg,
+        trees,
+        settings: co2Settings,
+      };
+    }
+
+    return data;
+  }
+
+  onMount(async () => {
+    if (!urlContext || urlContext.page !== "overview") {
+      resolvedInitialContext = urlContext;
+      contextReady = true;
+      return;
+    }
+
+    try {
+      const [overview, weather, co2Settings] = await Promise.all([
+        api.overview(),
+        api.weather().catch(() => null),
+        api.co2Settings().then((res) => res.current).catch(() => null),
+      ]);
+
+      resolvedInitialContext = {
+        ...urlContext,
+        data: buildOverviewContextData(overview, weather, co2Settings),
+      };
+    } catch {
+      resolvedInitialContext = urlContext;
+    } finally {
+      contextReady = true;
+    }
+  });
 
   function closePanels() {
     showHistory = false;
@@ -22,6 +99,17 @@
 
   function handleConversationChange(id: string | null) {
     hasConversation = id !== null;
+
+    const url = new URL(window.location.href);
+    if (id) {
+      url.searchParams.set("conversation_id", id);
+      url.searchParams.delete("prompt");
+      url.searchParams.delete("page");
+      url.searchParams.delete("section");
+    } else {
+      url.searchParams.delete("conversation_id");
+    }
+    window.history.replaceState({}, "", url);
   }
 </script>
 
@@ -74,20 +162,25 @@
   </header>
 
   <div class="chat-container">
-    <ChatCore
-      bind:this={chatCore}
-      apiBaseUrl="/api/assistant"
-      mode="full"
-      showHeader={false}
-      enableHistory={true}
-      enableAttachments={true}
-      enableUpload={true}
-      onConversationChange={handleConversationChange}
-      onPanelsClose={() => {
-        showHistory = false;
-        showAttachments = false;
-      }}
-    />
+    {#if contextReady}
+      <ChatCore
+        bind:this={chatCore}
+        apiBaseUrl="/api/assistant"
+        mode="full"
+        showHeader={false}
+        enableHistory={true}
+        enableAttachments={true}
+        enableUpload={true}
+        {conversationId}
+        {initialPrompt}
+        initialContext={resolvedInitialContext}
+        onConversationChange={handleConversationChange}
+        onPanelsClose={() => {
+          showHistory = false;
+          showAttachments = false;
+        }}
+      />
+    {/if}
   </div>
 </section>
 

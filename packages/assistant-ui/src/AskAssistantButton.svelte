@@ -9,6 +9,7 @@
     label?: string;
     iconOnly?: boolean;
     size?: 'sm' | 'md';
+    href?: string | null;
   }
 
   let {
@@ -16,13 +17,19 @@
     prompt = null,
     label = 'Ask Assistant',
     iconOnly = false,
-    size = 'sm'
+    size = 'sm',
+    href = null
   }: Props = $props();
 
   // Get the widget controller from context (provided by AssistantProvider)
   const widgetController = getContext<{ open: (opts: { context?: AssistantContext; prompt?: string }) => void } | null>('assistant-widget');
 
   function handleClick() {
+    if (href) {
+      window.location.assign(href);
+      return;
+    }
+
     if (widgetController) {
       widgetController.open({ 
         context, 

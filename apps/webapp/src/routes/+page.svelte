@@ -25,6 +25,18 @@
   let suggestionsLoading = $state(true);
   let co2Settings = $state<Co2LocaleSettings | null>(null);
 
+  function buildAssistantHref(prompt: string, section: string): string {
+    const url = new URL("/assistant", page.url.origin);
+    url.searchParams.set("prompt", prompt);
+    url.searchParams.set("page", "overview");
+    url.searchParams.set("section", section);
+    return `${url.pathname}${url.search}`;
+  }
+
+  function assistantPrompt(section: "user-contribution" | "community-trend" | "weather" | "co2"): string {
+    return $t(`overview.ask_ai.${section}`);
+  }
+
   /** Format a number to 1 decimal place, or return "—" for null/undefined */
   function fmt(value: number | null | undefined): string {
     return value != null ? value.toFixed(1) : "—";
@@ -200,7 +212,11 @@
             section: "user-contribution",
             data: { user: overview.user, rec: overview.rec },
           }}
-          prompt="Explain my energy contribution and how I compare to the community"
+          prompt={assistantPrompt("user-contribution")}
+          href={buildAssistantHref(
+            assistantPrompt("user-contribution"),
+            "user-contribution",
+          )}
         />
       </header>
 
@@ -301,7 +317,11 @@
         <AskAssistantButton
           iconOnly
           context={{ page: "overview", section: "community-trend", data: { trend: overview.trend } }}
-          prompt="Analyze this community energy trend"
+          prompt={assistantPrompt("community-trend")}
+          href={buildAssistantHref(
+            assistantPrompt("community-trend"),
+            "community-trend",
+          )}
         />
       </header>
 
@@ -359,6 +379,15 @@
           <h2 class="section-title">{$t('overview.weather_section_title')}</h2>
           <p class="section-period">{$t('overview.weather_section_period')}</p>
         </div>
+        <AskAssistantButton
+          iconOnly
+          context={{ page: "overview", section: "weather" }}
+          prompt={assistantPrompt("weather")}
+          href={buildAssistantHref(
+            assistantPrompt("weather"),
+            "weather",
+          )}
+        />
         <a href="/suggestions" class="weather-cta">{$t('overview.solar_forecast')}</a>
       </header>
       <WeatherWidget data={weatherData} loading={weatherLoading} />
@@ -378,7 +407,11 @@
           <AskAssistantButton
             iconOnly
             context={{ page: "overview", section: "co2", data: { co2_kg: co2Kg, trees } }}
-            prompt="Explain the environmental impact of our community's renewable production"
+            prompt={assistantPrompt("co2")}
+            href={buildAssistantHref(
+              assistantPrompt("co2"),
+              "co2",
+            )}
           />
         </header>
         <div class="co2-stats">
