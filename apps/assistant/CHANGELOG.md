@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.9.0...assistant-v0.10.0) (2026-03-31)
+
+### Features
+
+* add roi ui ([dee93b3](https://github.com/celine-eu/celine-frontend/commit/dee93b3ad342123bdcfdd9d3752a8651cb22e591))
+* improve presentation layer, add commitment history ([c74d606](https://github.com/celine-eu/celine-frontend/commit/c74d60661c89bf93278afa4b46afbd70f1c18262))
+* overview connect ai-assistant for details ([97d4ef1](https://github.com/celine-eu/celine-frontend/commit/97d4ef198e2eb7b400177fec84608c05afaa17ab))
+
 ## [0.9.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.8.0...assistant-v0.9.0) (2026-03-23)
 
 ### Bug Fixes
