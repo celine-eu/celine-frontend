@@ -13,18 +13,48 @@
 
   const api = $derived(createRoiApi(apiBaseUrl));
 
+  // ── URL parameter sharing ─────────────────────────────────────────────────
+  function readUrlParams(): Partial<{
+    lat: number; lng: number; kwp: number; capex: number;
+    consumption: number; regime: Regime; tilt: number; azimuth: number;
+    userType: UserType; battery: number;
+  }> {
+    if (typeof window === 'undefined') return {};
+    const p = new URLSearchParams(window.location.search);
+    const num = (k: string) => {
+      const v = p.get(k);
+      if (!v) return undefined;
+      const parsed = parseFloat(v);
+      return isNaN(parsed) ? undefined : parsed;
+    };
+    return {
+      lat: num('lat'), lng: num('lng'), kwp: num('kwp'),
+      capex: num('capex'), consumption: num('consumption'),
+      tilt: num('tilt'), azimuth: num('azimuth'),
+      battery: num('battery'),
+      regime: (p.get('regime') as Regime) || undefined,
+      userType: (p.get('user_type') as UserType) || undefined,
+    };
+  }
+
+  const urlParams = readUrlParams();
+
   // Location
-  let location: PickedLocation | null = $state(null);
+  let location: PickedLocation | null = $state(
+    urlParams.lat != null && urlParams.lng != null
+      ? { lat: urlParams.lat, lng: urlParams.lng, wkt: '', name: '' }
+      : null
+  );
 
   // Required parameters
-  let capex = $state(15000);
-  let consumption = $state(5000);
-  let userType: UserType = $state('commercial');
-  let regime: Regime = $state('RID_CER');
+  let capex = $state(urlParams.capex ?? 15000);
+  let consumption = $state(urlParams.consumption ?? 5000);
+  let userType: UserType = $state(urlParams.userType ?? 'commercial');
+  let regime: Regime = $state(urlParams.regime ?? 'RID');
 
   // kWp estimation
-  let kwpAuto = $state(true);
-  let kwp = $state(10);
+  let kwpAuto = $state(urlParams.kwp == null);
+  let kwp = $state(urlParams.kwp ?? 10);
 
   // Panel-based CAPEX estimation
   let useCapexEstimator = $state(false);
@@ -36,10 +66,13 @@
   // Load profile selection
   let loadProfile = $state('residential_default.json');
 
+  // Battery cost deduction
+  let batteryKwh = $state(urlParams.battery ?? 0);
+
   // Advanced options
   let showAdvanced = $state(false);
-  let tilt = $state(30);
-  let azimuth = $state(0);
+  let tilt = $state(urlParams.tilt ?? 30);
+  let azimuth = $state(urlParams.azimuth ?? 0);
   let equityFraction = $state(1.0);
   let loanRate = $state(3.0);
   let loanDuration = $state(0);
@@ -50,6 +83,8 @@
   let loading = $state(false);
   let error = $state('');
   let result: ScenarioResult | null = $state(null);
+  let lastSystem: Record<string, unknown> | null = $state(null);
+  let lastOverrides: Record<string, unknown> | null = $state(null);
 
   const canSubmit = $derived(location !== null && capex > 0 && consumption > 0);
 
@@ -60,10 +95,11 @@
     result = null;
 
     try {
-      // When CAPEX estimator is active, use its kwp directly (not LIDAR)
-      const useWkt = kwpAuto && !useCapexEstimator && !!location.wkt;
+      // Always send WKT when polygon is drawn; use kwp=0 for LIDAR auto-estimation
+      const hasWkt = !!location.wkt;
+      const useLidar = kwpAuto && !useCapexEstimator && hasWkt;
       const system = {
-        kwp: useWkt ? 0 : kwp,
+        kwp: useLidar ? 0 : kwp,
         latitude: location.lat,
         longitude: location.lng,
         tilt,
@@ -75,11 +111,14 @@
         equity_fraction: equityFraction,
         ...(hasLoan ? { loan_rate: loanRate / 100, loan_duration_years: loanDuration } : {}),
         location: location.name || '',
-        ...(useWkt ? { rooftop_wkt: location.wkt } : {}),
+        ...(hasWkt ? { rooftop_wkt: location.wkt } : {}),
+        ...(batteryKwh > 0 ? { battery_kwh: batteryKwh } : {}),
       };
       const overrides = loadProfile !== 'residential_default.json'
         ? { load_profile: loadProfile }
         : {};
+      lastSystem = system;
+      lastOverrides = overrides;
       result = await api.runScenario(system, overrides);
     } catch (e) {
       error = e instanceof Error ? e.message : 'Calculation failed';
@@ -92,6 +131,33 @@
     location = loc;
     result = null;
     error = '';
+  }
+
+  let linkCopied = $state(false);
+
+  function buildShareUrl(): string {
+    if (!location) return '';
+    const p = new URLSearchParams();
+    p.set('lat', location.lat.toFixed(6));
+    p.set('lng', location.lng.toFixed(6));
+    if (!kwpAuto) p.set('kwp', String(kwp));
+    p.set('capex', String(capex));
+    p.set('consumption', String(consumption));
+    p.set('regime', regime);
+    if (userType !== 'commercial') p.set('user_type', userType);
+    if (tilt !== 30) p.set('tilt', String(tilt));
+    if (azimuth !== 0) p.set('azimuth', String(azimuth));
+    if (batteryKwh > 0) p.set('battery', String(batteryKwh));
+    const base = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : '';
+    return `${base}?${p.toString()}`;
+  }
+
+  async function copyShareLink() {
+    const url = buildShareUrl();
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
+    linkCopied = true;
+    setTimeout(() => { linkCopied = false; }, 2000);
   }
 
   function computeRooftopArea(): number {
@@ -163,7 +229,12 @@
         </p>
       </div>
     </header>
-    <MapPicker {onLocationChange} />
+    <MapPicker
+      {onLocationChange}
+      initialLat={urlParams.lat ?? 46.07}
+      initialLng={urlParams.lng ?? 11.12}
+      initialZoom={urlParams.lat != null ? 17 : 13}
+    />
   </section>
 
   <!-- Step 2: Parameters -->
@@ -202,6 +273,32 @@
             {/if}
           </span>
         </label>
+
+        <!-- Battery cost deduction -->
+        {#if !useCapexEstimator}
+          <label class="field">
+            <span class="field-label">
+              Battery capacity
+              <span class="field-unit">kWh (0 = none)</span>
+            </span>
+            <input
+              type="number"
+              class="field-input"
+              bind:value={batteryKwh}
+              min="0"
+              max="200"
+              step="0.5"
+              placeholder="0"
+            />
+            <span class="field-hint">
+              If your total cost includes a battery, enter its capacity here.
+              The estimated battery cost (~500 €/kWh) will be subtracted to isolate PV investment.
+              {#if batteryKwh > 0}
+                <strong>Est. battery cost: ~{(batteryKwh * 500).toLocaleString('it-IT')} €</strong>
+              {/if}
+            </span>
+          </label>
+        {/if}
 
         <!-- Panel-based CAPEX estimator -->
         {#if location?.wkt}
@@ -446,18 +543,30 @@
         </div>
       {/if}
 
-      <button
-        class="btn-calculate"
-        onclick={calculate}
-        disabled={loading || !canSubmit}
-      >
-        {#if loading}
-          <span class="spinner" aria-hidden="true"></span>
-          Calculating…
-        {:else}
-          ⚡ Calculate ROI
+      <div class="action-row">
+        <button
+          class="btn-calculate"
+          onclick={calculate}
+          disabled={loading || !canSubmit}
+        >
+          {#if loading}
+            <span class="spinner" aria-hidden="true"></span>
+            Calculating…
+          {:else}
+            Calculate ROI
+          {/if}
+        </button>
+        {#if location}
+          <button
+            class="btn-share"
+            onclick={copyShareLink}
+            type="button"
+            title="Copy shareable link with current parameters"
+          >
+            {linkCopied ? 'Copied!' : 'Copy link'}
+          </button>
         {/if}
-      </button>
+      </div>
     </section>
   {/if}
 
@@ -499,7 +608,7 @@
         <span class="step-num">3</span>
         <h2 class="section-title">ROI results</h2>
       </header>
-      <RoiResults {result} {apiBaseUrl} />
+      <RoiResults {result} {apiBaseUrl} systemInput={lastSystem} configOverrides={lastOverrides} />
     </section>
   {/if}
 </div>
@@ -702,9 +811,14 @@
     border-radius: var(--celine-radius-sm);
   }
 
+  .action-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
   /* ── Calculate button ── */
   .btn-calculate {
-    align-self: flex-start;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -727,6 +841,26 @@
   .btn-calculate:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .btn-share {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.625rem 1rem;
+    background: var(--celine-bg-elevated);
+    color: var(--celine-text);
+    border: 1px solid var(--celine-border);
+    border-radius: var(--celine-radius-sm);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background var(--celine-transition-fast);
+  }
+
+  .btn-share:hover {
+    background: var(--celine-bg-sunken);
   }
 
   /* Spinner */

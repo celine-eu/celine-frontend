@@ -3,7 +3,7 @@ import type { SystemInput, ConfigOverrides, ScenarioResult, CapexEstimateRespons
 export interface RoiApi {
   runScenario(system: SystemInput, overrides?: ConfigOverrides): Promise<ScenarioResult>;
   estimateCapex(rooftop_area_m2: number, num_panels?: number): Promise<CapexEstimateResponse>;
-  compareScenarios(system: SystemInput, scenarios: Record<string, Record<string, unknown>>, overrides?: ConfigOverrides): Promise<CompareResponse>;
+  compareScenarios(system: SystemInput | Record<string, unknown>, scenarios: Record<string, Record<string, unknown>>, overrides?: ConfigOverrides | Record<string, unknown>): Promise<CompareResponse>;
 }
 
 export function createRoiApi(baseUrl: string = '/api'): RoiApi {
@@ -53,9 +53,9 @@ export function createRoiApi(baseUrl: string = '/api'): RoiApi {
   }
 
   async function compareScenarios(
-    system: SystemInput,
+    system: SystemInput | Record<string, unknown>,
     scenarios: Record<string, Record<string, unknown>>,
-    overrides: ConfigOverrides = {}
+    overrides: ConfigOverrides | Record<string, unknown> = {}
   ): Promise<CompareResponse> {
     const res = await fetch(`${base}/v1/compare`, {
       method: 'POST',

@@ -16,6 +16,7 @@ export interface SystemInput {
   loan_duration_years?: number;
   location?: string;
   rooftop_wkt?: string | null;
+  battery_kwh?: number;
 }
 
 export interface ConfigOverrides {
@@ -27,6 +28,11 @@ export interface ConfigOverrides {
   cer_tip?: number;
   cer_cacv?: number;
   load_profile?: string;
+  detrazione_enabled?: boolean;
+  detrazione_rate?: number;
+  detrazione_years?: number;
+  detrazione_include_iva?: boolean;
+  cer_virtual_consumption_rate?: number;
 }
 
 export interface PickedLocation {
@@ -78,6 +84,7 @@ export interface IncentiveResult {
   ammortamento: number[];
   tax_shield: number[];
   ires_irap: number[];
+  detrazione_irpef: number[];
 }
 
 export interface FinanceResult {
