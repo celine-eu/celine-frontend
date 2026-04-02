@@ -17,7 +17,7 @@
   function readUrlParams(): Partial<{
     lat: number; lng: number; kwp: number; capex: number;
     consumption: number; regime: Regime; tilt: number; azimuth: number;
-    userType: UserType; battery: number;
+    userType: UserType; battery: number; wkt: string;
   }> {
     if (typeof window === 'undefined') return {};
     const p = new URLSearchParams(window.location.search);
@@ -34,6 +34,7 @@
       battery: num('battery'),
       regime: (p.get('regime') as Regime) || undefined,
       userType: (p.get('user_type') as UserType) || undefined,
+      wkt: p.get('wkt') || undefined,
     };
   }
 
@@ -42,7 +43,7 @@
   // Location
   let location: PickedLocation | null = $state(
     urlParams.lat != null && urlParams.lng != null
-      ? { lat: urlParams.lat, lng: urlParams.lng, wkt: '', name: '' }
+      ? { lat: urlParams.lat, lng: urlParams.lng, wkt: urlParams.wkt ?? '', name: '' }
       : null
   );
 
@@ -68,6 +69,12 @@
 
   // Battery cost deduction
   let batteryKwh = $state(urlParams.battery ?? 0);
+
+  // Detrazione / incentive configuration
+  let detrazioneEnabled = $state(true);
+  let detrazioneRateCustom = $state(false);
+  let detrazioneRate = $state(50);
+  let detrazioneYears = $state(10);
 
   // Advanced options
   let showAdvanced = $state(false);
@@ -114,9 +121,13 @@
         ...(hasWkt ? { rooftop_wkt: location.wkt } : {}),
         ...(batteryKwh > 0 ? { battery_kwh: batteryKwh } : {}),
       };
-      const overrides = loadProfile !== 'residential_default.json'
-        ? { load_profile: loadProfile }
-        : {};
+      const overrides: Record<string, unknown> = {};
+      if (loadProfile !== 'residential_default.json') overrides.load_profile = loadProfile;
+      if (!detrazioneEnabled) overrides.detrazione_enabled = false;
+      if (detrazioneRateCustom) {
+        overrides.detrazione_rate = detrazioneRate / 100;
+        overrides.detrazione_years = detrazioneYears;
+      }
       lastSystem = system;
       lastOverrides = overrides;
       result = await api.runScenario(system, overrides);
@@ -148,6 +159,7 @@
     if (tilt !== 30) p.set('tilt', String(tilt));
     if (azimuth !== 0) p.set('azimuth', String(azimuth));
     if (batteryKwh > 0) p.set('battery', String(batteryKwh));
+    if (location.wkt) p.set('wkt', location.wkt);
     const base = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : '';
     return `${base}?${p.toString()}`;
   }
@@ -292,9 +304,10 @@
             />
             <span class="field-hint">
               If your total cost includes a battery, enter its capacity here.
-              The estimated battery cost (~500 €/kWh) will be subtracted to isolate PV investment.
+              The estimated battery cost will be subtracted to isolate PV investment.
               {#if batteryKwh > 0}
-                <strong>Est. battery cost: ~{(batteryKwh * 500).toLocaleString('it-IT')} €</strong>
+                {@const estCost = Math.round(Math.max(1500, 2400 * Math.pow(batteryKwh, 0.53)))}
+                <strong>Est. battery: ~{estCost.toLocaleString('it-IT')} € ({Math.round(estCost / batteryKwh).toLocaleString('it-IT')} €/kWh)</strong>
               {/if}
             </span>
           </label>
@@ -450,7 +463,7 @@
           aria-expanded={showAdvanced}
         >
           {showAdvanced ? '▾' : '▸'} Advanced options
-          <span class="adv-hint">(panel orientation, financing)</span>
+          <span class="adv-hint">(panel orientation, financing, incentives)</span>
         </button>
       </div>
 
@@ -540,6 +553,62 @@
               />
             </label>
           {/if}
+
+          <!-- Detrazione / IRPEF incentive -->
+          <div class="field" style="grid-column: 1 / -1">
+            <label class="checkbox-row">
+              <input type="checkbox" bind:checked={detrazioneEnabled} />
+              <span>IRPEF tax deduction (detrazione fiscale)</span>
+            </label>
+            <span class="field-hint" style="margin-left: 1.5rem">
+              Italian IRPEF deduction on PV installation cost (residential, ≤20 kWp).
+              Uncheck if you don't have access to this incentive.
+            </span>
+            {#if detrazioneEnabled}
+              <label class="checkbox-row" style="margin-top: 0.5rem; margin-left: 1.5rem">
+                <input type="checkbox" bind:checked={detrazioneRateCustom} />
+                <span>Custom deduction rate</span>
+              </label>
+              {#if detrazioneRateCustom}
+                <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem; margin-left: 1.5rem; flex-wrap: wrap">
+                  <label class="field" style="max-width: 160px">
+                    <span class="field-label">
+                      Deduction rate
+                      <span class="field-unit">%</span>
+                    </span>
+                    <input
+                      type="number"
+                      class="field-input"
+                      bind:value={detrazioneRate}
+                      min="1"
+                      max="100"
+                      step="1"
+                    />
+                  </label>
+                  <label class="field" style="max-width: 160px">
+                    <span class="field-label">
+                      Over
+                      <span class="field-unit">years</span>
+                    </span>
+                    <input
+                      type="number"
+                      class="field-input"
+                      bind:value={detrazioneYears}
+                      min="1"
+                      max="30"
+                      step="1"
+                    />
+                  </label>
+                </div>
+                <span class="field-hint" style="margin-left: 1.5rem">
+                  Annual deduction = (CAPEX + IVA 10%) × {detrazioneRate}% / {detrazioneYears} years
+                  {#if capex > 0}
+                    = <strong>{Math.round(capex * 1.10 * (detrazioneRate / 100) / detrazioneYears).toLocaleString('it-IT')} €/year</strong>
+                  {/if}
+                </span>
+              {/if}
+            {/if}
+          </div>
         </div>
       {/if}
 
