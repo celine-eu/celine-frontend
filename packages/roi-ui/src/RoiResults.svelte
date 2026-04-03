@@ -5,9 +5,11 @@
   interface Props {
     result: ScenarioResult;
     apiBaseUrl?: string;
+    systemInput?: Record<string, unknown> | null;
+    configOverrides?: Record<string, unknown> | null;
   }
 
-  let { result, apiBaseUrl = '/api' }: Props = $props();
+  let { result, apiBaseUrl = '/api', systemInput = null, configOverrides = null }: Props = $props();
 
   const api = $derived(createRoiApi(apiBaseUrl));
 
@@ -58,25 +60,28 @@
     compareError = '';
     compareResult = null;
     try {
-      // Reconstruct system input from result
-      const si = result.summary;
-      const sys = {
+      // Use actual system input from the calculation
+      const sys = systemInput ?? {
         kwp: result.production.effective_kwp ?? 10,
         latitude: 45.9,
         longitude: 11.3,
         capex: 15000,
         annual_consumption_kwh: 5000,
-        regime: 'RID_CER' as const,
+        regime: 'RID' as const,
         equity_fraction: 1.0,
-        loan_rate: 0,
-        loan_duration_years: 0,
-        annual_production_kwh: si.annual_production_kwh,
       };
-      compareResult = await api.compareScenarios(sys, {
-        'Base (RID+CER)': {},
-        'Solo RID': { regime: 'RID' },
-        'Heat Pump': { load_profile: 'residential_heat_pump.json' },
-      });
+      const currentRegime = (sys.regime as string) ?? 'RID';
+      const scenarios: Record<string, Record<string, unknown>> = {
+        'Scenario attuale': {},
+      };
+      if (currentRegime !== 'RID_CER') {
+        scenarios['RID + CER'] = { regime: 'RID_CER' };
+      }
+      if (currentRegime !== 'RID') {
+        scenarios['Solo RID'] = { regime: 'RID' };
+      }
+      scenarios['Con pompa di calore'] = { heat_pump_kwh_annual: 3500 };
+      compareResult = await api.compareScenarios(sys, scenarios, configOverrides as Record<string, unknown> | undefined);
     } catch (e) {
       compareError = e instanceof Error ? e.message : 'Comparison failed';
     } finally {
@@ -106,7 +111,7 @@
   const cfRange = $derived((cfMax - cfMin) || 1);
 
   // SVG dimensions and chart area
-  const SVG_W = 340, SVG_H = 140;
+  const SVG_W = 400, SVG_H = 140;
   const CF_L = 64, CF_R = 330, CF_T = 8, CF_B = 110;
   const CF_W = CF_R - CF_L, CF_H = CF_B - CF_T;
 
@@ -464,12 +469,23 @@
         <!-- Polyline -->
         <polyline points={cfPolyline} class="cf-line" />
 
-        <!-- Zero line (prominent) -->
+        <!-- Break-even line (prominent) -->
         <line
           x1={CF_L} y1={cfZeroY}
           x2={CF_R} y2={cfZeroY}
-          stroke="var(--celine-border-strong)" stroke-width="0.75"
+          stroke="var(--celine-success)" stroke-width="1"
+          stroke-dasharray="4,3"
+          opacity="0.8"
         />
+        <text
+          class="axis-label"
+          x={CF_R + 2}
+          y={cfZeroY + 3}
+          text-anchor="start"
+          fill="var(--celine-success)"
+          font-size="6.5"
+          font-weight="600"
+        >Break-even</text>
 
         <!-- Y-axis labels -->
         {#if cfMin < -100}
@@ -577,24 +593,41 @@
   {/if}
 
   {#if compareResult}
+    {@const compareNames = Object.keys(compareResult.scenarios)}
+    {@const compareKpis = [
+      { key: 'npv', label: 'VAN (25 anni)', fmt: (s: ScenarioResult) => formatEur(s.finance.npv), cls: (s: ScenarioResult) => s.finance.npv >= 0 ? 'positive' : 'negative' },
+      { key: 'irr', label: 'TIR', fmt: (s: ScenarioResult) => formatNum(s.finance.irr * 100) + '%', cls: () => '' },
+      { key: 'payback', label: 'Payback semplice', fmt: (s: ScenarioResult) => formatNum(s.finance.payback_simple) + ' anni', cls: () => '' },
+      { key: 'payback_d', label: 'Payback attualizzato', fmt: (s: ScenarioResult) => formatNum(s.finance.payback_discounted) + ' anni', cls: () => '' },
+      { key: 'autoconsumo', label: 'Autoconsumo', fmt: (s: ScenarioResult) => formatNum(s.energy.tasso_autoconsumo * 100) + '%', cls: () => '' },
+      { key: 'prod', label: 'Produzione anno 1', fmt: (s: ScenarioResult) => formatNum(s.summary.annual_production_kwh, 0) + ' kWh', cls: () => '' },
+      { key: 'cer', label: 'CER libero anno 1', fmt: (s: ScenarioResult) => formatEur((s.incentives.cer_tip_libero?.[0] ?? 0) + (s.incentives.cer_cacv_libero?.[0] ?? 0)), cls: () => '' },
+      { key: 'cum', label: 'Utile cumulato (25 anni)', fmt: (s: ScenarioResult) => formatEur(s.finance.cumulative[s.finance.cumulative.length - 1]), cls: (s: ScenarioResult) => s.finance.cumulative[s.finance.cumulative.length - 1] >= 0 ? 'positive' : 'negative' },
+    ]}
     <div class="chart-block">
-      <h3 class="chart-title">Scenario comparison</h3>
+      <h3 class="chart-title">Confronto scenari</h3>
       <div class="compare-table-wrap">
-        {@html compareResult.summary_table
-          .split('\n')
-          .map(line => {
-            if (line.startsWith('|---')) return line.replace(/---+/g, m => '-'.repeat(m.length));
-            return line;
-          })
-          .join('\n')
-          .replace(/^\|(.+)\|$/gm, (_, content) => {
-            const cells = content.split('|').map((c: string) => c.trim());
-            return '<tr>' + cells.map((c: string, i: number) => i === 0 ? `<td class="kpi-name">${c}</td>` : `<td class="num">${c}</td>`).join('') + '</tr>';
-          })
-          .replace(/^(<tr>.*<\/tr>\n<tr>)/, '<table class="data-table"><thead>$1')
-          .replace(/<\/tr>\n/, '</tr></thead><tbody>\n')
-          .concat('</tbody></table>')
-        }
+        <table class="data-table compare-table">
+          <thead>
+            <tr>
+              <th>KPI</th>
+              {#each compareNames as name}
+                <th class="num">{name}</th>
+              {/each}
+            </tr>
+          </thead>
+          <tbody>
+            {#each compareKpis as kpi}
+              <tr>
+                <td class="kpi-name">{kpi.label}</td>
+                {#each compareNames as name}
+                  {@const scenario = compareResult.scenarios[name]}
+                  <td class="num {kpi.cls(scenario)}">{kpi.fmt(scenario)}</td>
+                {/each}
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
     </div>
   {/if}
@@ -790,7 +823,7 @@
 
   .cf-svg {
     width: 100%;
-    aspect-ratio: 340 / 140;
+    aspect-ratio: 400 / 140;
     display: block;
     cursor: crosshair;
   }
@@ -941,6 +974,12 @@
 
   .compare-table-wrap {
     overflow-x: auto;
+    border: 1px solid var(--celine-border);
+    border-radius: var(--celine-radius-sm);
+  }
+
+  .compare-table th.num {
+    text-align: right;
   }
 
   .kpi-name {
