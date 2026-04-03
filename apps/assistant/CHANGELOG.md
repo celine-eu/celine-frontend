@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.11.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.10.0...assistant-v0.11.0) (2026-04-03)
+
+### Features
+
+* review flexibiltiy suggestions page ([367b7bb](https://github.com/celine-eu/celine-frontend/commit/367b7bb5afa772062516c3c96a9e90f14da24a89))
+* **roi-ui:** integrate CAPEX estimator, load profiles, CER split ([ae55de3](https://github.com/celine-eu/celine-frontend/commit/ae55de363089acd2bccf9bf1ffbcf0c7cba68100))
+* **roi:** fix compare values, add share link, battery input, break-even line ([e7eae36](https://github.com/celine-eu/celine-frontend/commit/e7eae36621d5dd87e39883f66af25fc0253a64d6))
+* upgrade svelte ([0f12f86](https://github.com/celine-eu/celine-frontend/commit/0f12f868e9dff79d0e167d528943129e3f811e24))
+
+### Bug Fixes
+
+* **roi-ui:** auto-update CAPEX from panels, add export + compare buttons ([be05767](https://github.com/celine-eu/celine-frontend/commit/be0576768e04af230614b9bca0d0b0e489854bc6))
+* **roi-ui:** handle null payback values (infinity displayed as 0) ([a92950e](https://github.com/celine-eu/celine-frontend/commit/a92950e5d3218911e3975beb02df40a858b0408d))
+* **roi-ui:** panel limits from rooftop area, CAPEX auto-updates on panel change ([f897fb5](https://github.com/celine-eu/celine-frontend/commit/f897fb5e54a8f7a7fde5bc0e83b4096daac87f27))
+
 ## [0.10.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.9.0...assistant-v0.10.0) (2026-03-31)
 
 ### Features
