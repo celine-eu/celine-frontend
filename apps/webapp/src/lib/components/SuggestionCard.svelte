@@ -82,14 +82,20 @@
           <Icon name={typeIcon(suggestion.suggestion_type) as any} size={16} />
         </div>
         <div class="shift-label">
-          <span class="from-label">{$t('suggestion_card.from_label', { values: { period: $t(`suggestion_card.period.${suggestion.from_period}`), range: suggestion.clock_range } })}</span>
-          <Icon name="chevron-right" size={14} class="arrow-icon" />
-          <span class="to-label">{suggestion.to_is_tomorrow ? $t('suggestion_card.to_label_tomorrow', { values: { period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } }) : $t('suggestion_card.to_label_today', { values: { period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } })}</span>
+          {#if suggestion.from_period}
+            <span class="from-label">{$t('suggestion_card.from_label', { values: { period: $t(`suggestion_card.period.${suggestion.from_period}`), range: suggestion.clock_range } })}</span>
+            {#if suggestion.to_period}
+              <Icon name="chevron-right" size={14} class="arrow-icon" />
+              <span class="to-label">{suggestion.to_is_tomorrow ? $t('suggestion_card.to_label_tomorrow', { values: { period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } }) : $t('suggestion_card.to_label_today', { values: { period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } })}</span>
+            {/if}
+          {:else}
+            <span class="from-label">{$t('suggestion_card.window_label', { values: { range: suggestion.clock_range } })}</span>
+          {/if}
         </div>
         <div class="reward-badge">+{suggestion.reward_points} pts</div>
       </div>
 
-      <p class="description">{$t('suggestion_card.description', { values: { period: $t(`suggestion_card.period.${suggestion.from_period}`), range: suggestion.clock_range, target_period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } })}</p>
+      <p class="description">{suggestion.from_period ? $t('suggestion_card.description', { values: { period: $t(`suggestion_card.period.${suggestion.from_period}`), range: suggestion.clock_range, target_period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } }) : $t('suggestion_card.description_today', { values: { range: suggestion.clock_range, target_period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } })}</p>
       <p class="reason">{$t('suggestion_card.reason')}</p>
 
       <div class="meta-row">

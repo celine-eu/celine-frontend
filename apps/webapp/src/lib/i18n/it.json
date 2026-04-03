@@ -106,6 +106,7 @@
     "ranking_month": "Questo mese",
     "ranking_position": "#{position} su {total} partecipanti",
     "ranking_top": "Top {pct}% della tua comunità",
+    "ranking_keep_going": "Continua a spostare i carichi per salire in classifica",
     "history_title": "Storico flessibilità",
     "history_period": "La tua recente attività di spostamento",
     "history_empty_title": "Nessuno storico ancora",
@@ -123,11 +124,11 @@
     "remind_me": "Ricordamelo",
     "accept": "Accetta",
     "not_now": "Non ora",
-    "from_label": "Questo {period} ({range})",
-    "to_label_today": "Durante {period} ({time})",
-    "to_label_tomorrow": "Domani {period} ({time})",
-    "description": "Sposta il tuo consumo {period} ({range}) a {target_period} ({time}) quando la comunità ha eccedenza solare",
-    "reason": "La comunità avrà eccedenza solare — riduci l'importazione dalla rete e guadagna punti",
+    "from_label": "Questa {period} ({range})",
+    "to_label_today": "A {period} ({time})",
+    "to_label_tomorrow": "A domani {period} ({time})",
+    "description": "Invece di usare elettrodomestici questa {period} ({range}), sposta il carico a domani {target_period} ({time}) e usa il solare della comunità",
+    "reason": "La comunità avrà eccedenza solare domani — sposta il carico per guadagnare punti e ridurre l'importazione",
     "period": {
       "early_morning": "prima mattina",
       "morning": "mattina",
@@ -136,7 +137,9 @@
       "afternoon": "pomeriggio",
       "evening": "sera",
       "night": "notte"
-    }
+    },
+    "window_label": "Surplus solare {range}",
+    "description_today": "Usa gli elettrodomestici durante {target_period} ({time}) quando la comunità ha surplus solare ({range})"
   },
   "settings": {
     "title": "Impostazioni",

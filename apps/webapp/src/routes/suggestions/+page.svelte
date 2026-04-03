@@ -94,7 +94,11 @@
             <Icon name="trending-up" size={28} class="ranking-icon" />
             <div>
               <p class="ranking-position">{$t('suggestions.ranking_position', { values: { position: r.position, total: r.total_members } })}</p>
-              <p class="ranking-top">{$t('suggestions.ranking_top', { values: { pct: r.percentile } })}</p>
+              {#if r.percentile <= 50}
+                <p class="ranking-top">{$t('suggestions.ranking_top', { values: { pct: r.percentile } })}</p>
+              {:else}
+                <p class="ranking-top ranking-top--motivate">{$t('suggestions.ranking_keep_going')}</p>
+              {/if}
             </div>
           </div>
           <p class="ranking-period">
@@ -283,6 +287,11 @@
     gap: var(--celine-space-lg);
   }
 
+  /* GamificationPanel is a component — target its root div wrapper */
+  .progress-ranking-grid > :global(*) {
+    min-width: 0;
+  }
+
   .ranking-card {
     background: var(--celine-bg);
     border: 1px solid var(--celine-border);
@@ -313,6 +322,12 @@
     color: var(--celine-primary);
     font-weight: 600;
     margin: 2px 0 0;
+  }
+
+  .ranking-top--motivate {
+    color: var(--celine-text-secondary);
+    font-weight: 400;
+    font-style: italic;
   }
 
   .ranking-period {
@@ -431,10 +446,13 @@
 
     .progress-ranking-grid {
       flex-direction: row;
-      align-items: flex-start;
+      align-items: stretch;
     }
 
-    .ranking-card { flex: 0 0 240px; }
+    .progress-ranking-grid > :global(*) {
+      flex: 1 1 0;
+      min-width: 0;
+    }
   }
 
   @media (min-width: 768px) {

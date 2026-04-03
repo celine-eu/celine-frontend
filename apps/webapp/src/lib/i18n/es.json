@@ -106,6 +106,7 @@
     "ranking_month": "Este mes",
     "ranking_position": "#{position} de {total} participantes",
     "ranking_top": "Top {pct}% de tu comunidad",
+    "ranking_keep_going": "Sigue desplazando cargas para subir en la clasificación",
     "history_title": "Historial de flexibilidad",
     "history_period": "Tu actividad reciente de desplazamiento",
     "history_empty_title": "Sin historial aún",
@@ -124,10 +125,10 @@
     "accept": "Aceptar",
     "not_now": "Ahora no",
     "from_label": "Esta {period} ({range})",
-    "to_label_today": "Durante {period} ({time})",
-    "to_label_tomorrow": "Mañana {period} ({time})",
-    "description": "Desplaza tu consumo de {period} ({range}) a {target_period} ({time}) cuando la comunidad tenga excedente solar",
-    "reason": "La comunidad tendrá excedente solar — reduce la importación de la red y gana puntos",
+    "to_label_today": "A {period} ({time})",
+    "to_label_tomorrow": "A mañana {period} ({time})",
+    "description": "En lugar de usar electrodomésticos esta {period} ({range}), traslada el consumo a mañana {target_period} ({time}) y aprovecha el solar comunitario",
+    "reason": "La comunidad tendrá excedente solar mañana — traslada el consumo para ganar puntos y reducir la importación",
     "period": {
       "early_morning": "madrugada",
       "morning": "mañana",
@@ -136,7 +137,9 @@
       "afternoon": "tarde",
       "evening": "tarde-noche",
       "night": "noche"
-    }
+    },
+    "window_label": "Excedente solar {range}",
+    "description_today": "Usa los electrodomésticos durante {target_period} ({time}) cuando la comunidad tiene excedente solar ({range})"
   },
   "settings": {
     "title": "Ajustes",

@@ -106,6 +106,7 @@
     "ranking_month": "This month",
     "ranking_position": "#{position} out of {total} members",
     "ranking_top": "Top {pct}% of your community",
+    "ranking_keep_going": "Keep shifting load to climb the ranking",
     "history_title": "Flexibility History",
     "history_period": "Your recent load-shifting activity",
     "history_empty_title": "No history yet",
@@ -124,10 +125,10 @@
     "accept": "Accept",
     "not_now": "Not now",
     "from_label": "This {period} ({range})",
-    "to_label_today": "During {period} ({time})",
-    "to_label_tomorrow": "During tomorrow {period} ({time})",
-    "description": "Move your {period} usage ({range}) to {target_period} ({time}) when the community has solar surplus",
-    "reason": "Community will have excess solar — reduce grid import and earn points",
+    "to_label_today": "To {period} ({time})",
+    "to_label_tomorrow": "To tomorrow's {period} ({time})",
+    "description": "Instead of running appliances this {period} ({range}), shift load to tomorrow's {target_period} ({time}) and use community solar",
+    "reason": "Community will have solar surplus tomorrow — shift load to earn points and reduce grid import",
     "period": {
       "early_morning": "early morning",
       "morning": "morning",
@@ -136,7 +137,9 @@
       "afternoon": "afternoon",
       "evening": "evening",
       "night": "night"
-    }
+    },
+    "window_label": "Solar surplus {range}",
+    "description_today": "Run appliances during {target_period} ({time}) when the community has solar surplus ({range})"
   },
   "settings": {
     "title": "Settings",
