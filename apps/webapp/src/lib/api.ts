@@ -87,6 +87,7 @@ async function j<T>(url: string, init?: RequestInit): Promise<T> {
     const txt = await res.text().catch(() => '');
     throw new Error(`${res.status} ${res.statusText}${txt ? `: ${txt}` : ''}`);
   }
+  if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
@@ -268,11 +269,13 @@ export const api = {
   weather: () => j<WeatherResponse>('/api/weather'),
   forecast: () => j<ForecastResponse>('/api/forecast'),
   suggestions: () => j<SuggestionItem[]>('/api/suggestions'),
-  suggestionRespond: (id: string, response: 'accepted' | 'declined', reward_points?: number) =>
+  suggestionRespond: (id: string, response: 'accepted' | 'declined', reward_points?: number, period_start?: string, period_end?: string) =>
     j<GamificationResponse>(`/api/suggestions/${id}/respond`, {
       method: 'POST',
-      body: JSON.stringify({ response, ...(reward_points !== undefined ? { reward_points } : {}) })
+      body: JSON.stringify({ response, ...(reward_points !== undefined ? { reward_points } : {}), ...(period_start ? { period_start, period_end } : {}) })
     }),
+  cancelCommitment: (id: string) =>
+    j<void>(`/api/commitments/${id}`, { method: 'DELETE' }),
   gamification: () => j<GamificationResponse>('/api/gamification'),
   gamificationHistory: () => j<CommitmentHistoryResponse>('/api/gamification/history'),
   co2Settings: () => j<Co2SettingsResponse>('/api/settings/co2'),

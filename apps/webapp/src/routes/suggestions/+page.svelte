@@ -21,6 +21,12 @@
     gamification = data;
   }
 
+  async function handleCommitted(id: string) {
+    suggestions = suggestions.filter(s => s.id !== id);
+    const h = await api.gamificationHistory().catch(() => null);
+    if (h) history = h;
+  }
+
   function fmtDate(isoStr: string): string {
     try {
       return new Date(isoStr).toLocaleDateString($locale ?? undefined, {
@@ -34,6 +40,7 @@
   function statusLabel(status: string): string {
     if (status === 'settled') return $t('suggestions.history_settled');
     if (status === 'committed') return $t('suggestions.history_committed');
+    if (status === 'cancelled') return $t('suggestions.history_cancelled');
     return $t('suggestions.history_rejected');
   }
 
@@ -41,6 +48,25 @@
     if (status === 'settled') return 'settled';
     if (status === 'committed') return 'committed';
     return 'rejected';
+  }
+
+  async function cancelCommitment(id: string) {
+    try {
+      await api.cancelCommitment(id);
+      // Optimistic: mark cancelled immediately
+      if (history) {
+        history = {
+          ...history,
+          items: history.items.map(i => i.id === id ? { ...i, status: 'cancelled' } : i)
+        };
+      }
+      // Reload both lists from server
+      const [s, h] = await Promise.all([api.suggestions(), api.gamificationHistory()]);
+      suggestions = s.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i);
+      history = h;
+    } catch {
+      // silent fail — UI stays as-is
+    }
   }
 
   onMount(async () => {
@@ -142,6 +168,7 @@
           <SuggestionCard
             {suggestion}
             ongamificationupdated={handleGamificationUpdated}
+            oncommitted={() => handleCommitted(suggestion.id)}
           />
         {/each}
       </div>
@@ -191,6 +218,9 @@
                 <span class="history-pts history-pts--pending">
                   {$t('suggestions.history_estimated', { values: { pts: item.reward_points_estimated } })}
                 </span>
+                <button class="cancel-btn" onclick={() => cancelCommitment(item.id)}>
+                  {$t('suggestions.history_cancel')}
+                </button>
               {:else}
                 <span class="history-pts history-pts--missed">—</span>
               {/if}
@@ -425,6 +455,23 @@
   .history-impact {
     font-size: 0.75rem;
     color: var(--celine-text-tertiary);
+  }
+
+  .cancel-btn {
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: var(--celine-text-tertiary);
+    background: none;
+    border: 1px solid var(--celine-border);
+    border-radius: var(--celine-radius-sm);
+    padding: 2px 8px;
+    cursor: pointer;
+    transition: color var(--celine-transition-fast), border-color var(--celine-transition-fast);
+  }
+
+  .cancel-btn:hover {
+    color: var(--celine-error, #ef4444);
+    border-color: var(--celine-error, #ef4444);
   }
 
   .history-total {

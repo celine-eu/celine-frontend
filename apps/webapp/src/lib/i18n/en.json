@@ -114,6 +114,8 @@
     "history_settled": "Settled",
     "history_committed": "Committed",
     "history_rejected": "Missed",
+    "history_cancelled": "Cancelled",
+    "history_cancel": "Cancel",
     "history_earned": "+{pts} pts",
     "history_estimated": "~{pts} pts"
   },

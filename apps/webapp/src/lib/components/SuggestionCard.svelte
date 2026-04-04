@@ -7,9 +7,10 @@
   interface Props {
     suggestion: SuggestionItem;
     ongamificationupdated?: (data: GamificationResponse) => void;
+    oncommitted?: () => void;
   }
 
-  let { suggestion, ongamificationupdated }: Props = $props();
+  let { suggestion, ongamificationupdated, oncommitted }: Props = $props();
 
   type CardState = 'idle' | 'loading' | 'committed' | 'accepted' | 'declined' | 'error';
   let cardState: CardState = $state('idle');
@@ -38,7 +39,7 @@
   async function respond(response: 'accepted' | 'declined') {
     cardState = 'loading';
     try {
-      const result = await api.suggestionRespond(suggestion.id, response, suggestion.reward_points);
+      const result = await api.suggestionRespond(suggestion.id, response, suggestion.reward_points, suggestion.period_start, suggestion.period_end);
       if (response === 'accepted') {
         ongamificationupdated?.(result);
         if (result.pending_commitment) {
@@ -54,6 +55,7 @@
           earnedPoints = suggestion.reward_points;
           cardState = 'accepted';
         }
+        setTimeout(() => oncommitted?.(), 2500);
       } else {
         cardState = 'declined';
       }
