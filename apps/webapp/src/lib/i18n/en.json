@@ -1,6 +1,7 @@
 {
   "nav": {
     "overview": "Overview",
+    "suggestions": "Opportunities",
     "alerts": "Alerts",
     "assistant": "Assistant",
     "settings": "Settings"
@@ -39,6 +40,9 @@
     "your_contribution": "Your Contribution",
     "vs_community": "vs Community",
     "community_trend": "Community Trend",
+    "trends_title": "Trends",
+    "trends_tab_yours": "Yours",
+    "trends_tab_community": "Community",
     "community_totals": "Community Totals",
     "consumption": "Consumption",
     "production": "Production",
@@ -146,6 +150,9 @@
   "settings": {
     "title": "Settings",
     "subtitle": "Make the app easier to read and configure notifications.",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "theme_description": "Switch between light and dark mode",
     "language": "Language",
     "language_description": "Choose your preferred language",
     "accessibility": "Accessibility",
@@ -180,6 +187,8 @@
     "your_badges": "Your badges",
     "earned": "earned",
     "earn_cta": "Shift loads to earn more points →",
+    "trend_title": "Points this week",
+    "trend_period": "7-day cumulative progression",
     "no_data": "No gamification data yet.",
     "badges": {
       "first-shift": "First Shift",
@@ -223,7 +232,8 @@
   "chart": {
     "production": "Production",
     "consumption": "Consumption",
-    "self_consumption": "Self-consumption"
+    "self_consumption": "Self-consumption",
+    "community_potential": "Community potential"
   },
   "accept_terms": {
     "title": "Before you continue",
@@ -239,6 +249,15 @@
     "body_1": "Most features in this app require a smart meter associated with your account.",
     "body_2": "Please contact your energy community administrator to link your smart meter to your account.",
     "back": "Back to overview"
+  },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Your account details",
+    "community": "Community",
+    "status": "Status",
+    "status_active": "Active participant",
+    "management_title": "Account management",
+    "management_body": "Options to update your details, change password, and manage data will be available here soon."
   },
   "not_a_participant": {
     "title": "Not yet a participant",

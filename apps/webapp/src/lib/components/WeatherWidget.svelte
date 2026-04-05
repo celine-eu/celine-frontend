@@ -55,8 +55,13 @@
     return WEATHER_EMOJI[main] ?? '🌡️';
   }
 
+  /** Parse YYYY-MM-DD as UTC noon — same calendar date in all timezones (UTC-12 to UTC+14) */
+  function parseLocalDate(dateStr: string): Date {
+    return new Date(dateStr + 'T12:00:00Z');
+  }
+
   function shortDay(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString($locale ?? undefined, { weekday: 'short' });
+    return parseLocalDate(dateStr).toLocaleDateString($locale ?? undefined, { weekday: 'short' });
   }
 
   function safeTemp(temp: number): string {
@@ -66,7 +71,7 @@
 
   function irradianceDay(dateStr: string | null | undefined): string {
     if (!dateStr) return $t('weather.today');
-    return new Date(dateStr).toLocaleDateString($locale ?? undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    return parseLocalDate(dateStr).toLocaleDateString($locale ?? undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
   let alertsExpanded = $state<Record<number, boolean>>({});
@@ -304,24 +309,31 @@
     color: var(--celine-text-secondary);
   }
 
-  /* Daily strip */
+  /* Daily strip — single horizontal row, scrollable on narrow screens */
   .daily-strip {
     display: flex;
-    gap: 0.5rem;
+    flex-wrap: nowrap;
     overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 0.25rem;
+    gap: 0.375rem;
+    /* hide scrollbar visually while keeping it functional */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    /* slight negative margin + padding so today's highlight border isn't clipped */
+    padding-bottom: 2px;
   }
+  .daily-strip::-webkit-scrollbar { display: none; }
+
   .day-card {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.25rem;
-    min-width: 52px;
     background: var(--celine-bg);
     border: 1px solid var(--celine-border);
     border-radius: var(--celine-radius-md);
-    padding: 0.5rem 0.25rem;
+    padding: 0.5rem 0.375rem;
+    flex: 0 0 auto;
+    min-width: 52px;
   }
   .day-card--today {
     border-color: var(--celine-primary);
@@ -346,7 +358,7 @@
     align-items: flex-end;
     gap: 2px;
     height: 60px;
-    overflow-x: auto;
+    width: 100%;
   }
   .irr-bar-wrap {
     display: flex;
@@ -354,11 +366,12 @@
     align-items: center;
     justify-content: flex-end;
     height: 100%;
-    min-width: 20px;
+    flex: 1;
+    min-width: 0;
     gap: 2px;
   }
   .irr-bar {
-    width: 14px;
+    width: 100%;
     background: var(--celine-warning);
     border-radius: 2px 2px 0 0;
     transition: height 0.3s;

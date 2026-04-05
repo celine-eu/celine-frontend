@@ -6,6 +6,19 @@
     <meta name="theme-color" content="#0d9488" />
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
     <title>REC Webapp</title>
+    <!-- Inline theme init — runs before paint to prevent flash of wrong theme -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('celine-theme');
+          if (t === 'dark' || t === 'light') {
+            document.documentElement.setAttribute('data-theme', t);
+          } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

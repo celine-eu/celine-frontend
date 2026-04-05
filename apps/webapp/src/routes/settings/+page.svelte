@@ -1,7 +1,7 @@
 <script lang="ts">
     import { api, type Settings } from "$lib/api";
     import { requestAndSubscribeWebPush, unsubscribeWebPush } from "$lib/push";
-    import { Button, Icon } from "@celine-eu/ui";
+    import { Button, Icon, ThemeToggle } from "@celine-eu/ui";
     import { onMount } from "svelte";
     import { t, locale } from "svelte-i18n";
 
@@ -132,6 +132,21 @@
                     <option value="it">Italiano</option>
                     <option value="es">Español</option>
                 </select>
+            </div>
+        </div>
+
+        <!-- Appearance Section -->
+        <div class="settings-card">
+            <h2 class="section-title">
+                <Icon name="sun" size={20} />
+                {$t('settings.appearance')}
+            </h2>
+            <div class="setting-row">
+                <div>
+                    <span class="setting-label">{$t('settings.theme')}</span>
+                    <span class="setting-description">{$t('settings.theme_description')}</span>
+                </div>
+                <ThemeToggle />
             </div>
         </div>
 

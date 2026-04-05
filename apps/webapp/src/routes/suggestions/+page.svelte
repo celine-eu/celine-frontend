@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { api, type ForecastResponse, type SuggestionItem, type GamificationResponse, type CommitmentHistoryResponse } from '$lib/api';
-  import { ForecastCard, SuggestionCard, GamificationPanel } from '$lib/components';
+  import { api, type ForecastResponse, type SuggestionItem, type CommitmentHistoryResponse } from '$lib/api';
+  import { ForecastCard, SuggestionCard } from '$lib/components';
   import { Icon, Skeleton } from '@celine-eu/ui';
   import { onMount } from 'svelte';
   import { t, locale } from 'svelte-i18n';
@@ -11,15 +11,8 @@
   let suggestions = $state<SuggestionItem[]>([]);
   let suggestionsLoading = $state(true);
 
-  let gamification = $state<GamificationResponse | null>(null);
-  let gamificationLoading = $state(true);
-
   let history = $state<CommitmentHistoryResponse | null>(null);
   let historyLoading = $state(true);
-
-  function handleGamificationUpdated(data: GamificationResponse) {
-    gamification = data;
-  }
 
   async function handleCommitted(id: string) {
     suggestions = suggestions.filter(s => s.id !== id);
@@ -70,10 +63,9 @@
   }
 
   onMount(async () => {
-    const [f, s, g, h] = await Promise.allSettled([
+    const [f, s, h] = await Promise.allSettled([
       api.forecast(),
       api.suggestions(),
-      api.gamification(),
       api.gamificationHistory(),
     ]);
 
@@ -82,9 +74,6 @@
 
     if (s.status === 'fulfilled') suggestions = s.value.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i);
     suggestionsLoading = false;
-
-    if (g.status === 'fulfilled') gamification = g.value;
-    gamificationLoading = false;
 
     if (h.status === 'fulfilled') history = h.value;
     historyLoading = false;
@@ -100,52 +89,6 @@
     <h1 class="page-title">{$t('suggestions.title')}</h1>
     <p class="page-subtitle">{$t('suggestions.subtitle')}</p>
   </header>
-
-  <!-- Progress + Ranking -->
-  <section class="section-card">
-    <header class="section-header">
-      <Icon name="trending-up" size={22} class="section-icon" />
-      <div>
-        <h2 class="section-title">{$t('suggestions.progress_title')}</h2>
-        <p class="section-period">{$t('suggestions.progress_period')}</p>
-      </div>
-    </header>
-    <div class="progress-ranking-grid">
-      <GamificationPanel data={gamification} loading={gamificationLoading} />
-
-      {#if !gamificationLoading && gamification?.ranking}
-        {@const r = gamification.ranking}
-        <div class="ranking-card">
-          <div class="ranking-badge">
-            <Icon name="trending-up" size={28} class="ranking-icon" />
-            <div>
-              <p class="ranking-position">{$t('suggestions.ranking_position', { values: { position: r.position, total: r.total_members } })}</p>
-              {#if r.percentile <= 50}
-                <p class="ranking-top">{$t('suggestions.ranking_top', { values: { pct: r.percentile } })}</p>
-              {:else}
-                <p class="ranking-top ranking-top--motivate">{$t('suggestions.ranking_keep_going')}</p>
-              {/if}
-            </div>
-          </div>
-          <p class="ranking-period">
-            {r.period === 'week' ? $t('suggestions.ranking_week') : $t('suggestions.ranking_month')}
-          </p>
-        </div>
-      {/if}
-    </div>
-  </section>
-
-  <!-- 48h energy outlook -->
-  <section class="section-card">
-    <header class="section-header">
-      <Icon name="activity" size={22} class="section-icon" />
-      <div>
-        <h2 class="section-title">{$t('suggestions.forecast_section_title')}</h2>
-        <p class="section-period">{$t('suggestions.forecast_section_period')}</p>
-      </div>
-    </header>
-    <ForecastCard data={forecastData} loading={forecastLoading} />
-  </section>
 
   <!-- Suggestions (anchored for flex banner link) -->
   <section class="section-card" id="opportunities">
@@ -167,7 +110,6 @@
         {#each suggestions as suggestion (suggestion.id)}
           <SuggestionCard
             {suggestion}
-            ongamificationupdated={handleGamificationUpdated}
             oncommitted={() => handleCommitted(suggestion.id)}
           />
         {/each}
@@ -179,6 +121,18 @@
         <p class="empty-text">{$t('suggestions.no_opportunities_body')}</p>
       </div>
     {/if}
+  </section>
+
+  <!-- 48h energy outlook -->
+  <section class="section-card">
+    <header class="section-header">
+      <Icon name="activity" size={22} class="section-icon" />
+      <div>
+        <h2 class="section-title">{$t('suggestions.forecast_section_title')}</h2>
+        <p class="section-period">{$t('suggestions.forecast_section_period')}</p>
+      </div>
+    </header>
+    <ForecastCard data={forecastData} loading={forecastLoading} />
   </section>
 
   <!-- Flexibility History -->
@@ -310,62 +264,6 @@
     margin: 2px 0 0;
   }
 
-  /* Progress + ranking grid */
-  .progress-ranking-grid {
-    display: flex;
-    flex-direction: column;
-    gap: var(--celine-space-lg);
-  }
-
-  /* GamificationPanel is a component — target its root div wrapper */
-  .progress-ranking-grid > :global(*) {
-    min-width: 0;
-  }
-
-  .ranking-card {
-    background: var(--celine-bg);
-    border: 1px solid var(--celine-border);
-    border-radius: var(--celine-radius-md);
-    padding: var(--celine-space-md);
-    display: flex;
-    flex-direction: column;
-    gap: var(--celine-space-sm);
-  }
-
-  .ranking-badge {
-    display: flex;
-    align-items: center;
-    gap: var(--celine-space-md);
-  }
-
-  :global(.ranking-icon) { color: var(--celine-warning, #f59e0b); flex-shrink: 0; }
-
-  .ranking-position {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--celine-text);
-    margin: 0;
-  }
-
-  .ranking-top {
-    font-size: 0.875rem;
-    color: var(--celine-primary);
-    font-weight: 600;
-    margin: 2px 0 0;
-  }
-
-  .ranking-top--motivate {
-    color: var(--celine-text-secondary);
-    font-weight: 400;
-    font-style: italic;
-  }
-
-  .ranking-period {
-    font-size: 0.75rem;
-    color: var(--celine-text-tertiary);
-    margin: 0;
-  }
-
   /* Suggestions list */
   .suggestions-list {
     display: flex;
@@ -490,16 +388,6 @@
   @media (min-width: 640px) {
     .section-card { padding: var(--celine-space-lg); }
     .page-title { font-size: 1.75rem; }
-
-    .progress-ranking-grid {
-      flex-direction: row;
-      align-items: stretch;
-    }
-
-    .progress-ranking-grid > :global(*) {
-      flex: 1 1 0;
-      min-width: 0;
-    }
   }
 
   @media (min-width: 768px) {

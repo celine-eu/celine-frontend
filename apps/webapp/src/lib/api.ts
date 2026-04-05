@@ -46,6 +46,7 @@ export type Overview = {
   user: OverviewUser;
   rec: OverviewRec;
   trend: TrendItem[];
+  user_trend: TrendItem[];
   devices: MeterDevice[];
 };
 
@@ -208,6 +209,11 @@ export type RankingInfo = {
   period: 'week' | 'month';
 };
 
+export type DailyPointsItem = {
+  date: string;   // YYYY-MM-DD
+  points: number;
+};
+
 export type GamificationResponse = {
   total_points: number;
   level: number;
@@ -216,6 +222,7 @@ export type GamificationResponse = {
   actions_taken: number;
   pending_commitment?: FlexibilityCommitmentItem | null;
   ranking?: RankingInfo | null;
+  daily_points?: DailyPointsItem[];
 };
 
 export type FlexibilityHistoryItem = {

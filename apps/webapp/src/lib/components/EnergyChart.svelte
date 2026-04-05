@@ -3,7 +3,7 @@
   import type { Chart as ChartType } from "chart.js";
   import { onDestroy, onMount, tick } from "svelte";
   import { get } from "svelte/store";
-  import { t } from "svelte-i18n";
+  import { t, locale } from "svelte-i18n";
 
   type TrendItem = {
     date: string;
@@ -15,26 +15,30 @@
   interface Props {
     data: TrendItem[];
     height?: string;
+    datasetLabels?: { production?: string; consumption?: string; self_consumption?: string };
   }
 
-  let { data = [], height = "280px" }: Props = $props();
+  let { data = [], height = "280px", datasetLabels }: Props = $props();
 
   let canvasEl: HTMLCanvasElement | null = $state(null);
   let chart: ChartType | null = null;
   let mounted = false;
 
-  function formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString(undefined, {
+  /** Parse YYYY-MM-DD as UTC noon — same calendar date in all timezones (UTC-12 to UTC+14) */
+  function parseLocalDate(dateStr: string): Date {
+    return new Date(dateStr + 'T12:00:00Z');
+  }
+
+  function formatDate(dateStr: string, loc?: string): string {
+    return parseLocalDate(dateStr).toLocaleDateString(loc ?? undefined, {
       weekday: "short",
       month: "short",
       day: "numeric",
     });
   }
 
-  function formatDateShort(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString(undefined, { weekday: "short" });
+  function formatDateShort(dateStr: string, loc?: string): string {
+    return parseLocalDate(dateStr).toLocaleDateString(loc ?? undefined, { weekday: "short" });
   }
 
   function destroyChart() {
@@ -68,7 +72,8 @@
     const textColor =
       styles.getPropertyValue("--celine-text-secondary").trim() || "#64748b";
 
-    const labels = data.map((d) => formatDateShort(d.date));
+    const loc = get(locale) ?? undefined;
+    const labels = data.map((d) => formatDateShort(d.date, loc));
     const isMobile = window.innerWidth < 640;
 
     // Double-check canvas is still available and no chart exists
@@ -80,21 +85,21 @@
         labels,
         datasets: [
           {
-            label: get(t)('chart.production'),
+            label: datasetLabels?.production ?? get(t)('chart.production'),
             data: data.map((d) => d.production_kwh),
             backgroundColor: productionColor,
             borderRadius: 4,
             borderSkipped: false,
           },
           {
-            label: get(t)('chart.consumption'),
+            label: datasetLabels?.consumption ?? get(t)('chart.consumption'),
             data: data.map((d) => d.consumption_kwh),
             backgroundColor: consumptionColor,
             borderRadius: 4,
             borderSkipped: false,
           },
           {
-            label: get(t)('chart.self_consumption'),
+            label: datasetLabels?.self_consumption ?? get(t)('chart.self_consumption'),
             data: data.map((d) => d.self_consumption_kwh),
             backgroundColor: selfConsumptionColor,
             borderRadius: 4,
@@ -135,7 +140,7 @@
               title: (items: any[]) => {
                 const idx = items[0]?.dataIndex;
                 if (idx !== undefined && data[idx]) {
-                  return formatDate(data[idx].date);
+                  return formatDate(data[idx].date, loc);
                 }
                 return "";
               },
@@ -143,7 +148,10 @@
                 const value = item.raw as number | null;
                 if (value === null || value === undefined)
                   return `${item.dataset.label}: —`;
-                return `${item.dataset.label}: ${value.toFixed(1)} kWh`;
+                const fmt = Math.abs(value) >= 1000
+                  ? `${(value / 1000).toFixed(2)} MWh`
+                  : `${value.toFixed(1)} kWh`;
+                return `${item.dataset.label}: ${fmt}`;
               },
             },
           },
@@ -162,7 +170,10 @@
             ticks: {
               color: textColor,
               font: { size: isMobile ? 10 : 11 },
-              callback: (value: any) => `${value} kWh`,
+              callback: (value: any) => {
+                const n = Number(value);
+                return Math.abs(n) >= 1000 ? `${(n / 1000).toFixed(1)} MWh` : `${n} kWh`;
+              },
             },
           },
         },
@@ -204,6 +215,18 @@
     if (browser && mounted && canvasEl && newDataJson !== prevDataJson) {
       prevDataJson = newDataJson;
       createChart();
+    }
+  });
+
+  // Rebuild when locale changes so axis labels are re-formatted
+  let prevLocale = "";
+  $effect(() => {
+    const loc = $locale ?? "";
+    if (browser && mounted && canvasEl && loc !== prevLocale && prevLocale !== "") {
+      prevLocale = loc;
+      createChart();
+    } else {
+      prevLocale = loc;
     }
   });
 </script>

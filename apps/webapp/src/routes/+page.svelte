@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { api, type Overview, type WeatherResponse, type SuggestionItem, type Co2LocaleSettings } from "$lib/api";
-  import { EnergyChart, StatCard, WeatherWidget } from "$lib/components";
+  import { api, type Overview, type WeatherResponse, type SuggestionItem, type Co2LocaleSettings, type GamificationResponse } from "$lib/api";
+  import { EnergyChart, StatCard, WeatherWidget, GamificationPanel } from "$lib/components";
   import { deviceStore } from "$lib/stores";
   import { AskAssistantButton } from "@celine-eu/assistant-ui";
   import { Icon, Skeleton } from "@celine-eu/ui";
@@ -24,6 +24,9 @@
   let suggestions = $state<SuggestionItem[]>([]);
   let suggestionsLoading = $state(true);
   let co2Settings = $state<Co2LocaleSettings | null>(null);
+  let gamification = $state<GamificationResponse | null>(null);
+  let gamificationLoading = $state(true);
+  let trendTab = $state<'yours' | 'community'>('yours');
 
   function buildAssistantHref(prompt: string, section: string): string {
     const url = new URL("/assistant", page.url.origin);
@@ -35,6 +38,16 @@
 
   function assistantPrompt(section: "user-contribution" | "community-trend" | "weather" | "co2"): string {
     return $t(`overview.ask_ai.${section}`);
+  }
+
+  /**
+   * Format kWh value — auto-scales to MWh above 999 kWh.
+   * Returns { value, unit } so the caller can pass unit separately to StatCard.
+   */
+  export function fmtKwh(value: number | null | undefined): { value: string; unit: string } {
+    if (value == null) return { value: '—', unit: 'kWh' };
+    if (Math.abs(value) >= 1000) return { value: (value / 1000).toFixed(2), unit: 'MWh' };
+    return { value: value.toFixed(1), unit: 'kWh' };
   }
 
   /** Format a number to 1 decimal place, or return "—" for null/undefined */
@@ -115,9 +128,46 @@
     api.weather().then(w => { weatherData = w; }).catch(() => {}).finally(() => { weatherLoading = false; });
     api.suggestions().then(s => { suggestions = s; }).catch(() => {}).finally(() => { suggestionsLoading = false; });
     api.co2Settings().then(s => { co2Settings = s.current; }).catch(() => {});
+    api.gamification().then(g => { gamification = g; }).catch(() => {}).finally(() => { gamificationLoading = false; });
   });
 
   const periodLabel = $derived(selectedDays === 7 ? $t('overview.last_7_days') : $t('overview.last_30_days'));
+
+  /**
+   * User trend augmented with community production potential.
+   * Community production is normalized so it never exceeds 115% of the user's
+   * highest value — prevents the community scale from dwarfing personal data.
+   */
+  const userTrendWithPotential = $derived.by(() => {
+    const ut = overview?.user_trend;
+    const ct = overview?.trend;
+    if (!ut || ut.length === 0) return ut ?? [];
+
+    // Max of user's own values (consumption + self-consumption)
+    const maxUser = Math.max(
+      0,
+      ...ut.map(d => Math.max(d.consumption_kwh ?? 0, d.self_consumption_kwh ?? 0))
+    );
+
+    const commByDate = new Map((ct ?? []).map(d => [d.date, d]));
+
+    // Only normalize if community production exceeds the ceiling
+    const ceiling = maxUser * 1.15;
+    const maxComm = Math.max(
+      0,
+      ...(ct ?? []).map(d => d.production_kwh ?? 0)
+    );
+    const scale = maxComm > ceiling && ceiling > 0 ? ceiling / maxComm : 1;
+
+    return ut.map(d => ({
+      ...d,
+      production_kwh: (() => {
+        const comm = commByDate.get(d.date);
+        if (!comm || comm.production_kwh == null) return null;
+        return comm.production_kwh * scale;
+      })(),
+    }));
+  });
 </script>
 
 <section class="overview">
@@ -156,6 +206,18 @@
       </div>
     </div>
   {/if}
+
+  <!-- Your Progress (first data block) -->
+  <section class="section-card">
+    <header class="section-header">
+      <Icon name="trophy" size={22} class="section-icon" />
+      <div>
+        <h2 class="section-title">{$t('suggestions.progress_title')}</h2>
+        <p class="section-period">{$t('suggestions.progress_period')}</p>
+      </div>
+    </header>
+    <GamificationPanel data={gamification} loading={gamificationLoading} />
+  </section>
 
   <!-- Period toggle -->
   <div class="period-toggle">
@@ -228,22 +290,22 @@
             <div class="stats-grid">
               <StatCard
                 label={$t('overview.consumption')}
-                value={fmt(overview.user.consumption_kwh)}
-                unit="kWh"
+                value={fmtKwh(overview.user.consumption_kwh).value}
+                unit={fmtKwh(overview.user.consumption_kwh).unit}
                 variant="consumption"
                 icon="plug"
               />
               <StatCard
                 label={$t('overview.production')}
-                value={fmt(overview.user.production_kwh)}
-                unit="kWh"
+                value={fmtKwh(overview.user.production_kwh).value}
+                unit={fmtKwh(overview.user.production_kwh).unit}
                 variant="production"
                 icon="zap"
               />
               <StatCard
                 label={$t('overview.self_consumption')}
-                value={fmt(overview.user.self_consumption_kwh)}
-                unit="kWh"
+                value={fmtKwh(overview.user.self_consumption_kwh).value}
+                unit={fmtKwh(overview.user.self_consumption_kwh).unit}
                 variant="self-consumption"
                 icon="battery-charging"
                 subtext={overview.user.self_consumption_rate != null
@@ -269,22 +331,22 @@
             <div class="stats-grid stats-grid--2">
               <StatCard
                 label={$t('overview.production')}
-                value={fmt(overview.rec.production_kwh)}
-                unit="kWh"
+                value={fmtKwh(overview.rec.production_kwh).value}
+                unit={fmtKwh(overview.rec.production_kwh).unit}
                 variant="production"
                 icon="zap"
               />
               <StatCard
                 label={$t('overview.self_consumed')}
-                value={fmt(overview.rec.self_consumption_kwh)}
-                unit="kWh"
+                value={fmtKwh(overview.rec.self_consumption_kwh).value}
+                unit={fmtKwh(overview.rec.self_consumption_kwh).unit}
                 variant="self-consumption"
                 icon="battery-charging"
               />
               <StatCard
                 label={$t('overview.consumption')}
-                value={fmt(overview.rec.consumption_kwh)}
-                unit="kWh"
+                value={fmtKwh(overview.rec.consumption_kwh).value}
+                unit={fmtKwh(overview.rec.consumption_kwh).unit}
                 variant="consumption"
                 icon="plug"
               />
@@ -306,68 +368,67 @@
       </div>
     </section>
 
-    <!-- Community Trend -->
+    <!-- Trends (tabbed: Yours / Community) -->
     <section class="section-card">
       <header class="section-header">
         <Icon name="trending-up" size={22} class="section-icon" />
         <div>
-          <h2 class="section-title">{$t('overview.community_trend')}</h2>
+          <h2 class="section-title">{$t('overview.trends_title')}</h2>
           <p class="section-period">{periodLabel}</p>
         </div>
         <AskAssistantButton
           iconOnly
           context={{ page: "overview", section: "community-trend", data: { trend: overview.trend } }}
           prompt={assistantPrompt("community-trend")}
-          href={buildAssistantHref(
-            assistantPrompt("community-trend"),
-            "community-trend",
-          )}
+          href={buildAssistantHref(assistantPrompt("community-trend"), "community-trend")}
         />
       </header>
 
-      {#if overview.trend.length > 0}
-        <div class="chart-container">
-          <EnergyChart data={overview.trend} height="280px" />
-        </div>
+      <!-- Tab bar -->
+      <div class="trend-tabs">
+        <button
+          class="trend-tab"
+          class:trend-tab--active={trendTab === 'yours'}
+          onclick={() => trendTab = 'yours'}
+        >{$t('overview.trends_tab_yours')}</button>
+        <button
+          class="trend-tab"
+          class:trend-tab--active={trendTab === 'community'}
+          onclick={() => trendTab = 'community'}
+        >{$t('overview.trends_tab_community')}</button>
+      </div>
 
-        <details class="trend-details">
-          <summary class="trend-summary">
-            <Icon name="chevron-right" size={18} class="trend-chevron" />
-            <span>{$t('overview.view_detailed_data')}</span>
-          </summary>
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>{$t('overview.date_col')}</th>
-                  <th class="num">{$t('overview.production')}</th>
-                  <th class="num">{$t('overview.consumption')}</th>
-                  <th class="num">{$t('overview.self_cons_col')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each overview.trend as row}
-                  <tr>
-                    <td>{new Date(row.date).toLocaleDateString($locale ?? undefined, {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })}</td>
-                    <td class="num production">{fmt(row.production_kwh)}</td>
-                    <td class="num consumption">{fmt(row.consumption_kwh)}</td>
-                    <td class="num self-consumption">{fmt(row.self_consumption_kwh)}</td>
-                  </tr>
-                {/each}
-              </tbody>
-            </table>
+      {#if trendTab === 'yours'}
+        <!-- Per-device trend: user consumption + self-consumption + normalized community potential -->
+        {#if userTrendWithPotential && userTrendWithPotential.some(d => d.consumption_kwh !== null)}
+          <div class="chart-container">
+            <EnergyChart
+              data={userTrendWithPotential}
+              height="280px"
+              datasetLabels={{ production: $t('chart.community_potential') }}
+            />
           </div>
-        </details>
+        {:else}
+          <div class="empty-state">
+            <Icon name="activity" size={40} class="empty-icon" />
+            <p class="empty-title">{$t('overview.no_personal_data_title')}</p>
+            <p class="empty-text">{$t('overview.no_personal_data_body')}</p>
+          </div>
+        {/if}
+
       {:else}
-        <div class="empty-state">
-          <Icon name="activity" size={40} class="empty-icon" />
-          <p class="empty-title">{$t('overview.no_trend_title')}</p>
-          <p class="empty-text">{$t('overview.no_trend_body')}</p>
-        </div>
+        <!-- Community time-series chart -->
+        {#if overview.trend.length > 0}
+          <div class="chart-container">
+            <EnergyChart data={overview.trend} height="280px" />
+          </div>
+        {:else}
+          <div class="empty-state">
+            <Icon name="activity" size={40} class="empty-icon" />
+            <p class="empty-title">{$t('overview.no_trend_title')}</p>
+            <p class="empty-text">{$t('overview.no_trend_body')}</p>
+          </div>
+        {/if}
       {/if}
     </section>
 
@@ -680,61 +741,40 @@
   /* Chart */
   .chart-container { margin-top: var(--celine-space-sm); }
 
-  /* Trend Details */
-  .trend-details {
-    margin-top: var(--celine-space-lg);
-    border-top: 1px solid var(--celine-border);
-    padding-top: var(--celine-space-md);
+  /* Trend tabs */
+  .trend-tabs {
+    display: flex;
+    gap: var(--celine-space-xs);
+    margin-bottom: var(--celine-space-md);
+    border-bottom: 1px solid var(--celine-border);
+    padding-bottom: 0;
   }
 
-  .trend-summary {
-    display: flex;
-    align-items: center;
-    gap: var(--celine-space-xs);
-    cursor: pointer;
+  .trend-tab {
+    padding: var(--celine-space-xs) var(--celine-space-md);
+    border: none;
+    background: transparent;
+    font: inherit;
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--celine-text-secondary);
-    list-style: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color var(--celine-transition-fast), border-color var(--celine-transition-fast);
   }
 
-  .trend-summary::-webkit-details-marker { display: none; }
-  :global(.trend-chevron) { transition: transform var(--celine-transition-fast); }
-  .trend-details[open] :global(.trend-chevron) { transform: rotate(90deg); }
-  .trend-summary:hover { color: var(--celine-text); }
+  .trend-tab:hover { color: var(--celine-text); }
 
-  .table-wrapper {
-    margin-top: var(--celine-space-md);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+  .trend-tab--active {
+    color: var(--celine-primary);
+    border-bottom-color: var(--celine-primary);
   }
 
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8125rem;
+  /* 3-column stats inside trend tab */
+  .stats-grid--3 {
+    grid-template-columns: repeat(2, 1fr);
   }
-
-  .data-table th,
-  .data-table td {
-    padding: var(--celine-space-sm);
-    text-align: left;
-    border-bottom: 1px solid var(--celine-border);
-  }
-
-  .data-table th {
-    font-weight: 600;
-    color: var(--celine-text-secondary);
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-
-  .data-table td { color: var(--celine-text); }
-  .data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
-  .data-table .production { color: var(--celine-success); }
-  .data-table .consumption { color: var(--celine-warning); }
-  .data-table .self-consumption { color: var(--celine-info); }
 
   /* Empty State */
   .empty-state { text-align: center; padding: var(--celine-space-xl) var(--celine-space-md); }
@@ -746,10 +786,8 @@
   @media (min-width: 640px) {
     .section-card { padding: var(--celine-space-lg); }
     .page-title { font-size: 1.75rem; }
-    /* Standalone stats grid (e.g. loading skeleton) gets 3 columns when space allows */
-    .stats-grid {
-      gap: var(--celine-space-md);
-    }
+    .stats-grid { gap: var(--celine-space-md); }
+    .stats-grid--3 { grid-template-columns: repeat(3, 1fr); }
   }
 
   @media (min-width: 768px) {

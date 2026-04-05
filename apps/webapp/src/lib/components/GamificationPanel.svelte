@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { GamificationResponse } from '$lib/api';
+  import PointsChart from '$lib/components/PointsChart.svelte';
   import { Icon, Skeleton } from '@celine-eu/ui';
   import { t } from 'svelte-i18n';
 
@@ -68,6 +69,16 @@
             </div>
           {/each}
         </div>
+      </div>
+    {/if}
+
+    {#if data.daily_points && data.daily_points.length > 0}
+      <div class="trend-section">
+        <p class="trend-label">
+          {$t('gamification.trend_title')}
+          <span class="trend-period">{$t('gamification.trend_period')}</span>
+        </p>
+        <PointsChart data={data.daily_points} height="140px" />
       </div>
     {/if}
 
@@ -148,6 +159,23 @@
   }
   :global(.badge-icon) { color: var(--celine-primary); }
   .badge-label { font-weight: 500; }
+
+  /* Trend chart */
+  .trend-section { display: flex; flex-direction: column; gap: 0.5rem; }
+  .trend-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--celine-text-secondary);
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .trend-period {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--celine-text-tertiary);
+  }
 
   /* Footer CTA */
   .footer-cta {

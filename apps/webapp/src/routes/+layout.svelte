@@ -2,7 +2,7 @@
   import { page } from "$app/stores";
   import type { Me, CommunityMeta } from "$lib/api";
   import { meStore } from "$lib/stores";
-  import { Icon, ThemeToggle } from "@celine-eu/ui";
+  import { Icon } from "@celine-eu/ui";
   import "@celine-eu/ui/theme.css";
   import type { Snippet } from "svelte";
   import { onMount } from "svelte";
@@ -31,21 +31,27 @@
     }
   });
 
-  const navItems = [
-    { href: "/", labelKey: "nav.overview", icon: "home" as const },
-    { href: "/notifications", labelKey: "nav.alerts", icon: "bell" as const },
-    { href: "/assistant", labelKey: "nav.assistant", icon: "bot" as const },
-    { href: "/settings", labelKey: "nav.settings", icon: "settings" as const },
+  type NavIcon = {
+    href: string;
+    icon: 'home' | 'zap' | 'bot' | 'bell' | 'settings';
+    labelKey: string;
+  };
+
+  const navIcons: NavIcon[] = [
+    { href: '/',            icon: 'home',  labelKey: 'nav.overview'   },
+    { href: '/suggestions', icon: 'zap',   labelKey: 'nav.suggestions' },
+    { href: '/assistant',   icon: 'bot',   labelKey: 'nav.assistant'  },
   ];
 
   function isActive(href: string, pathname: string): boolean {
-    if (href === "/") return pathname === "/";
+    if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   }
 
-  const isAssistantPage = $derived($page.url.pathname === "/assistant");
+  const isAssistantPage = $derived($page.url.pathname === '/assistant');
 
-  // User initials for avatar
+  let profileDropdownEl: HTMLDetailsElement | null = $state(null);
+
   const userInitials = $derived.by(() => {
     const name = data.me?.user?.name;
     if (!name) return '?';
@@ -55,11 +61,30 @@
   onMount(() => {
     const root = document.documentElement;
     if (data.me) {
-      root.style.setProperty(
-        "--celine-font-scale",
-        String(data.me.font_scale ?? 1),
-      );
+      root.style.setProperty('--celine-font-scale', String(data.me.font_scale ?? 1));
     }
+
+    // Keep theme in sync with system preference changes (only when no manual override stored)
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onSystemThemeChange = (e: MediaQueryListEvent) => {
+      if (!localStorage.getItem('celine-theme')) {
+        document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+      }
+    };
+    mq.addEventListener('change', onSystemThemeChange);
+
+    // Close profile dropdown when clicking outside it
+    const onDocClick = (e: MouseEvent) => {
+      if (profileDropdownEl && !profileDropdownEl.contains(e.target as Node)) {
+        profileDropdownEl.removeAttribute('open');
+      }
+    };
+    document.addEventListener('click', onDocClick, true);
+
+    return () => {
+      mq.removeEventListener('change', onSystemThemeChange);
+      document.removeEventListener('click', onDocClick, true);
+    };
   });
 </script>
 
@@ -70,15 +95,32 @@
 <div class="app-shell" class:app-shell--fixed={isAssistantPage}>
   <header class="top-header">
     <div class="top-header__content">
+      <!-- Brand -->
       <div class="top-header__brand">
-        <Icon name="leaf" size={24} class="brand-icon" />
+        <Icon name="leaf" size={22} class="brand-icon" />
         <a href="/" class="brand-link">{data.community?.name ?? 'REC'}</a>
       </div>
+
+      <!-- Nav icons + profile -->
       <div class="top-header__actions">
-        <!-- Notifications bell -->
+        {#each navIcons as item}
+          {@const active = isActive(item.href, $page.url.pathname)}
+          <a
+            href={item.href}
+            class="header-icon-btn"
+            class:header-icon-btn--active={active}
+            aria-label={$t(item.labelKey)}
+            title={$t(item.labelKey)}
+          >
+            <Icon name={item.icon} size={20} />
+          </a>
+        {/each}
+
+        <!-- Notifications -->
         <a
           href="/notifications"
           class="header-icon-btn"
+          class:header-icon-btn--active={isActive('/notifications', $page.url.pathname)}
           aria-label={$t('layout.open_notifications')}
           title={$t('layout.open_notifications')}
         >
@@ -91,26 +133,22 @@
         </a>
 
         <!-- Profile dropdown -->
-        <details class="profile-dropdown">
-          <summary
-            class="profile-avatar"
-            aria-label={$t('layout.profile')}
-            title={$t('layout.profile')}
-          >
+        <details class="profile-dropdown" bind:this={profileDropdownEl}>
+          <summary class="profile-avatar" aria-label={$t('layout.profile')} title={$t('layout.profile')}>
             {userInitials}
           </summary>
           <div class="profile-menu">
             {#if data.me?.user?.name}
               <div class="profile-menu__name">{data.me.user.name}</div>
             {/if}
+            <a href="/profile" class="profile-menu__item">
+              <Icon name="user" size={16} />
+              {$t('layout.profile')}
+            </a>
             <a href="/settings" class="profile-menu__item">
               <Icon name="settings" size={16} />
               {$t('nav.settings')}
             </a>
-            <div class="profile-menu__item profile-menu__item--toggle">
-              <Icon name="sun" size={16} />
-              <ThemeToggle />
-            </div>
             <div class="profile-menu__divider"></div>
             <a
               href="/oauth2/sign_out?rd={encodeURIComponent($page.url.origin + '/oauth2/sign_in')}"
@@ -132,10 +170,9 @@
         <div>
           <strong>{$t('layout.session_expired_title')}</strong>
           {$t('layout.session_expired_body')}
-          <a
-            href="/oauth2/sign_in?rd={encodeURIComponent($page.url.href)}"
-            class="alert-link"
-          >{$t('layout.login_again')}</a>
+          <a href="/oauth2/sign_in?rd={encodeURIComponent($page.url.href)}" class="alert-link">
+            {$t('layout.login_again')}
+          </a>
         </div>
       </div>
     {:else if data.me === null}
@@ -191,23 +228,6 @@
       </div>
     </footer>
   {/if}
-
-  <nav class="bottom-nav" aria-label="Primary">
-    <div class="bottom-nav__container">
-      {#each navItems as item}
-        {@const active = isActive(item.href, $page.url.pathname)}
-        <a href={item.href} class="nav-item" class:nav-item--active={active}>
-          <span class="nav-item__icon">
-            <Icon name={item.icon} size={22} />
-            {#if item.href === '/notifications' && data.unread_count > 0}
-              <span class="nav-badge"></span>
-            {/if}
-          </span>
-          <span class="nav-item__label">{$t(item.labelKey)}</span>
-        </a>
-      {/each}
-    </div>
-  </nav>
 </div>
 
 <style>
@@ -224,7 +244,6 @@
     min-height: 100vh;
     min-height: 100dvh;
     padding-top: 56px;
-    padding-bottom: 72px;
   }
 
   .app-shell--fixed {
@@ -235,10 +254,10 @@
     display: flex;
     flex-direction: column;
     padding-top: 56px;
-    padding-bottom: 72px;
     box-sizing: border-box;
   }
 
+  /* ── Top header ─────────────────────────────────────────────────────────── */
   .top-header {
     position: fixed;
     top: 0;
@@ -264,16 +283,21 @@
     display: flex;
     align-items: center;
     gap: var(--celine-space-sm);
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .top-header__actions {
     display: flex;
     align-items: center;
-    gap: var(--celine-space-xs);
+    gap: 2px;
+    flex: 0 0 auto;
   }
 
   :global(.brand-icon) {
     color: var(--celine-primary);
+    flex-shrink: 0;
   }
 
   .brand-link {
@@ -281,13 +305,16 @@
     font-weight: 700;
     color: var(--celine-text);
     text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .brand-link:hover {
     color: var(--celine-primary);
   }
 
-  /* Notification bell button */
+  /* ── Nav icon buttons ───────────────────────────────────────────────────── */
   .header-icon-btn {
     position: relative;
     display: flex;
@@ -304,6 +331,16 @@
   .header-icon-btn:hover {
     color: var(--celine-text);
     background: var(--celine-bg-hover);
+  }
+
+  .header-icon-btn--active {
+    color: var(--celine-primary);
+    background: var(--celine-primary-light);
+  }
+
+  .header-icon-btn--active:hover {
+    color: var(--celine-primary);
+    background: var(--celine-primary-light);
   }
 
   .notif-badge {
@@ -323,9 +360,10 @@
     pointer-events: none;
   }
 
-  /* Profile dropdown */
+  /* ── Profile dropdown ───────────────────────────────────────────────────── */
   .profile-dropdown {
     position: relative;
+    margin-left: 4px;
   }
 
   .profile-dropdown summary {
@@ -398,10 +436,6 @@
     color: var(--celine-text);
   }
 
-  .profile-menu__item--toggle {
-    justify-content: space-between;
-  }
-
   .profile-menu__item--danger:hover {
     background: var(--celine-danger-bg, rgba(239, 68, 68, 0.08));
     color: var(--celine-danger, #ef4444);
@@ -413,7 +447,7 @@
     margin: var(--celine-space-xs) 0;
   }
 
-  /* Footer */
+  /* ── Footer ─────────────────────────────────────────────────────────────── */
   .app-footer {
     max-width: 900px;
     margin: var(--celine-space-lg) auto var(--celine-space-sm);
@@ -444,7 +478,7 @@
     text-decoration: underline;
   }
 
-  /* Alert banners */
+  /* ── Content wrap ───────────────────────────────────────────────────────── */
   .content-wrap {
     max-width: 900px;
     margin: 0 auto;
@@ -462,6 +496,7 @@
     flex-direction: column;
   }
 
+  /* ── Alert banners ──────────────────────────────────────────────────────── */
   .rec-alert {
     display: flex;
     align-items: flex-start;
@@ -485,69 +520,4 @@
   }
 
   .alert-link:hover { text-decoration: none; }
-
-  /* Bottom nav */
-  .bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--celine-bg-elevated);
-    border-top: 1px solid var(--celine-border);
-    z-index: 20;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-  }
-
-  .bottom-nav__container {
-    display: flex;
-    justify-content: space-around;
-    max-width: 500px;
-    margin: 0 auto;
-  }
-
-  .nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding: var(--celine-space-sm) var(--celine-space-md);
-    text-decoration: none;
-    color: var(--celine-text-secondary);
-    transition: color var(--celine-transition-fast);
-    min-width: 64px;
-  }
-
-  .nav-item:hover { color: var(--celine-text); }
-  .nav-item--active { color: var(--celine-primary); }
-
-  .nav-item__icon {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: var(--celine-radius-md);
-  }
-
-  .nav-item--active .nav-item__icon {
-    background: var(--celine-primary-light);
-  }
-
-  .nav-badge {
-    position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--celine-danger, #ef4444);
-    border: 2px solid var(--celine-bg-elevated);
-  }
-
-  .nav-item__label {
-    font-size: 0.6875rem;
-    font-weight: 500;
-    text-transform: uppercase;
-  }
 </style>

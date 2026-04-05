@@ -1,6 +1,7 @@
 {
   "nav": {
     "overview": "Panoramica",
+    "suggestions": "Opportunità",
     "alerts": "Avvisi",
     "assistant": "Assistente",
     "settings": "Impostazioni"
@@ -39,6 +40,9 @@
     "your_contribution": "Il tuo contributo",
     "vs_community": "vs Comunità",
     "community_trend": "Andamento della comunità",
+    "trends_title": "Andamenti",
+    "trends_tab_yours": "I tuoi",
+    "trends_tab_community": "Comunità",
     "community_totals": "Totali della comunità",
     "consumption": "Consumo",
     "production": "Produzione",
@@ -146,6 +150,9 @@
   "settings": {
     "title": "Impostazioni",
     "subtitle": "Rendi l'app più leggibile e configura le notifiche.",
+    "appearance": "Aspetto",
+    "theme": "Tema",
+    "theme_description": "Passa tra la modalità chiara e scura",
     "language": "Lingua",
     "language_description": "Scegli la tua lingua preferita",
     "accessibility": "Accessibilità",
@@ -180,6 +187,8 @@
     "your_badges": "I tuoi badge",
     "earned": "ottenuto",
     "earn_cta": "Sposta i carichi per guadagnare più punti →",
+    "trend_title": "Punti questa settimana",
+    "trend_period": "Progressione cumulativa 7 giorni",
     "no_data": "Ancora nessun dato di gamification.",
     "badges": {
       "first-shift": "Primo spostamento",
@@ -223,7 +232,8 @@
   "chart": {
     "production": "Produzione",
     "consumption": "Consumo",
-    "self_consumption": "Autoconsumo"
+    "self_consumption": "Autoconsumo",
+    "community_potential": "Potenziale comunità"
   },
   "accept_terms": {
     "title": "Prima di continuare",
@@ -239,6 +249,15 @@
     "body_1": "La maggior parte delle funzionalità di questa app richiede un contatore intelligente associato al tuo account.",
     "body_2": "Contatta l'amministratore della tua comunità energetica per collegare il contatore intelligente al tuo account.",
     "back": "Torna alla panoramica"
+  },
+  "profile": {
+    "title": "Profilo",
+    "subtitle": "I dettagli del tuo account",
+    "community": "Comunità",
+    "status": "Stato",
+    "status_active": "Partecipante attivo",
+    "management_title": "Gestione account",
+    "management_body": "Le opzioni per aggiornare i tuoi dati, cambiare la password e gestire i tuoi dati saranno disponibili qui presto."
   },
   "not_a_participant": {
     "title": "Non ancora partecipante",
