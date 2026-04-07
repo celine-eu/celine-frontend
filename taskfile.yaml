@@ -37,6 +37,11 @@ tasks:
     cmds:
       - pnpm build:webapp
 
+  build:roi:
+    desc: Build roi
+    cmds:
+      - pnpm build:roi
+
   build:assistant:
     desc: Build assistant
     cmds:
@@ -46,6 +51,7 @@ tasks:
     cmds:
       - task release:webapp
       - task release:assistant
+      - task release:roi
 
   # Release - auto version based on conventional commits
   release:webapp:
@@ -57,6 +63,12 @@ tasks:
   release:assistant:
     desc: Release assistant (auto version from commits, generates changelog)
     dir: apps/assistant
+    cmds:
+      - npx release-it --ci {{.CLI_ARGS}}
+
+  release:roi:
+    desc: Release roi (auto version from commits, generates changelog)
+    dir: apps/roi
     cmds:
       - npx release-it --ci {{.CLI_ARGS}}
 
