@@ -16,12 +16,22 @@ updates:
       interval: weekly
 
   - package-ecosystem: npm
+    directory: /apps/roi
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
     directory: /packages/ui
     schedule:
       interval: weekly
 
   - package-ecosystem: npm
     directory: /packages/assistant-ui
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/roi-ui
     schedule:
       interval: weekly
 
