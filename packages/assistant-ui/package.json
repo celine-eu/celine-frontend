@@ -21,7 +21,7 @@
   "dependencies": {
     "@celine-eu/ui": "workspace:*",
     "dompurify": "^3.3.3",
-    "marked": "^17.0.5"
+    "marked": "^18.0.0"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.0.0"
