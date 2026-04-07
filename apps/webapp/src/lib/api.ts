@@ -232,7 +232,7 @@ export type FlexibilityHistoryItem = {
   period_end: string;
   committed_at: string;
   settled_at?: string | null;
-  status: 'committed' | 'settled' | 'rejected';
+  status: 'committed' | 'settled' | 'rejected' | 'cancelled';
   reward_points_estimated: number;
   reward_points_actual?: number | null;
   impact_kwh_actual?: number | null;

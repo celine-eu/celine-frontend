@@ -41,7 +41,7 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="celine-panel-backdrop" onclick={handleBackdropClick}>
-    <aside 
+    <div
       class="celine-panel celine-panel--{position}"
       role="dialog"
       aria-modal="true"
@@ -71,7 +71,7 @@
           {@render footer()}
         </footer>
       {/if}
-    </aside>
+    </div>
   </div>
 {/if}
 

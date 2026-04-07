@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, tick } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import { createAssistantApi, type AssistantApi } from "./api.js";
   import type {
     AssistantContext,
@@ -34,17 +34,17 @@
   }: ChatCoreProps = $props();
 
   // API client
-  const api: AssistantApi = createAssistantApi(apiBaseUrl);
+  const api: AssistantApi = createAssistantApi(untrack(() => apiBaseUrl));
 
   // State
-  let conversationId = $state<string | null>(initialConversationId);
+  let conversationId = $state<string | null>(untrack(() => initialConversationId));
   let messages = $state<Message[]>([]);
-  let input = $state(initialPrompt);
+  let input = $state(untrack(() => initialPrompt));
   let busy = $state(false);
   let errorBanner = $state<string | null>(null);
-  let includeCitations = $state(enableCitations);
+  let includeCitations = $state(untrack(() => enableCitations));
   let isAdmin = $state(false);
-  let context = $state<AssistantContext | null>(initialContext);
+  let context = $state<AssistantContext | null>(untrack(() => initialContext));
 
   // Attachments
   let attachments = $state<Attachment[]>([]);

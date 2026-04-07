@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { Icon } from "@celine-eu/ui";
   import ChatCore from "./ChatCore.svelte";
   import type { AssistantContext } from "./types.js";
@@ -18,7 +19,7 @@
   let open = $state(false);
   let minimized = $state(false);
   let chatCore: ChatCore | null = $state(null);
-  let currentContext = $state<AssistantContext | null>(context);
+  let currentContext = $state<AssistantContext | null>(untrack(() => context));
   let initialPrompt = $state("");
 
   export function openWith(

@@ -350,7 +350,6 @@
   .rain-bar { height: 100%; background: var(--celine-info); border-radius: 2px; }
 
   /* Irradiance */
-  .irradiance-section { }
   .irradiance-label { font-size: 0.8125rem; color: var(--celine-text-secondary); margin: 0 0 0.5rem; font-weight: 500; display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem; }
   .irr-gap-note { font-size: 0.6875rem; font-weight: 400; opacity: 0.7; }
   .irradiance-bars {

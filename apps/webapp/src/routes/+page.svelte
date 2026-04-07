@@ -771,11 +771,6 @@
     border-bottom-color: var(--celine-primary);
   }
 
-  /* 3-column stats inside trend tab */
-  .stats-grid--3 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   /* Empty State */
   .empty-state { text-align: center; padding: var(--celine-space-xl) var(--celine-space-md); }
   :global(.empty-icon) { color: var(--celine-text-tertiary); opacity: 0.5; margin-bottom: var(--celine-space-sm); }
@@ -787,7 +782,6 @@
     .section-card { padding: var(--celine-space-lg); }
     .page-title { font-size: 1.75rem; }
     .stats-grid { gap: var(--celine-space-md); }
-    .stats-grid--3 { grid-template-columns: repeat(3, 1fr); }
   }
 
   @media (min-width: 768px) {

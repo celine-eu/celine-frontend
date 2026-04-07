@@ -18,7 +18,7 @@
     <div class="avatar-row">
       <div class="avatar">
         {#if me?.user?.name}
-          {me.user.name.split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2)}
+          {me.user.name.split(' ').map((p: string) => p[0]).join('').toUpperCase().slice(0, 2)}
         {:else}
           ?
         {/if}

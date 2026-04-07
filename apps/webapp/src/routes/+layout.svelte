@@ -142,7 +142,7 @@
               <div class="profile-menu__name">{data.me.user.name}</div>
             {/if}
             <a href="/profile" class="profile-menu__item">
-              <Icon name="user" size={16} />
+              <Icon name="users" size={16} />
               {$t('layout.profile')}
             </a>
             <a href="/settings" class="profile-menu__item">
