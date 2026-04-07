@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.14.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.13.0...webapp-v0.14.0) (2026-04-07)
+
+### Features
+
+* improve commitment handling ([0541fd9](https://github.com/celine-eu/celine-frontend/commit/0541fd93dc521969f547973d63161db8870dc260))
+* improve presentation ([33cde08](https://github.com/celine-eu/celine-frontend/commit/33cde08329a01a7587d0f83c475acee8c5a2fbe5))
+
+### Bug Fixes
+
+* correct build errors ([6955c75](https://github.com/celine-eu/celine-frontend/commit/6955c758a09556369088377ce9e8867c6d902bf2))
+
 ## [0.13.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.12.0...webapp-v0.13.0) (2026-04-03)
 
 ### Features
