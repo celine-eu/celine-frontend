@@ -3,6 +3,7 @@ version: "3"
 vars:
   IMAGE_WEBAPP: ghcr.io/celine-eu/celine-webapp
   IMAGE_ASSISTANT: ghcr.io/celine-eu/celine-assistant
+  IMAGE_GRID: ghcr.io/celine-eu/celine-grid-ui
 
 tasks:
   setup:
@@ -26,6 +27,11 @@ tasks:
     cmds:
       - pnpm dev:roi
 
+  dev:grid:
+    desc: Run grid app in development mode
+    cmds:
+      - pnpm dev:grid
+
   # Build
   build:
     desc: Build all apps
@@ -47,11 +53,17 @@ tasks:
     cmds:
       - pnpm build:assistant
 
+  build:grid:
+    desc: Build grid app
+    cmds:
+      - pnpm build:grid
+
   release:
     cmds:
       - task release:webapp
       - task release:assistant
       - task release:roi
+      - task release:grid
 
   # Release - auto version based on conventional commits
   release:webapp:
@@ -72,6 +84,12 @@ tasks:
     cmds:
       - npx release-it --ci {{.CLI_ARGS}}
 
+  release:grid:
+    desc: Release grid app (auto version from commits, generates changelog)
+    dir: apps/grid
+    cmds:
+      - npx release-it --ci {{.CLI_ARGS}}
+
   # Dry run to preview release
   release:webapp:dry:
     desc: Preview webapp release (dry run)
@@ -82,6 +100,12 @@ tasks:
   release:assistant:dry:
     desc: Preview assistant release (dry run)
     dir: apps/assistant
+    cmds:
+      - npx release-it --dry-run
+
+  release:grid:dry:
+    desc: Preview grid release (dry run)
+    dir: apps/grid
     cmds:
       - npx release-it --dry-run
 
@@ -96,8 +120,14 @@ tasks:
     cmds:
       - docker build -f apps/assistant/Dockerfile -t {{.IMAGE_ASSISTANT}}:dev .
 
+  docker:grid:
+    desc: Build grid Docker image
+    cmds:
+      - docker build -f apps/grid/Dockerfile -t {{.IMAGE_GRID}}:dev .
+
   docker:all:
     desc: Build all Docker images
     cmds:
       - task: docker:webapp
       - task: docker:assistant
+      - task: docker:grid

@@ -24,3 +24,28 @@ services:
     extra_hosts:
       - "keycloak.celine.localhost:host-gateway"
       - "api.celine.localhost:host-gateway"
+
+  roi:
+    build:
+      context: .
+      dockerfile: apps/roi/Dockerfile
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    extra_hosts:
+      - "keycloak.celine.localhost:host-gateway"
+      - "api.celine.localhost:host-gateway"
+  grid-resilience:
+    build:
+      context: .
+      dockerfile: apps/grid-resilience/Dockerfile
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    extra_hosts:
+      - "keycloak.celine.localhost:host-gateway"
+      - "api.celine.localhost:host-gateway"
