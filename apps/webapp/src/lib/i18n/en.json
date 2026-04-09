@@ -121,7 +121,12 @@
     "history_cancelled": "Cancelled",
     "history_cancel": "Cancel",
     "history_earned": "+{pts} pts",
-    "history_estimated": "~{pts} pts"
+    "history_estimated": "~{pts} pts",
+    "ask_ai": {
+      "opportunities": "Analyze the available load-shifting opportunities and explain which ones are worth accepting first.",
+      "forecast": "Explain the next 48 hours of energy outlook and how it can affect the best times for me to use energy.",
+      "history": "Summarize my flexibility history and explain what it suggests about my recent behavior."
+    }
   },
   "suggestion_card": {
     "done": "Done! +{points} pts added to your score.",
