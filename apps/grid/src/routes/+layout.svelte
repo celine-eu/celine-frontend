@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import type { LayoutData } from './$types';
-  import { meStore } from '$lib/stores';
+  import { meStore, themeOverride } from '$lib/stores';
   import { _ } from 'svelte-i18n';
 
   const { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props();
@@ -14,6 +14,40 @@
 
   let profileOpen = $state(false);
 
+  // ---------------------------------------------------------------------------
+  // Theme
+  // ---------------------------------------------------------------------------
+  const STORAGE_KEY = 'celine-theme';
+
+  function applyTheme(override: 'dark' | 'light' | null) {
+    const root = document.documentElement;
+    root.classList.remove('dark', 'light');
+    if (override) root.classList.add(override);
+  }
+
+  function isDarkActive(override: 'dark' | 'light' | null): boolean {
+    if (override === 'dark') return true;
+    if (override === 'light') return false;
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  let currentOverride = $state<'dark' | 'light' | null>(null);
+
+  $effect(() => {
+    applyTheme(currentOverride);
+    themeOverride.set(currentOverride);
+    if (currentOverride) localStorage.setItem(STORAGE_KEY, currentOverride);
+    else localStorage.removeItem(STORAGE_KEY);
+  });
+
+  function toggleTheme() {
+    const dark = isDarkActive(currentOverride);
+    currentOverride = dark ? 'light' : 'dark';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Profile
+  // ---------------------------------------------------------------------------
   function initials(me: typeof data.me): string {
     if (!me) return '?';
     const n = me.name ?? me.preferred_username ?? me.email;
@@ -29,6 +63,10 @@
   }
 
   onMount(() => {
+    // Restore persisted preference
+    const stored = localStorage.getItem(STORAGE_KEY) as 'dark' | 'light' | null;
+    currentOverride = stored ?? null;
+
     document.addEventListener('keydown', handleKeydown);
     return () => document.removeEventListener('keydown', handleKeydown);
   });
@@ -46,6 +84,28 @@
     </nav>
 
     <div class="header-right">
+      <button class="theme-btn" onclick={toggleTheme} aria-label="Toggle dark mode">
+        {#if isDarkActive(currentOverride)}
+          <!-- Sun icon -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        {:else}
+          <!-- Moon icon -->
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        {/if}
+      </button>
+
       {#if data.me}
         <button
           class="avatar-btn"
@@ -140,6 +200,28 @@
   .header-right {
     margin-left: auto;
     position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .theme-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid var(--celine-border, #e2e8f0);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--celine-text-muted, #64748b);
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .theme-btn:hover {
+    background: var(--celine-bg-hover, #f1f5f9);
+    color: var(--celine-text, #1e293b);
   }
 
   .avatar-btn {

@@ -125,8 +125,23 @@ export const getHeatTrend = (networkId: string) =>
   j<TrendItem[]>(gridUrl(networkId, '/heat/trend'));
 
 // ---------------------------------------------------------------------------
-// Cabine (secondary substations) — static layer
+// Filter metadata — topology dimension values for autocomplete
 // ---------------------------------------------------------------------------
 
-export const getCabineMap = (networkId: string) =>
-  j<FeatureCollection>(gridUrl(networkId, '/cabine/map'));
+export interface FilterOptions {
+  parent_substations: string[];
+  lines: string[];
+  operational_units: string[];
+  municipalities: string[];
+}
+
+export const getFilters = (networkId: string) =>
+  j<FilterOptions>(gridUrl(networkId, '/filters'));
+
+// ---------------------------------------------------------------------------
+// Substations (CIM: Substation — secondary substations) — static layer
+// ---------------------------------------------------------------------------
+
+export const getSubstationsMap = (networkId: string) =>
+  j<FeatureCollection>(gridUrl(networkId, '/substations/map'));
+

@@ -1,1 +1,39 @@
 @import 'maplibre-gl/dist/maplibre-gl.css';
+
+:root {
+  --celine-font-sans: system-ui, sans-serif;
+  --celine-bg: #f8fafc;
+  --celine-bg-elevated: #ffffff;
+  --celine-text: #1e293b;
+  --celine-text-muted: #64748b;
+  --celine-border: #e2e8f0;
+  --celine-bg-hover: #f1f5f9;
+  --celine-primary: #0d9488;
+  --celine-primary-subtle: #ccfbf1;
+}
+
+/* Manual dark override (.dark on <html>) */
+:root.dark {
+  --celine-bg: #0f172a;
+  --celine-bg-elevated: #1e293b;
+  --celine-text: #f1f5f9;
+  --celine-text-muted: #94a3b8;
+  --celine-border: #334155;
+  --celine-bg-hover: #334155;
+  --celine-primary: #2dd4bf;
+  --celine-primary-subtle: #134e4a;
+}
+
+/* System dark preference, unless user explicitly chose light */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --celine-bg: #0f172a;
+    --celine-bg-elevated: #1e293b;
+    --celine-text: #f1f5f9;
+    --celine-text-muted: #94a3b8;
+    --celine-border: #334155;
+    --celine-bg-hover: #334155;
+    --celine-primary: #2dd4bf;
+    --celine-primary-subtle: #134e4a;
+  }
+}

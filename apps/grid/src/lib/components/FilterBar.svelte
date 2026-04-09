@@ -1,5 +1,6 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
+  import AutocompleteSelect from './AutocompleteSelect.svelte';
 
   interface Props {
     dates: string[];
@@ -33,6 +34,8 @@
     onchange,
   }: Props = $props();
 
+  let collapsed = $state(false);
+
   const RISK_LEVELS = ['ALERT', 'WARNING', 'NORMAL'];
 
   function toggle(arr: string[], val: string): string[] {
@@ -57,89 +60,167 @@
     selectedRisk = [];
     onchange({ dates: [], substations: [], lines: [], units: [], risk: [] });
   }
+
+  const hasFilters = $derived(
+    selectedDates.length + selectedSubstations.length + selectedLines.length +
+    selectedUnits.length + selectedRisk.length > 0
+  );
 </script>
 
-<div class="filter-bar">
-  <div class="filter-group">
-    <label class="filter-label">{$_('filter.date')}</label>
-    <select
-      multiple
-      size={Math.min(dates.length || 1, 4)}
-      bind:value={selectedDates}
-      class="filter-select"
-    >
-      {#each dates as d}
-        <option value={d}>{d}</option>
-      {/each}
-    </select>
-  </div>
+<aside class="sidebar" class:collapsed>
+  <button
+    class="toggle-btn"
+    onclick={() => (collapsed = !collapsed)}
+    title={collapsed ? 'Show filters' : 'Hide filters'}
+  >
+    {collapsed ? '›' : '‹'}
+  </button>
 
-  <div class="filter-group">
-    <label class="filter-label">{$_('filter.substation')}</label>
-    <select multiple size={Math.min(substations.length || 1, 4)} bind:value={selectedSubstations} class="filter-select">
-      {#each substations as s}
-        <option value={s}>{s}</option>
-      {/each}
-    </select>
-  </div>
+  {#if !collapsed}
+    <div class="sidebar-inner">
+      <div class="sidebar-header">
+        <span class="sidebar-title">{$_('filter.title', { default: 'Filters' })}</span>
+        {#if hasFilters}
+          <button class="clear-all" onclick={reset}>{$_('filter.reset')}</button>
+        {/if}
+      </div>
 
-  <div class="filter-group">
-    <label class="filter-label">{$_('filter.line')}</label>
-    <select multiple size={Math.min(lines.length || 1, 4)} bind:value={selectedLines} class="filter-select">
-      {#each lines as l}
-        <option value={l}>{l}</option>
-      {/each}
-    </select>
-  </div>
+      <div class="sidebar-body">
+        <div class="filter-group">
+          <label class="filter-label">{$_('filter.date')}</label>
+          <AutocompleteSelect options={dates} bind:selected={selectedDates} placeholder="Search dates…" />
+        </div>
 
-  <div class="filter-group">
-    <label class="filter-label">{$_('filter.unit')}</label>
-    <select multiple size={Math.min(units.length || 1, 4)} bind:value={selectedUnits} class="filter-select">
-      {#each units as u}
-        <option value={u}>{u}</option>
-      {/each}
-    </select>
-  </div>
+        <div class="filter-group">
+          <label class="filter-label">{$_('filter.substation')}</label>
+          <AutocompleteSelect options={substations} bind:selected={selectedSubstations} placeholder="Search substations…" />
+        </div>
 
-  <div class="filter-group">
-    <label class="filter-label">{$_('filter.risk')}</label>
-    <div class="risk-chips">
-      {#each RISK_LEVELS as r}
-        <button
-          class="chip"
-          class:selected={selectedRisk.includes(r)}
-          onclick={() => (selectedRisk = toggle(selectedRisk, r))}
-          data-risk={r.toLowerCase()}
-        >
-          {r}
-        </button>
-      {/each}
+        <div class="filter-group">
+          <label class="filter-label">{$_('filter.line')}</label>
+          <AutocompleteSelect options={lines} bind:selected={selectedLines} placeholder="Search lines…" />
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">{$_('filter.unit')}</label>
+          <AutocompleteSelect options={units} bind:selected={selectedUnits} placeholder="Search units…" />
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">{$_('filter.risk')}</label>
+          <div class="risk-chips">
+            {#each RISK_LEVELS as r}
+              <button
+                class="chip"
+                class:selected={selectedRisk.includes(r)}
+                onclick={() => (selectedRisk = toggle(selectedRisk, r))}
+                data-risk={r.toLowerCase()}
+              >{r}</button>
+            {/each}
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn-primary" onclick={apply}>{$_('filter.apply')}</button>
+      </div>
     </div>
-  </div>
-
-  <div class="filter-actions">
-    <button class="btn-primary" onclick={apply}>{$_('filter.apply')}</button>
-    <button class="btn-ghost" onclick={reset}>{$_('filter.reset')}</button>
-  </div>
-</div>
+  {/if}
+</aside>
 
 <style>
-  .filter-bar {
+  .sidebar {
+    position: relative;
     display: flex;
-    align-items: flex-end;
-    gap: 0.75rem;
-    padding: 0.625rem 1rem;
-    background: var(--celine-bg-elevated, #fff);
-    border-bottom: 1px solid var(--celine-border, #e2e8f0);
-    overflow-x: auto;
+    flex-direction: row;
+    width: 240px;
     flex-shrink: 0;
+    background: var(--celine-bg-elevated, #fff);
+    border-right: 1px solid var(--celine-border, #e2e8f0);
+    transition: width 0.2s ease;
+    overflow: visible;
+  }
+
+  .sidebar.collapsed {
+    width: 28px;
+  }
+
+  .toggle-btn {
+    position: absolute;
+    top: 50%;
+    right: -13px;
+    transform: translateY(-50%);
+    z-index: 20;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--celine-border, #e2e8f0);
+    background: var(--celine-bg-elevated, #fff);
+    color: var(--celine-text-muted, #64748b);
+    font-size: 0.85rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .toggle-btn:hover {
+    background: var(--celine-bg-hover, #f1f5f9);
+    color: var(--celine-text, #1e293b);
+  }
+
+  .sidebar-inner {
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0.875rem 0.5rem;
+    flex-shrink: 0;
+  }
+
+  .sidebar-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--celine-text-muted, #64748b);
+  }
+
+  .clear-all {
+    font-size: 0.7rem;
+    color: var(--celine-primary, #0d9488);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .clear-all:hover {
+    text-decoration: underline;
+  }
+
+  .sidebar-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
   }
 
   .filter-group {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    min-width: 130px;
+    gap: 0.3rem;
   }
 
   .filter-label {
@@ -148,16 +229,6 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--celine-text-muted, #64748b);
-  }
-
-  .filter-select {
-    border: 1px solid var(--celine-border, #e2e8f0);
-    border-radius: 6px;
-    background: var(--celine-bg, #f8fafc);
-    font-size: 0.8125rem;
-    padding: 0.25rem;
-    color: var(--celine-text, #1e293b);
-    cursor: pointer;
   }
 
   .risk-chips {
@@ -170,7 +241,7 @@
     padding: 0.25rem 0.625rem;
     border-radius: 999px;
     border: 1px solid var(--celine-border, #e2e8f0);
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     cursor: pointer;
     background: transparent;
@@ -185,15 +256,15 @@
   .chip[data-risk='normal'] { border-color: #00A000; color: #00A000; }
   .chip[data-risk='normal'].selected { background: #00A000; color: #fff; }
 
-  .filter-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
+  .sidebar-footer {
+    padding: 0.75rem 0.875rem;
     flex-shrink: 0;
+    border-top: 1px solid var(--celine-border, #e2e8f0);
   }
 
   .btn-primary {
-    padding: 0.375rem 1rem;
+    width: 100%;
+    padding: 0.5rem;
     background: var(--celine-primary, #0d9488);
     color: #fff;
     border: none;
@@ -201,23 +272,7 @@
     font-size: 0.8125rem;
     font-weight: 600;
     cursor: pointer;
-    white-space: nowrap;
   }
 
   .btn-primary:hover { filter: brightness(1.1); }
-
-  .btn-ghost {
-    padding: 0.375rem 1rem;
-    background: transparent;
-    color: var(--celine-text-muted, #64748b);
-    border: 1px solid var(--celine-border, #e2e8f0);
-    border-radius: 6px;
-    font-size: 0.8125rem;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .btn-ghost:hover {
-    background: var(--celine-bg-hover, #f1f5f9);
-  }
 </style>
