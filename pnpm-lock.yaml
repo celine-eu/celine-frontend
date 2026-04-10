@@ -52,7 +52,7 @@ importers:
         specifier: ^8.0.0
         version: 8.0.2(@types/node@22.19.11)(jiti@2.6.1)
 
-  apps/grid-resilience:
+  apps/grid:
     dependencies:
       '@celine-eu/ui':
         specifier: workspace:*
