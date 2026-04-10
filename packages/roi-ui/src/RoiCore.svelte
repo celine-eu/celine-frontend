@@ -68,8 +68,10 @@
   let loadProfile = $state('residential_default.json');
   // Personal profile: manual 24h kWh values
   let customHourlyKwh: number[] = $state(Array(24).fill(0));
-  // Personal profile: meter data folder name
+  // Personal profile: meter data (processed client-side from folder upload)
   let customProfileDir = $state('');
+  let meterDataLoaded = $state(false);
+  let meterDataDays = $state(0);
 
   // Heat pump
   let heatPumpKwh = $state(0);
@@ -122,9 +124,59 @@
     }
   });
 
+  // Reset meter data state when switching away
+  $effect(() => {
+    if (loadProfile !== 'personal_meter') {
+      meterDataLoaded = false;
+      meterDataDays = 0;
+    }
+  });
+
+  // Process meter data files from folder upload (client-side)
+  async function processMeterFiles(files: FileList) {
+    const hourlyTotals = new Array(24).fill(0);
+    let totalDays = 0;
+
+    for (const file of files) {
+      if (!file.name.endsWith('.json')) continue;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const consumptions = data?.imported?.data?.consumptions;
+        if (!Array.isArray(consumptions)) continue;
+
+        for (const entry of consumptions) {
+          const hour = entry?.hour;
+          const total = entry?.total ?? 0;
+          if (hour != null && hour >= 0 && hour < 24) {
+            hourlyTotals[hour] += total;
+          }
+        }
+        totalDays++;
+      } catch {
+        // skip invalid files
+      }
+    }
+
+    if (totalDays === 0) {
+      error = 'No valid meter data found in the selected folder.';
+      return;
+    }
+
+    // Compute average hourly kWh
+    const avgHourly = hourlyTotals.map(v => v / totalDays);
+    const dailyTotal = avgHourly.reduce((a, b) => a + b, 0);
+
+    customHourlyKwh = avgHourly.map(v => Math.round(v * 1000) / 1000);
+    consumption = Math.round(dailyTotal * 365);
+    meterDataLoaded = true;
+    meterDataDays = totalDays;
+    error = '';
+  }
+
   const canSubmit = $derived(
     location !== null && capex > 0
-    && (consumption > 0 || (loadProfile === 'personal_meter' && customProfileDir !== ''))
+    && (consumption > 0 || (loadProfile === 'personal_meter' && meterDataLoaded))
   );
 
   async function calculate() {
@@ -155,8 +207,8 @@
         ...(batteryKwh > 0 ? { battery_kwh: batteryKwh } : {}),
         ...(heatPumpKwh > 0 ? { heat_pump_kwh_annual: heatPumpKwh } : {}),
         ...(userType === 'residential' ? { abitazione_principale: abitazionePrincipale } : {}),
-        ...(loadProfile === 'personal_manual' ? { custom_hourly_kwh: customHourlyKwh } : {}),
-        ...(loadProfile === 'personal_meter' && customProfileDir ? { custom_profile_dir: customProfileDir } : {}),
+        ...((loadProfile === 'personal_manual' || (loadProfile === 'personal_meter' && meterDataLoaded))
+          ? { custom_hourly_kwh: customHourlyKwh } : {}),
       };
       const overrides: Record<string, unknown> = {};
       if (loadProfile !== 'residential_default.json' && loadProfile !== 'personal_manual' && loadProfile !== 'personal_meter') overrides.load_profile = loadProfile;
@@ -413,16 +465,20 @@
             type="number"
             class="field-input"
             bind:value={consumption}
-            min={loadProfile === 'personal_meter' ? 0 : 100}
+            min="100"
             step="100"
             placeholder="5000"
-            disabled={loadProfile === 'personal_manual'}
+            disabled={loadProfile === 'personal_manual' || loadProfile === 'personal_meter'}
           />
           <span class="field-hint">
             {#if loadProfile === 'personal_manual'}
               Auto-calculated from your 24h profile: <strong>{consumption.toLocaleString('it-IT')} kWh/year</strong>
             {:else if loadProfile === 'personal_meter'}
-              Set to 0 to auto-estimate from your meter data, or enter a value to override.
+              {#if meterDataLoaded}
+                Estimated from your meter data: <strong>{consumption.toLocaleString('it-IT')} kWh/year</strong>
+              {:else}
+                Will be estimated from your meter data once loaded.
+              {/if}
             {:else}
               Total electricity drawn from the grid per year. Check your utility bills.
             {/if}
@@ -505,23 +561,34 @@
           </div>
         {/if}
 
-        <!-- Personal profile: meter data folder -->
+        <!-- Personal profile: meter data folder upload -->
         {#if loadProfile === 'personal_meter'}
-          <label class="field" style="grid-column: 1 / -1">
+          <div class="field" style="grid-column: 1 / -1">
             <span class="field-label">
-              Meter data folder
-              <span class="field-unit">folder name in config/load_profiles/</span>
+              Smart meter data
+              <span class="field-unit">select folder with daily JSON files</span>
             </span>
             <input
-              type="text"
+              type="file"
               class="field-input"
-              bind:value={customProfileDir}
-              placeholder="IT221E00549903"
+              accept=".json"
+              webkitdirectory
+              onchange={(e) => {
+                const input = e.target as HTMLInputElement;
+                if (input.files && input.files.length > 0) {
+                  processMeterFiles(input.files);
+                }
+              }}
             />
             <span class="field-hint">
-              Folder containing daily JSON files (YYYY-MM-DD.json) from your smart meter (C2G/e-distribuzione format).
+              {#if meterDataLoaded}
+                Loaded <strong>{meterDataDays} days</strong> of meter data.
+                Estimated consumption: <strong>{consumption.toLocaleString('it-IT')} kWh/year</strong>
+              {:else}
+                Select the folder containing daily JSON files (YYYY-MM-DD.json) from your smart meter (C2G/e-distribuzione format).
+              {/if}
             </span>
-          </label>
+          </div>
         {/if}
 
         <!-- Heat pump (only with residential + heat pump profile) -->
