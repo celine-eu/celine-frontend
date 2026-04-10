@@ -103,7 +103,29 @@
   let lastSystem: Record<string, unknown> | null = $state(null);
   let lastOverrides: Record<string, unknown> | null = $state(null);
 
-  const canSubmit = $derived(location !== null && capex > 0 && consumption > 0);
+  // Auto-fill annual consumption from personal profile data
+  $effect(() => {
+    if (loadProfile === 'personal_manual') {
+      const dailyTotal = customHourlyKwh.reduce((a, b) => a + b, 0);
+      if (dailyTotal > 0) {
+        consumption = Math.round(dailyTotal * 365);
+      }
+    }
+  });
+
+  // Reset heat pump when switching away from heat pump profile
+  $effect(() => {
+    if (loadProfile !== 'residential_heat_pump.json') {
+      heatPumpKwh = 0;
+    } else if (heatPumpKwh === 0) {
+      heatPumpKwh = 3500; // sensible default
+    }
+  });
+
+  const canSubmit = $derived(
+    location !== null && capex > 0
+    && (consumption > 0 || (loadProfile === 'personal_meter' && customProfileDir !== ''))
+  );
 
   async function calculate() {
     if (!location) return;
@@ -383,17 +405,28 @@
           <span class="field-label">
             Annual consumption
             <span class="field-unit">kWh/year</span>
-            <span class="req">*</span>
+            {#if loadProfile !== 'personal_manual' && loadProfile !== 'personal_meter'}
+              <span class="req">*</span>
+            {/if}
           </span>
           <input
             type="number"
             class="field-input"
             bind:value={consumption}
-            min="100"
+            min={loadProfile === 'personal_meter' ? 0 : 100}
             step="100"
             placeholder="5000"
+            disabled={loadProfile === 'personal_manual'}
           />
-          <span class="field-hint">Total electricity drawn from the grid per year. Check your utility bills.</span>
+          <span class="field-hint">
+            {#if loadProfile === 'personal_manual'}
+              Auto-calculated from your 24h profile: <strong>{consumption.toLocaleString('it-IT')} kWh/year</strong>
+            {:else if loadProfile === 'personal_meter'}
+              Set to 0 to auto-estimate from your meter data, or enter a value to override.
+            {:else}
+              Total electricity drawn from the grid per year. Check your utility bills.
+            {/if}
+          </span>
         </label>
 
         <!-- User type -->
@@ -491,28 +524,30 @@
           </label>
         {/if}
 
-        <!-- Heat pump -->
-        <label class="field">
-          <span class="field-label">
-            Heat pump consumption
-            <span class="field-unit">kWh/year (0 = none)</span>
-          </span>
-          <input
-            type="number"
-            class="field-input"
-            bind:value={heatPumpKwh}
-            min="0"
-            max="50000"
-            step="100"
-            placeholder="0"
-          />
-          <span class="field-hint">
-            Additional annual electricity for a heat pump. Blends a daytime-heavy profile on top of the base consumption.
-            {#if heatPumpKwh > 0}
-              Total consumption: <strong>{(consumption + heatPumpKwh).toLocaleString('it-IT')} kWh/year</strong>
-            {/if}
-          </span>
-        </label>
+        <!-- Heat pump (only with residential + heat pump profile) -->
+        {#if loadProfile === 'residential_heat_pump.json'}
+          <label class="field">
+            <span class="field-label">
+              Heat pump consumption
+              <span class="field-unit">kWh/year</span>
+            </span>
+            <input
+              type="number"
+              class="field-input"
+              bind:value={heatPumpKwh}
+              min="500"
+              max="50000"
+              step="100"
+              placeholder="3500"
+            />
+            <span class="field-hint">
+              Additional annual electricity for a heat pump. Typical: 2,500–4,500 kWh/year.
+              {#if heatPumpKwh > 0}
+                Total consumption: <strong>{(consumption + heatPumpKwh).toLocaleString('it-IT')} kWh/year</strong>
+              {/if}
+            </span>
+          </label>
+        {/if}
 
         <!-- Abitazione principale (residential only) -->
         {#if userType === 'residential'}

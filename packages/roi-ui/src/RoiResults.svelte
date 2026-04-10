@@ -81,6 +81,7 @@
         scenarios['Solo RID'] = { regime: 'RID' };
       }
       scenarios['Con pompa di calore'] = { heat_pump_kwh_annual: 3500 };
+      scenarios['Scenario ideale (70%)'] = { forced_tasso_autoconsumo: 0.70 };
       compareResult = await api.compareScenarios(sys, scenarios, configOverrides as Record<string, unknown> | undefined);
     } catch (e) {
       compareError = e instanceof Error ? e.message : 'Comparison failed';

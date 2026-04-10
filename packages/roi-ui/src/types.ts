@@ -37,6 +37,7 @@ export interface ConfigOverrides {
   detrazione_years?: number;
   detrazione_include_iva?: boolean;
   cer_virtual_consumption_rate?: number;
+  forced_tasso_autoconsumo?: number;
 }
 
 export interface PickedLocation {
