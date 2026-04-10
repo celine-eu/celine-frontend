@@ -17,6 +17,10 @@ export interface SystemInput {
   location?: string;
   rooftop_wkt?: string | null;
   battery_kwh?: number;
+  heat_pump_kwh_annual?: number;
+  abitazione_principale?: boolean;
+  custom_hourly_kwh?: number[] | null;
+  custom_profile_dir?: string | null;
 }
 
 export interface ConfigOverrides {

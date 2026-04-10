@@ -66,6 +66,16 @@
 
   // Load profile selection
   let loadProfile = $state('residential_default.json');
+  // Personal profile: manual 24h kWh values
+  let customHourlyKwh: number[] = $state(Array(24).fill(0));
+  // Personal profile: meter data folder name
+  let customProfileDir = $state('');
+
+  // Heat pump
+  let heatPumpKwh = $state(0);
+
+  // Abitazione principale (residential primary residence)
+  let abitazionePrincipale = $state(true);
 
   // Battery cost deduction
   let batteryKwh = $state(urlParams.battery ?? 0);
@@ -102,7 +112,8 @@
     result = null;
 
     try {
-      // Always send WKT when polygon is drawn; use kwp=0 for LIDAR auto-estimation
+      // Only send WKT for LIDAR auto-estimation (kwp=0).
+      // When user specifies panels/kWp, skip LIDAR so production uses their kWp.
       const hasWkt = !!location.wkt;
       const useLidar = kwpAuto && !useCapexEstimator && hasWkt;
       const system = {
@@ -118,11 +129,15 @@
         equity_fraction: equityFraction,
         ...(hasLoan ? { loan_rate: loanRate / 100, loan_duration_years: loanDuration } : {}),
         location: location.name || '',
-        ...(hasWkt ? { rooftop_wkt: location.wkt } : {}),
+        ...(useLidar ? { rooftop_wkt: location.wkt } : {}),
         ...(batteryKwh > 0 ? { battery_kwh: batteryKwh } : {}),
+        ...(heatPumpKwh > 0 ? { heat_pump_kwh_annual: heatPumpKwh } : {}),
+        ...(userType === 'residential' ? { abitazione_principale: abitazionePrincipale } : {}),
+        ...(loadProfile === 'personal_manual' ? { custom_hourly_kwh: customHourlyKwh } : {}),
+        ...(loadProfile === 'personal_meter' && customProfileDir ? { custom_profile_dir: customProfileDir } : {}),
       };
       const overrides: Record<string, unknown> = {};
-      if (loadProfile !== 'residential_default.json') overrides.load_profile = loadProfile;
+      if (loadProfile !== 'residential_default.json' && loadProfile !== 'personal_manual' && loadProfile !== 'personal_meter') overrides.load_profile = loadProfile;
       if (!detrazioneEnabled) overrides.detrazione_enabled = false;
       if (detrazioneRateCustom) {
         overrides.detrazione_rate = detrazioneRate / 100;
@@ -412,12 +427,105 @@
           <span class="field-label">Consumption profile</span>
           <select class="field-input" bind:value={loadProfile}>
             <option value="residential_default.json">Standard residential</option>
+            <option value="commercial_default.json">Commercial / Office</option>
+            <option value="industrial_default.json">Industrial / Agricultural</option>
             <option value="residential_heat_pump.json">Residential + heat pump</option>
+            <option value="personal_manual">Personal profile (manual 24h)</option>
+            <option value="personal_meter">Personal profile (meter data)</option>
           </select>
           <span class="field-hint">
-            Heat pump profile shifts consumption to daytime (higher self-consumption, +5-15pp autoconsumo).
+            {#if loadProfile === 'personal_manual'}
+              Enter your average hourly consumption (kWh) for each hour of the day.
+            {:else if loadProfile === 'personal_meter'}
+              Use smart meter data from a folder of daily JSON files.
+            {:else if loadProfile === 'residential_heat_pump.json'}
+              Shifts consumption to daytime (higher self-consumption, +5-15pp autoconsumo).
+            {:else}
+              Select the profile that best matches your consumption pattern.
+            {/if}
           </span>
         </label>
+
+        <!-- Personal profile: manual 24h input -->
+        {#if loadProfile === 'personal_manual'}
+          <div class="field" style="grid-column: 1 / -1">
+            <span class="field-label">Hourly consumption <span class="field-unit">kWh per hour (average day)</span></span>
+            <div class="hourly-grid">
+              {#each customHourlyKwh as val, i}
+                <label class="hourly-cell">
+                  <span class="hourly-label">{String(i).padStart(2, '0')}:00</span>
+                  <input
+                    type="number"
+                    class="field-input hourly-input"
+                    bind:value={customHourlyKwh[i]}
+                    min="0"
+                    max="100"
+                    step="0.01"
+                  />
+                </label>
+              {/each}
+            </div>
+            <span class="field-hint">
+              Daily total: <strong>{customHourlyKwh.reduce((a, b) => a + b, 0).toFixed(2)} kWh/day</strong>
+              ({Math.round(customHourlyKwh.reduce((a, b) => a + b, 0) * 365)} kWh/year)
+            </span>
+          </div>
+        {/if}
+
+        <!-- Personal profile: meter data folder -->
+        {#if loadProfile === 'personal_meter'}
+          <label class="field" style="grid-column: 1 / -1">
+            <span class="field-label">
+              Meter data folder
+              <span class="field-unit">folder name in config/load_profiles/</span>
+            </span>
+            <input
+              type="text"
+              class="field-input"
+              bind:value={customProfileDir}
+              placeholder="IT221E00549903"
+            />
+            <span class="field-hint">
+              Folder containing daily JSON files (YYYY-MM-DD.json) from your smart meter (C2G/e-distribuzione format).
+            </span>
+          </label>
+        {/if}
+
+        <!-- Heat pump -->
+        <label class="field">
+          <span class="field-label">
+            Heat pump consumption
+            <span class="field-unit">kWh/year (0 = none)</span>
+          </span>
+          <input
+            type="number"
+            class="field-input"
+            bind:value={heatPumpKwh}
+            min="0"
+            max="50000"
+            step="100"
+            placeholder="0"
+          />
+          <span class="field-hint">
+            Additional annual electricity for a heat pump. Blends a daytime-heavy profile on top of the base consumption.
+            {#if heatPumpKwh > 0}
+              Total consumption: <strong>{(consumption + heatPumpKwh).toLocaleString('it-IT')} kWh/year</strong>
+            {/if}
+          </span>
+        </label>
+
+        <!-- Abitazione principale (residential only) -->
+        {#if userType === 'residential'}
+          <div class="field">
+            <label class="checkbox-row">
+              <input type="checkbox" bind:checked={abitazionePrincipale} />
+              <span>Primary residence (abitazione principale)</span>
+            </label>
+            <span class="field-hint" style="margin-left: 1.5rem">
+              Affects IRPEF deduction rate: 50% for primary residence, 36% for secondary (2026).
+            </span>
+          </div>
+        {/if}
       </div>
 
       <!-- kWp / LIDAR -->
@@ -999,5 +1107,31 @@
 
   .skeleton-chart-sm {
     height: 120px;
+  }
+
+  /* ── Hourly grid (personal profile 24h input) ── */
+  .hourly-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.375rem;
+  }
+
+  .hourly-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .hourly-label {
+    font-size: 0.6875rem;
+    color: var(--celine-text-tertiary);
+    font-weight: 500;
+  }
+
+  .hourly-input {
+    padding: 0.25rem 0.375rem;
+    font-size: 0.8125rem;
+    text-align: right;
+    width: 100%;
   }
 </style>
