@@ -38,6 +38,7 @@ export interface ConfigOverrides {
   detrazione_include_iva?: boolean;
   cer_virtual_consumption_rate?: number;
   forced_tasso_autoconsumo?: number;
+  optimize_profile?: boolean;
 }
 
 export interface PickedLocation {
