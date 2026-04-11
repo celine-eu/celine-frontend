@@ -49,5 +49,8 @@
   "conductor.overhead_bare": "Overhead bare",
   "conductor.overhead_insulated": "Overhead insulated",
   "conductor.underground_cable": "Underground cable",
-  "conductor.overhead_vegetated": "Vegetated route"
+  "conductor.overhead_vegetated": "Vegetated route",
+  "denied.title": "Access restricted",
+  "denied.body": "Your account is not associated with a grid operator organisation. Contact your administrator.",
+  "denied.sign_out": "Sign out"
 }

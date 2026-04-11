@@ -23,9 +23,6 @@
     ALERT: '#D00000',
     WARNING: '#F7D000',
     NORMAL: '#00A000',
-    RED: '#D00000',
-    ORANGE: '#F7D000',
-    GREEN: '#00A000',
   };
 
   function isHeat(f: Record<string, unknown>) {
@@ -36,6 +33,13 @@
     if (v === null || v === undefined) return '—';
     if (typeof v === 'number') return v.toFixed(2).replace(/\.?0+$/, '');
     return String(v);
+  }
+
+  function fmtField(key: string, v: unknown): string {
+    if (key === 'conductor_type' && typeof v === 'string') {
+      return $_(`conductor.${v}`, { default: v });
+    }
+    return fmt(v);
   }
 </script>
 
@@ -60,7 +64,7 @@
         {#if feature[key] !== undefined && feature[key] !== null}
           <div class="prop-row">
             <dt>{$_(`panel.${key}`, { default: key })}</dt>
-            <dd>{fmt(feature[key])}</dd>
+            <dd>{fmtField(key, feature[key])}</dd>
           </div>
         {/if}
       {/each}

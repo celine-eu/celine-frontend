@@ -19,6 +19,7 @@
       units: string[];
       risk: string[];
     }) => void;
+    onexport: (type: 'wind' | 'heat') => void;
   }
 
   let {
@@ -32,9 +33,21 @@
     selectedUnits = $bindable([]),
     selectedRisk = $bindable([]),
     onchange,
+    onexport,
   }: Props = $props();
 
   let collapsed = $state(false);
+  let exportOpen = $state(false);
+  let exportRoot: HTMLDivElement;
+
+  $effect(() => {
+    if (!exportOpen) return;
+    function handleOutside(e: PointerEvent) {
+      if (!exportRoot?.contains(e.target as Node)) exportOpen = false;
+    }
+    document.addEventListener('pointerdown', handleOutside, true);
+    return () => document.removeEventListener('pointerdown', handleOutside, true);
+  });
 
   const RISK_LEVELS = ['ALERT', 'WARNING', 'NORMAL'];
 
@@ -122,6 +135,21 @@
       </div>
 
       <div class="sidebar-footer">
+        <div class="export-wrapper" bind:this={exportRoot}>
+          <button class="btn-export" onclick={() => (exportOpen = !exportOpen)}>
+            {$_('export.button')} <span class="export-chevron" class:open={exportOpen}>▾</span>
+          </button>
+          {#if exportOpen}
+            <div class="export-dropdown">
+              <button class="export-option" onclick={() => { onexport('wind'); exportOpen = false; }}>
+                {$_('layer.wind')}
+              </button>
+              <button class="export-option" onclick={() => { onexport('heat'); exportOpen = false; }}>
+                {$_('layer.heat')}
+              </button>
+            </div>
+          {/if}
+        </div>
         <button class="btn-primary" onclick={apply}>{$_('filter.apply')}</button>
       </div>
     </div>
@@ -176,7 +204,7 @@
     flex-direction: column;
     width: 240px;
     height: 100%;
-    overflow: hidden;
+    overflow-x: clip;
   }
 
   .sidebar-header {
@@ -260,6 +288,71 @@
     padding: 0.75rem 0.875rem;
     flex-shrink: 0;
     border-top: 1px solid var(--celine-border, #e2e8f0);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .export-wrapper {
+    position: relative;
+  }
+
+  .btn-export {
+    width: 100%;
+    padding: 0.5rem;
+    background: var(--celine-bg, #f8fafc);
+    border: 1px solid var(--celine-border, #e2e8f0);
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--celine-text, #1e293b);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .btn-export:hover {
+    background: var(--celine-bg-hover, #f1f5f9);
+  }
+
+  .export-chevron {
+    font-size: 0.75rem;
+    transition: transform 0.15s;
+    display: inline-block;
+  }
+
+  .export-chevron.open {
+    transform: rotate(180deg);
+  }
+
+  .export-dropdown {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--celine-bg-elevated, #fff);
+    border: 1px solid var(--celine-border, #e2e8f0);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    z-index: 200;
+    overflow: hidden;
+  }
+
+  .export-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    color: var(--celine-text, #1e293b);
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .export-option:hover {
+    background: var(--celine-bg-hover, #f1f5f9);
   }
 
   .btn-primary {

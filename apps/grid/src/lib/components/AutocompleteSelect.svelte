@@ -38,18 +38,18 @@
     }
   }
 
-  function onBlur() {
-    // Defer so the next focusTarget is settled before we check containment.
-    setTimeout(() => {
-      if (!root?.contains(document.activeElement)) {
-        open = false;
-      }
-    }, 100);
-  }
+  $effect(() => {
+    if (!open) return;
+    function handleOutside(e: PointerEvent) {
+      if (!root?.contains(e.target as Node)) open = false;
+    }
+    document.addEventListener('pointerdown', handleOutside, true);
+    return () => document.removeEventListener('pointerdown', handleOutside, true);
+  });
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="ac-root" bind:this={root} onblur={onBlur}>
+<div class="ac-root" bind:this={root}>
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div class="ac-field" onclick={() => { open = true; inputEl?.focus(); }}>
     {#each selected as s}

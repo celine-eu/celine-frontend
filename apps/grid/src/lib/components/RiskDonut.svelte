@@ -14,9 +14,6 @@
     ALERT: '#D00000',
     WARNING: '#F7D000',
     NORMAL: '#00A000',
-    RED: '#D00000',
-    ORANGE: '#F7D000',
-    GREEN: '#00A000',
   };
 
   let canvas: HTMLCanvasElement;

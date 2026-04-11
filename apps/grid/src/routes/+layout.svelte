@@ -31,13 +31,16 @@
     return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
   }
 
-  let currentOverride = $state<'dark' | 'light' | null>(null);
+  // SSR is disabled; read from localStorage immediately so the effect never sees a stale null.
+  let currentOverride = $state<'dark' | 'light' | null>(
+    localStorage.getItem(STORAGE_KEY) as 'dark' | 'light' | null
+  );
 
   $effect(() => {
     applyTheme(currentOverride);
     themeOverride.set(currentOverride);
     if (currentOverride) localStorage.setItem(STORAGE_KEY, currentOverride);
-    else localStorage.removeItem(STORAGE_KEY);
+    // null = follow system — leave any previously stored preference alone
   });
 
   function toggleTheme() {
@@ -63,10 +66,6 @@
   }
 
   onMount(() => {
-    // Restore persisted preference
-    const stored = localStorage.getItem(STORAGE_KEY) as 'dark' | 'light' | null;
-    currentOverride = stored ?? null;
-
     document.addEventListener('keydown', handleKeydown);
     return () => document.removeEventListener('keydown', handleKeydown);
   });

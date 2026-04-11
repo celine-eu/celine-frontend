@@ -39,6 +39,8 @@ export interface Me {
   name?: string;
   locale?: string;
   preferred_username?: string;
+  network_id: string;
+  organization: string;
 }
 
 interface MeResponse {

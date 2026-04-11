@@ -3,6 +3,9 @@
   import { _ } from 'svelte-i18n';
   import maplibregl from 'maplibre-gl';
   import { themeOverride } from '$lib/stores';
+  import type { PageData } from './$types';
+
+  const { data }: { data: PageData } = $props();
 
   import FilterBar from '$lib/components/FilterBar.svelte';
   import TrendSparkline from '$lib/components/TrendSparkline.svelte';
@@ -26,12 +29,9 @@
   } from '$lib/api';
 
   // ---------------------------------------------------------------------------
-  // Network ID
+  // Network ID — derived from the authenticated user's DSO organisation
   // ---------------------------------------------------------------------------
-  const NETWORK_ID =
-    (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('network')) ??
-    import.meta.env.VITE_NETWORK_ID ??
-    'default';
+  const NETWORK_ID = data.me.network_id;
 
   // ---------------------------------------------------------------------------
   // Map state
@@ -72,7 +72,9 @@
     overhead_vegetated: [2, 2],
   };
 
-  const NORMAL_COLOR = '#374151';
+  // Neutral colours for NORMAL/GREEN risk — aerial vs underground use different shades of grey
+  const NORMAL_COLOR_WIND = '#9ca3af'; // lighter grey — overhead / aerial lines
+  const NORMAL_COLOR_HEAT = '#374151'; // darker grey — underground cables
 
   // ---------------------------------------------------------------------------
   // Helpers
@@ -170,7 +172,7 @@
     }
   }
 
-  function addLineLayer(sourceId: string, layerId: string, visible = true) {
+  function addLineLayer(sourceId: string, layerId: string, visible = true, normalColor = '#374151') {
     if (!map || map.getLayer(layerId)) return;
     map.addLayer({
       id: layerId,
@@ -179,8 +181,7 @@
       paint: {
         'line-color': [
           'case',
-          ['==', ['get', 'risk_level'], 'NORMAL'], NORMAL_COLOR,
-          ['==', ['get', 'risk_level'], 'GREEN'], NORMAL_COLOR,
+          ['==', ['get', 'risk_level'], 'NORMAL'], normalColor,
           ['coalesce', ['get', 'risk_color_hex'], '#808080'],
         ],
         'line-width': 3,
@@ -238,11 +239,11 @@
     if (!map) return;
     if (windData.features.length) {
       upsertGeoJsonSource('wind', windData);
-      addLineLayer('wind', 'wind-lines', showWind);
+      addLineLayer('wind', 'wind-lines', showWind, NORMAL_COLOR_WIND);
     }
     if (heatData.features.length) {
       upsertGeoJsonSource('heat', heatData);
-      addLineLayer('heat', 'heat-lines', showHeat);
+      addLineLayer('heat', 'heat-lines', showHeat, NORMAL_COLOR_HEAT);
     }
     if (cabineData.features.length) {
       upsertGeoJsonSource('cabine', cabineData);
@@ -272,12 +273,12 @@
     if (wm.status === 'fulfilled') {
       windData = wm.value;
       upsertGeoJsonSource('wind', windData);
-      addLineLayer('wind', 'wind-lines', showWind);
+      addLineLayer('wind', 'wind-lines', showWind, NORMAL_COLOR_WIND);
     }
     if (hm.status === 'fulfilled') {
       heatData = hm.value;
       upsertGeoJsonSource('heat', heatData);
-      addLineLayer('heat', 'heat-lines', showHeat);
+      addLineLayer('heat', 'heat-lines', showHeat, NORMAL_COLOR_HEAT);
     }
     if (cm.status === 'fulfilled') {
       cabineData = cm.value;
@@ -317,10 +318,9 @@
     const newStyle = currentStyleUrl();
     if (newStyle !== activeMapStyle) {
       activeMapStyle = newStyle;
-      map.once('style.load', restoreLayers);
       map.setStyle(newStyle);
     }
-  });;
+  });
 
   // ---------------------------------------------------------------------------
   // Mount
@@ -337,6 +337,10 @@
 
     map.addControl(new maplibregl.NavigationControl(), 'top-left');
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+
+    // Re-add user layers whenever the basemap style is swapped (theme change).
+    // Fires on initial load too, but restoreLayers is a no-op when data is empty.
+    map.on('style.load', restoreLayers);
 
     map.on('load', async () => {
       availDates = buildAvailDates();
@@ -368,14 +372,6 @@
     <div class="chart-card donut-card">
       <RiskDonut label={$_('layer.heat')} data={heatDist} />
     </div>
-    <div class="top-bar-actions">
-      <button class="export-btn" onclick={() => exportCsv(windData, 'wind_risk.csv')}>
-        {$_('export.button')} (wind)
-      </button>
-      <button class="export-btn" onclick={() => exportCsv(heatData, 'heat_risk.csv')}>
-        {$_('export.button')} (heat)
-      </button>
-    </div>
   </div>
 
   <!-- ── Body: sidebar + map ──────────────────────────────────────── -->
@@ -391,6 +387,7 @@
       bind:selectedUnits={filterUnits}
       bind:selectedRisk={filterRisk}
       onchange={applyFilters}
+      onexport={(type) => exportCsv(type === 'wind' ? windData : heatData, `${type}_risk.csv`)}
     />
 
     <div class="map-area">
@@ -449,31 +446,6 @@
   .chart-card.donut-card {
     min-width: 180px;
     max-width: 220px;
-  }
-
-  .top-bar-actions {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 0.375rem;
-    flex-shrink: 0;
-    padding-left: 0.5rem;
-    border-left: 1px solid var(--celine-border, #e2e8f0);
-  }
-
-  .export-btn {
-    padding: 0.375rem 0.75rem;
-    background: var(--celine-bg, #f8fafc);
-    border: 1px solid var(--celine-border, #e2e8f0);
-    border-radius: 6px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    color: var(--celine-text, #1e293b);
-    white-space: nowrap;
-  }
-
-  .export-btn:hover {
-    background: var(--celine-bg-hover, #f1f5f9);
   }
 
   /* ── Body ────────────────────────────────────── */

@@ -49,5 +49,8 @@
   "conductor.overhead_bare": "Aereo nudo",
   "conductor.overhead_insulated": "Cavo aereo",
   "conductor.underground_cable": "Cavo interrato",
-  "conductor.overhead_vegetated": "Tratta boscata"
+  "conductor.overhead_vegetated": "Tratta boscata",
+  "denied.title": "Accesso limitato",
+  "denied.body": "Il tuo account non è associato a un'organizzazione operatore di rete. Contatta il tuo amministratore.",
+  "denied.sign_out": "Disconnetti"
 }
