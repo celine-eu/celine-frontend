@@ -449,7 +449,6 @@
             "weather",
           )}
         />
-        <a href="/suggestions" class="weather-cta">{$t('overview.solar_forecast')}</a>
       </header>
       <WeatherWidget data={weatherData} loading={weatherLoading} />
     </section>

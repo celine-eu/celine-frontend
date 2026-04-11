@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { page } from '$app/state';
   import { api, type ForecastResponse, type SuggestionItem, type CommitmentHistoryResponse } from '$lib/api';
   import { ForecastCard, SuggestionCard } from '$lib/components';
+  import { AskAssistantButton } from '@celine-eu/assistant-ui';
   import { Icon, Skeleton } from '@celine-eu/ui';
   import { onMount } from 'svelte';
   import { t, locale } from 'svelte-i18n';
@@ -13,6 +15,18 @@
 
   let history = $state<CommitmentHistoryResponse | null>(null);
   let historyLoading = $state(true);
+
+  function buildAssistantHref(prompt: string, section: string): string {
+    const url = new URL('/assistant', page.url.origin);
+    url.searchParams.set('prompt', prompt);
+    url.searchParams.set('page', 'suggestions');
+    url.searchParams.set('section', section);
+    return `${url.pathname}${url.search}`;
+  }
+
+  function assistantPrompt(section: 'opportunities' | 'forecast' | 'history'): string {
+    return $t(`suggestions.ask_ai.${section}`);
+  }
 
   async function handleCommitted(id: string) {
     suggestions = suggestions.filter(s => s.id !== id);
@@ -98,6 +112,12 @@
         <h2 class="section-title">{$t('suggestions.opportunities_title')}</h2>
         <p class="section-period">{$t('suggestions.opportunities_period')}</p>
       </div>
+      <AskAssistantButton
+        iconOnly
+        context={{ page: 'suggestions', section: 'opportunities', data: { suggestions } }}
+        prompt={assistantPrompt('opportunities')}
+        href={buildAssistantHref(assistantPrompt('opportunities'), 'opportunities')}
+      />
     </header>
 
     {#if suggestionsLoading}
@@ -131,6 +151,12 @@
         <h2 class="section-title">{$t('suggestions.forecast_section_title')}</h2>
         <p class="section-period">{$t('suggestions.forecast_section_period')}</p>
       </div>
+      <AskAssistantButton
+        iconOnly
+        context={{ page: 'suggestions', section: 'forecast', data: { forecast: forecastData } }}
+        prompt={assistantPrompt('forecast')}
+        href={buildAssistantHref(assistantPrompt('forecast'), 'forecast')}
+      />
     </header>
     <ForecastCard data={forecastData} loading={forecastLoading} />
   </section>
@@ -143,6 +169,12 @@
         <h2 class="section-title">{$t('suggestions.history_title')}</h2>
         <p class="section-period">{$t('suggestions.history_period')}</p>
       </div>
+      <AskAssistantButton
+        iconOnly
+        context={{ page: 'suggestions', section: 'history', data: { history } }}
+        prompt={assistantPrompt('history')}
+        href={buildAssistantHref(assistantPrompt('history'), 'history')}
+      />
     </header>
 
     {#if historyLoading}

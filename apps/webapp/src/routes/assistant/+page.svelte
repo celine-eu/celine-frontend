@@ -3,7 +3,10 @@
   import {
     api,
     type Co2LocaleSettings,
+    type CommitmentHistoryResponse,
+    type ForecastResponse,
     type Overview,
+    type SuggestionItem,
     type WeatherResponse,
   } from "$lib/api";
   import { ChatCore } from "@celine-eu/assistant-ui";
@@ -59,24 +62,65 @@
     return data;
   }
 
+  function buildSuggestionsContextData(
+    forecast: ForecastResponse | null,
+    suggestions: SuggestionItem[] | null,
+    history: CommitmentHistoryResponse | null,
+  ) {
+    const data: Record<string, unknown> = {};
+
+    if (forecast) {
+      data.forecast = forecast;
+    }
+
+    if (suggestions) {
+      data.suggestions = suggestions;
+    }
+
+    if (history) {
+      data.history = history;
+    }
+
+    return data;
+  }
+
   onMount(async () => {
-    if (!urlContext || urlContext.page !== "overview") {
+    if (!urlContext?.page) {
       resolvedInitialContext = urlContext;
       contextReady = true;
       return;
     }
 
     try {
-      const [overview, weather, co2Settings] = await Promise.all([
-        api.overview(),
-        api.weather().catch(() => null),
-        api.co2Settings().then((res) => res.current).catch(() => null),
-      ]);
+      if (urlContext.page === "overview") {
+        const [overview, weather, co2Settings] = await Promise.all([
+          api.overview(),
+          api.weather().catch(() => null),
+          api.co2Settings().then((res) => res.current).catch(() => null),
+        ]);
 
-      resolvedInitialContext = {
-        ...urlContext,
-        data: buildOverviewContextData(overview, weather, co2Settings),
-      };
+        resolvedInitialContext = {
+          ...urlContext,
+          data: buildOverviewContextData(overview, weather, co2Settings),
+        };
+        return;
+      }
+
+      if (urlContext.page === "suggestions") {
+        const [forecast, suggestions, history] = await Promise.all([
+          api.forecast().catch(() => null),
+          api.suggestions().catch(() => null),
+          api.gamificationHistory().catch(() => null),
+        ]);
+
+        resolvedInitialContext = {
+          ...urlContext,
+          data: buildSuggestionsContextData(forecast, suggestions, history),
+        };
+        return;
+      }
+
+      resolvedInitialContext = urlContext;
     } catch {
       resolvedInitialContext = urlContext;
     } finally {

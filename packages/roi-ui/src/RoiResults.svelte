@@ -77,10 +77,38 @@
       if (currentRegime !== 'RID_CER') {
         scenarios['RID + CER'] = { regime: 'RID_CER' };
       }
-      if (currentRegime !== 'RID') {
-        scenarios['Solo RID'] = { regime: 'RID' };
+
+      // Scenario ideale: optimize consumption toward solar hours
+      scenarios['Scenario ideale'] = { optimize_profile: true };
+
+      // Scenario ideale + heat pump: optimize + add HP daytime load
+      scenarios['Ideale + pompa di calore'] = { optimize_profile: true, heat_pump_kwh_annual: 3500 };
+
+      // Dimensionamento consigliato: find kWp that achieves ~70% autoconsumo
+      const currentKwp = (sys.kwp as number) || result.production.effective_kwp || 6;
+      const currentProd = result.production.annual_production_kwh;
+      const currentRate = result.energy.tasso_autoconsumo;
+      const prodPerKwp = currentKwp > 0 ? currentProd / currentKwp : 1200;
+      const MIN_KWP = 1.6; // ~4 panels
+      const TARGET_RATE = 0.70;
+
+      let idealKwp: number;
+      if (currentRate >= TARGET_RATE) {
+        // Already above target — keep current setup with optimization
+        idealKwp = currentKwp;
+      } else {
+        // Approximate: ideal_kwp ≈ currentRate * currentKwp / targetRate
+        idealKwp = Math.max(MIN_KWP, (currentRate * currentKwp) / TARGET_RATE);
       }
-      scenarios['Con pompa di calore'] = { heat_pump_kwh_annual: 3500 };
+      idealKwp = Math.round(idealKwp * 10) / 10;
+      const idealProd = idealKwp * prodPerKwp;
+
+      scenarios['Dimensionamento consigliato'] = {
+        optimize_profile: true,
+        kwp: idealKwp,
+        annual_production_kwh: Math.round(idealProd),
+      };
+
       compareResult = await api.compareScenarios(sys, scenarios, configOverrides as Record<string, unknown> | undefined);
     } catch (e) {
       compareError = e instanceof Error ? e.message : 'Comparison failed';
@@ -601,9 +629,13 @@
       { key: 'payback_d', label: 'Payback attualizzato', fmt: (s: ScenarioResult) => formatNum(s.finance.payback_discounted) + ' anni', cls: () => '' },
       { key: 'autoconsumo', label: 'Autoconsumo', fmt: (s: ScenarioResult) => formatNum(s.energy.tasso_autoconsumo * 100) + '%', cls: () => '' },
       { key: 'prod', label: 'Produzione anno 1', fmt: (s: ScenarioResult) => formatNum(s.summary.annual_production_kwh, 0) + ' kWh', cls: () => '' },
+      { key: 'kwp', label: 'kWp impianto', fmt: (s: ScenarioResult) => formatNum(s.production.effective_kwp ?? (s.summary.annual_production_kwh / 1200), 1) + ' kWp', cls: () => '' },
       { key: 'cer', label: 'CER libero anno 1', fmt: (s: ScenarioResult) => formatEur((s.incentives.cer_tip_libero?.[0] ?? 0) + (s.incentives.cer_cacv_libero?.[0] ?? 0)), cls: () => '' },
       { key: 'cum', label: 'Utile cumulato (25 anni)', fmt: (s: ScenarioResult) => formatEur(s.finance.cumulative[s.finance.cumulative.length - 1]), cls: (s: ScenarioResult) => s.finance.cumulative[s.finance.cumulative.length - 1] >= 0 ? 'positive' : 'negative' },
     ]}
+    {@const dimScenario = compareResult.scenarios['Dimensionamento consigliato']}
+    {@const dimKwp = dimScenario ? (dimScenario.production.effective_kwp ?? dimScenario.summary.annual_production_kwh / 1200) : null}
+    {@const dimPanels = dimKwp ? Math.max(4, Math.round(dimKwp / 0.4)) : null}
     <div class="chart-block">
       <h3 class="chart-title">Confronto scenari</h3>
       <div class="compare-table-wrap">
@@ -629,6 +661,12 @@
           </tbody>
         </table>
       </div>
+      {#if dimKwp && dimPanels}
+        <p class="compare-note">
+          Dimensionamento consigliato per il tuo consumo: <strong>{dimPanels} pannelli ({formatNum(dimKwp, 1)} kWp)</strong>
+          per massimizzare l'autoconsumo.
+        </p>
+      {/if}
     </div>
   {/if}
 </div>
@@ -985,6 +1023,15 @@
   .kpi-name {
     font-weight: 500;
     white-space: nowrap;
+  }
+
+  .compare-note {
+    margin: 0.75rem 0 0;
+    padding: 0.625rem 1rem;
+    background: var(--celine-primary-light);
+    border-radius: var(--celine-radius-sm);
+    font-size: 0.875rem;
+    color: var(--celine-text);
   }
 
   /* ── CER split ── */

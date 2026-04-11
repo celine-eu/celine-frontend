@@ -17,6 +17,10 @@ export interface SystemInput {
   location?: string;
   rooftop_wkt?: string | null;
   battery_kwh?: number;
+  heat_pump_kwh_annual?: number;
+  abitazione_principale?: boolean;
+  custom_hourly_kwh?: number[] | null;
+  custom_profile_dir?: string | null;
 }
 
 export interface ConfigOverrides {
@@ -33,6 +37,8 @@ export interface ConfigOverrides {
   detrazione_years?: number;
   detrazione_include_iva?: boolean;
   cer_virtual_consumption_rate?: number;
+  forced_tasso_autoconsumo?: number;
+  optimize_profile?: boolean;
 }
 
 export interface PickedLocation {

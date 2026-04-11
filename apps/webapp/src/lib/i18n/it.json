@@ -121,7 +121,12 @@
     "history_cancelled": "Annullato",
     "history_cancel": "Annulla",
     "history_earned": "+{pts} punti",
-    "history_estimated": "~{pts} punti"
+    "history_estimated": "~{pts} punti",
+    "ask_ai": {
+      "opportunities": "Analizza le opportunità di spostamento del carico disponibili e spiegami quali conviene accettare prima.",
+      "forecast": "Spiegami la prospettiva energetica delle prossime 48 ore e come può influenzare i momenti migliori per consumare energia.",
+      "history": "Riassumi il mio storico di flessibilità e spiegami cosa suggerisce sul mio comportamento recente."
+    }
   },
   "suggestion_card": {
     "done": "Fatto! +{points} punti aggiunti al tuo punteggio.",
