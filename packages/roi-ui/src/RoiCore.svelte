@@ -204,7 +204,7 @@
         ...(hasLoan ? { loan_rate: loanRate / 100, loan_duration_years: loanDuration } : {}),
         location: location.name || '',
         ...(useLidar ? { rooftop_wkt: location.wkt } : {}),
-        ...(batteryKwh > 0 ? { battery_kwh: batteryKwh } : {}),
+        ...(batteryKwh > 0 && !useCapexEstimator ? { battery_kwh: batteryKwh } : {}),
         ...(heatPumpKwh > 0 ? { heat_pump_kwh_annual: heatPumpKwh } : {}),
         ...(userType === 'residential' ? { abitazione_principale: abitazionePrincipale } : {}),
         ...((loadProfile === 'personal_manual' || (loadProfile === 'personal_meter' && meterDataLoaded))
@@ -247,7 +247,7 @@
     if (userType !== 'commercial') p.set('user_type', userType);
     if (tilt !== 30) p.set('tilt', String(tilt));
     if (azimuth !== 0) p.set('azimuth', String(azimuth));
-    if (batteryKwh > 0) p.set('battery', String(batteryKwh));
+    if (batteryKwh > 0 && !useCapexEstimator) p.set('battery', String(batteryKwh));
     if (location.wkt) p.set('wkt', location.wkt);
     const base = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : '';
     return `${base}?${p.toString()}`;
@@ -298,6 +298,9 @@
 
   async function onCapexEstimatorToggle() {
     if (useCapexEstimator) {
+      // Panel-based CAPEX does NOT include battery — reset to avoid
+      // the backend subtracting a stale battery cost from the PV-only CAPEX.
+      batteryKwh = 0;
       rooftopAreaM2 = computeRooftopArea();
       // First call without num_panels to get min/max range
       if (rooftopAreaM2 > 0) {
