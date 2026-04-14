@@ -147,3 +147,79 @@ export const getFilters = (networkId: string) =>
 export const getSubstationsMap = (networkId: string) =>
   j<FeatureCollection>(gridUrl(networkId, '/substations/map'));
 
+// ---------------------------------------------------------------------------
+// Alert rules
+// ---------------------------------------------------------------------------
+
+export interface AlertRule {
+  id: string;
+  user_id: string;
+  network_id: string;
+  risk_types: ('wind' | 'heat')[];
+  threshold: 'ALERT' | 'WARNING';
+  recipients: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AlertRuleCreate {
+  risk_types: ('wind' | 'heat')[];
+  threshold: 'ALERT' | 'WARNING';
+  recipients?: string | null;
+  active?: boolean;
+}
+
+export interface AlertRuleUpdate {
+  risk_types?: ('wind' | 'heat')[];
+  threshold?: 'ALERT' | 'WARNING';
+  recipients?: string | null;
+  active?: boolean;
+}
+
+export const getAlertRules = () =>
+  j<AlertRule[]>('/api/alert-rules');
+
+export const createAlertRule = (body: AlertRuleCreate) =>
+  j<AlertRule>('/api/alert-rules', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+export const updateAlertRule = (id: string, body: AlertRuleUpdate) =>
+  j<AlertRule>(`/api/alert-rules/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+export const deleteAlertRule = (id: string) =>
+  fetch(`/api/alert-rules/${id}`, { method: 'DELETE', credentials: 'include' });
+
+// ---------------------------------------------------------------------------
+// Notification settings
+// ---------------------------------------------------------------------------
+
+export interface NotificationSettings {
+  user_id: string;
+  email_recipients: string | null;
+  webhook_url: string | null;
+  updated_at: string;
+}
+
+export interface NotificationSettingsUpdate {
+  email_recipients?: string | null;
+  webhook_url?: string | null;
+}
+
+export const getNotificationSettings = () =>
+  j<NotificationSettings>('/api/notification-settings');
+
+export const updateNotificationSettings = (body: NotificationSettingsUpdate) =>
+  j<NotificationSettings>('/api/notification-settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+

@@ -1,59 +1,110 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { _ } from 'svelte-i18n';
+  import {
+    getAlertRules,
+    createAlertRule,
+    updateAlertRule,
+    deleteAlertRule,
+    getNotificationSettings,
+    updateNotificationSettings,
+    type AlertRule,
+  } from '$lib/api';
 
   // ---------------------------------------------------------------------------
-  // Alert rule types
+  // Alert rules
   // ---------------------------------------------------------------------------
 
-  interface AlertRule {
-    id: string;
-    risk_type: 'wind' | 'heat';
-    threshold: 'ALERT' | 'WARNING';
-    operational_unit: string;
-    recipients: string;
-    active: boolean;
-  }
-
-  let rules = $state<AlertRule[]>([
-    {
-      id: '1',
-      risk_type: 'wind',
-      threshold: 'ALERT',
-      operational_unit: '',
-      recipients: '',
-      active: true,
-    },
-  ]);
-
+  let rules = $state<AlertRule[]>([]);
   let editingId = $state<string | null>(null);
+  let saving = $state<string | null>(null);
 
-  function addRule() {
-    const id = String(Date.now());
-    rules = [
-      ...rules,
-      {
-        id,
-        risk_type: 'wind',
-        threshold: 'ALERT',
-        operational_unit: '',
-        recipients: '',
-        active: true,
-      },
-    ];
+  // Draft edits — keyed by rule id
+  let drafts = $state<Record<string, Partial<AlertRule>>>({});
+
+  onMount(async () => {
+    rules = await getAlertRules();
+    const ns = await getNotificationSettings();
+    notifEmail = ns.email_recipients ?? '';
+    notifWebhook = ns.webhook_url ?? '';
+  });
+
+  function startEdit(id: string) {
+    const rule = rules.find((r) => r.id === id);
+    if (rule) drafts[id] = { ...rule };
     editingId = id;
   }
 
-  function removeRule(id: string) {
+  async function addRule() {
+    const created = await createAlertRule({
+      risk_types: ['wind'],
+      threshold: 'ALERT',
+      recipients: '',
+      active: true,
+    });
+    rules = [...rules, created];
+    startEdit(created.id);
+  }
+
+  async function saveRule(id: string) {
+    saving = id;
+    try {
+      const draft = drafts[id] ?? {};
+      const updated = await updateAlertRule(id, {
+        risk_types: draft.risk_types,
+        threshold: draft.threshold,
+        recipients: draft.recipients,
+        active: draft.active,
+      });
+      rules = rules.map((r) => (r.id === id ? updated : r));
+      editingId = null;
+    } finally {
+      saving = null;
+    }
+  }
+
+  async function removeRule(id: string) {
+    await deleteAlertRule(id);
     rules = rules.filter((r) => r.id !== id);
+    if (editingId === id) editingId = null;
   }
 
-  function toggleActive(id: string) {
-    rules = rules.map((r) => (r.id === id ? { ...r, active: !r.active } : r));
+  async function toggleActive(id: string) {
+    const rule = rules.find((r) => r.id === id)!;
+    const updated = await updateAlertRule(id, { active: !rule.active });
+    rules = rules.map((r) => (r.id === id ? updated : r));
   }
 
-  function saveRule(id: string) {
-    editingId = null;
-    // TODO: persist via API call
+  function draftRiskTypes(id: string): ('wind' | 'heat')[] {
+    return (drafts[id]?.risk_types ?? rules.find((r) => r.id === id)?.risk_types ?? []) as ('wind' | 'heat')[];
+  }
+
+  function toggleDraftRiskType(id: string, type: 'wind' | 'heat') {
+    const current = draftRiskTypes(id);
+    const has = current.includes(type);
+    const next = has ? current.filter((t) => t !== type) : [...current, type];
+    if (next.length === 0) return; // must keep at least one
+    drafts[id] = { ...(drafts[id] ?? {}), risk_types: next };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Notification settings
+  // ---------------------------------------------------------------------------
+
+  let notifEmail = $state('');
+  let notifWebhook = $state('');
+  let savingNotif = $state(false);
+
+  async function saveNotifSettings() {
+    savingNotif = true;
+    try {
+      await updateNotificationSettings({
+        email_recipients: notifEmail || null,
+        webhook_url: notifWebhook || null,
+      });
+    } finally {
+      savingNotif = false;
+    }
   }
 </script>
 
@@ -74,7 +125,6 @@
           <tr>
             <th>{$_('management.risk_type')}</th>
             <th>{$_('management.threshold')}</th>
-            <th>{$_('filter.unit')}</th>
             <th>{$_('management.recipients')}</th>
             <th>{$_('management.active')}</th>
             <th></th>
@@ -85,17 +135,29 @@
             <tr class:editing={editingId === rule.id}>
               <td>
                 {#if editingId === rule.id}
-                  <select bind:value={rule.risk_type}>
-                    <option value="wind">Wind</option>
-                    <option value="heat">Heat</option>
-                  </select>
+                  <div class="risk-checks">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={draftRiskTypes(rule.id).includes('wind')}
+                        onchange={() => toggleDraftRiskType(rule.id, 'wind')}
+                      /> Wind
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={draftRiskTypes(rule.id).includes('heat')}
+                        onchange={() => toggleDraftRiskType(rule.id, 'heat')}
+                      /> Heat
+                    </label>
+                  </div>
                 {:else}
-                  {rule.risk_type}
+                  {rule.risk_types.join(', ')}
                 {/if}
               </td>
               <td>
                 {#if editingId === rule.id}
-                  <select bind:value={rule.threshold}>
+                  <select bind:value={drafts[rule.id].threshold}>
                     <option value="ALERT">ALERT</option>
                     <option value="WARNING">WARNING</option>
                   </select>
@@ -111,16 +173,9 @@
               </td>
               <td>
                 {#if editingId === rule.id}
-                  <input type="text" bind:value={rule.operational_unit} placeholder="All" />
-                {:else}
-                  {rule.operational_unit || $_('filter.all')}
-                {/if}
-              </td>
-              <td>
-                {#if editingId === rule.id}
                   <input
                     type="text"
-                    bind:value={rule.recipients}
+                    bind:value={drafts[rule.id].recipients}
                     placeholder="email1@example.com, email2@example.com"
                     class="wide-input"
                   />
@@ -136,9 +191,11 @@
               </td>
               <td class="row-actions">
                 {#if editingId === rule.id}
-                  <button class="btn-sm btn-primary" onclick={() => saveRule(rule.id)}>Save</button>
+                  <button class="btn-sm btn-primary" disabled={saving === rule.id} onclick={() => saveRule(rule.id)}>
+                    {saving === rule.id ? '…' : 'Save'}
+                  </button>
                 {:else}
-                  <button class="btn-sm btn-ghost" onclick={() => (editingId = rule.id)}>Edit</button>
+                  <button class="btn-sm btn-ghost" onclick={() => startEdit(rule.id)}>Edit</button>
                 {/if}
                 <button class="btn-sm btn-danger" onclick={() => removeRule(rule.id)}>Delete</button>
               </td>
@@ -156,13 +213,15 @@
     <div class="notif-form">
       <div class="form-group">
         <label for="notif-email">Email recipients (global)</label>
-        <input id="notif-email" type="text" placeholder="ops@example.com" />
+        <input id="notif-email" type="text" bind:value={notifEmail} placeholder="ops@example.com" />
       </div>
       <div class="form-group">
         <label for="notif-webhook">Webhook URL</label>
-        <input id="notif-webhook" type="url" placeholder="https://hooks.example.com/..." />
+        <input id="notif-webhook" type="url" bind:value={notifWebhook} placeholder="https://hooks.example.com/..." />
       </div>
-      <button class="btn-primary">Save settings</button>
+      <button class="btn-primary" disabled={savingNotif} onclick={saveNotifSettings}>
+        {savingNotif ? 'Saving…' : 'Save settings'}
+      </button>
     </div>
   </section>
 </div>
@@ -250,6 +309,20 @@
   }
 
   .wide-input { width: 100%; min-width: 200px; }
+
+  .risk-checks {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    font-size: 0.875rem;
+  }
+
+  .risk-checks label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+  }
 
   .badge {
     padding: 0.2rem 0.5rem;
