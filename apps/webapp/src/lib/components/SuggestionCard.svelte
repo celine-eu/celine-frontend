@@ -8,9 +8,11 @@
     suggestion: SuggestionItem;
     ongamificationupdated?: (data: GamificationResponse) => void;
     oncommitted?: () => void;
+    ondeclined?: () => void;
+    onhistorychanged?: () => void;
   }
 
-  let { suggestion, ongamificationupdated, oncommitted }: Props = $props();
+  let { suggestion, ongamificationupdated, oncommitted, ondeclined, onhistorychanged }: Props = $props();
 
   type CardState = 'idle' | 'loading' | 'committed' | 'accepted' | 'declined' | 'error';
   let cardState: CardState = $state('idle');
@@ -55,9 +57,15 @@
           earnedPoints = suggestion.reward_points;
           cardState = 'accepted';
         }
+        // Refresh history immediately so the committed entry is visible right away,
+        // then remove the card after the confirmation animation.
+        onhistorychanged?.();
         setTimeout(() => oncommitted?.(), 2500);
       } else {
         cardState = 'declined';
+        // Refresh history immediately, remove card shortly after.
+        onhistorychanged?.();
+        setTimeout(() => ondeclined?.(), 400);
       }
     } catch (e) {
       errorMsg = e instanceof Error ? e.message : String(e);
@@ -119,7 +127,14 @@
           disabled={cardState === 'loading'}
           onclick={() => respond('accepted')}
         >
-          {cardState === 'loading' ? $t('suggestion_card.saving') : $t('suggestion_card.remind_me')}
+          {cardState === 'loading' ? $t('suggestion_card.saving') : $t('suggestion_card.accept')}
+        </button>
+        <button
+          class="btn btn-ghost"
+          disabled={cardState === 'loading'}
+          onclick={() => respond('declined')}
+        >
+          {$t('suggestion_card.not_now')}
         </button>
       </div>
     {/if}
@@ -280,5 +295,15 @@
     border-color: var(--celine-primary);
   }
   .btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--celine-text-secondary);
+    border-color: var(--celine-border);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: var(--celine-bg);
+    color: var(--celine-text);
+  }
 
 </style>

@@ -28,10 +28,17 @@
     return $t(`suggestions.ask_ai.${section}`);
   }
 
-  async function handleCommitted(id: string) {
-    suggestions = suggestions.filter(s => s.id !== id);
+  async function refreshHistory() {
     const h = await api.gamificationHistory().catch(() => null);
     if (h) history = h;
+  }
+
+  function handleCommitted(id: string) {
+    suggestions = suggestions.filter(s => s.id !== id);
+  }
+
+  function handleDeclined(id: string) {
+    suggestions = suggestions.filter(s => s.id !== id);
   }
 
   function fmtDate(isoStr: string): string {
@@ -39,6 +46,28 @@
       return new Date(isoStr).toLocaleDateString($locale ?? undefined, {
         weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
       });
+    } catch {
+      return isoStr;
+    }
+  }
+
+  function fmtTime(isoStr: string): string {
+    try {
+      return new Date(isoStr).toLocaleTimeString($locale ?? undefined, { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return isoStr;
+    }
+  }
+
+  function fmtWindowDate(isoStr: string): string {
+    try {
+      const d = new Date(isoStr);
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      if (d.toDateString() === today.toDateString()) return $t('suggestions.history_today');
+      if (d.toDateString() === tomorrow.toDateString()) return $t('suggestions.history_tomorrow');
+      return d.toLocaleDateString($locale ?? undefined, { weekday: 'short', day: 'numeric', month: 'short' });
     } catch {
       return isoStr;
     }
@@ -131,6 +160,8 @@
           <SuggestionCard
             {suggestion}
             oncommitted={() => handleCommitted(suggestion.id)}
+            ondeclined={() => handleDeclined(suggestion.id)}
+            onhistorychanged={refreshHistory}
           />
         {/each}
       </div>
@@ -188,9 +219,14 @@
         {#each history.items as item (item.id)}
           <div class="history-item history-item--{statusVariant(item.status)}">
             <div class="history-item__left">
-              <span class="history-status">{statusLabel(item.status)}</span>
-              <span class="history-date">{fmtDate(item.committed_at)}</span>
+              <div class="history-item__header">
+                <span class="history-window">
+                  {fmtWindowDate(item.period_start)} · {fmtTime(item.period_start)}–{fmtTime(item.period_end)}
+                </span>
+                <span class="history-status">{statusLabel(item.status)}</span>
+              </div>
               <span class="history-type">{item.suggestion_type.replace(/-/g, ' ')}</span>
+              <span class="history-date">{$t('suggestions.history_responded_on', { values: { date: fmtDate(item.committed_at) } })}</span>
             </div>
             <div class="history-item__right">
               {#if item.status === 'settled' && item.reward_points_actual != null}
@@ -207,6 +243,8 @@
                 <button class="cancel-btn" onclick={() => cancelCommitment(item.id)}>
                   {$t('suggestions.history_cancel')}
                 </button>
+              {:else if item.status === 'rejected'}
+                <span class="history-pts history-pts--missed">—</span>
               {:else}
                 <span class="history-pts history-pts--missed">—</span>
               {/if}
@@ -338,31 +376,57 @@
   .history-item__left {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     min-width: 0;
+    flex: 1;
+  }
+
+  .history-item__header {
+    display: flex;
+    align-items: center;
+    gap: var(--celine-space-sm);
+    flex-wrap: wrap;
+  }
+
+  .history-window {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--celine-text);
   }
 
   .history-status {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
+    padding: 0.125rem 0.4375rem;
+    border-radius: 999px;
+    background: var(--celine-bg);
+    border: 1px solid var(--celine-border);
     color: var(--celine-text-secondary);
+    white-space: nowrap;
   }
 
-  .history-item--settled .history-status { color: var(--celine-success, #10b981); }
-  .history-item--committed .history-status { color: var(--celine-warning, #f59e0b); }
-
-  .history-date {
-    font-size: 0.8125rem;
-    color: var(--celine-text);
-    font-weight: 500;
+  .history-item--settled .history-status {
+    color: var(--celine-success, #10b981);
+    border-color: rgba(16,185,129,0.3);
+    background: rgba(16,185,129,0.08);
+  }
+  .history-item--committed .history-status {
+    color: var(--celine-warning, #f59e0b);
+    border-color: rgba(245,158,11,0.3);
+    background: rgba(245,158,11,0.08);
   }
 
   .history-type {
     font-size: 0.75rem;
-    color: var(--celine-text-tertiary);
+    color: var(--celine-text-secondary);
     text-transform: capitalize;
+  }
+
+  .history-date {
+    font-size: 0.75rem;
+    color: var(--celine-text-tertiary);
   }
 
   .history-item__right {
