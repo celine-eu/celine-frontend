@@ -13,6 +13,10 @@
     let emailError = $state("");
     let pushMsg = $state("");
     let pushLoading = $state(false);
+    let loadedLocale = $state("");
+    let notificationsEnabled = $derived(
+        !!settings && (settings.notifications.webpush_enabled || settings.notifications.email_enabled)
+    );
 
     function isValidEmail(value: string): boolean {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -24,11 +28,19 @@
         }
     });
 
+    $effect(() => {
+        if (settings && !loading && $locale && $locale !== loadedLocale) {
+            load();
+        }
+    });
+
     async function load() {
         loading = true;
         err = "";
         try {
-            settings = await api.settingsGet();
+            const lang = $locale || "en";
+            settings = await api.settingsGet(lang);
+            loadedLocale = lang;
         } catch (e) {
             err = e instanceof Error ? e.message : String(e);
         } finally {
@@ -271,6 +283,43 @@
                     >
                 </div>
             </div>
+
+            {#if notificationsEnabled}
+                <div class="setting-row setting-row--column notification-kinds">
+                    <div>
+                        <span class="setting-label">{$t('settings.notification_preferences_title')}</span>
+                        <span class="setting-description">
+                            {$t('settings.notification_preferences_description')}
+                        </span>
+                    </div>
+
+                    <div class="kind-list">
+                        {#each settings.notifications.kinds as item}
+                            <label class="kind-item">
+                                <input
+                                    type="checkbox"
+                                    bind:checked={item.enabled}
+                                    disabled={!item.editable}
+                                />
+                                <div class="kind-copy">
+                                    <span class="setting-label">{item.label}</span>
+                                    <span class="setting-description">{item.description}</span>
+                                    <span class="kind-cadence">{item.cadence}</span>
+                                </div>
+                            </label>
+                        {/each}
+                    </div>
+                </div>
+            {:else}
+                <div class="setting-row setting-row--column notification-kinds">
+                    <div>
+                        <span class="setting-label">{$t('settings.notification_preferences_title')}</span>
+                        <span class="setting-description">
+                            {$t('settings.notification_preferences_hint')}
+                        </span>
+                    </div>
+                </div>
+            {/if}
         </div>
 
         <!-- Save Button -->
@@ -464,6 +513,37 @@
         display: flex;
         align-items: center;
         gap: var(--celine-space-md);
+    }
+
+    .notification-kinds {
+        gap: var(--celine-space-md);
+    }
+
+    .kind-list {
+        display: grid;
+        gap: var(--celine-space-sm);
+        width: 100%;
+    }
+
+    .kind-item {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--celine-space-sm);
+        padding: var(--celine-space-sm);
+        border: 1px solid var(--celine-border);
+        border-radius: var(--celine-radius-md);
+        background: var(--celine-bg);
+        cursor: pointer;
+    }
+
+    .kind-copy {
+        display: grid;
+        gap: 0.2rem;
+    }
+
+    .kind-cadence {
+        font-size: 0.78rem;
+        color: var(--celine-text-secondary);
     }
 
     .saved-message {

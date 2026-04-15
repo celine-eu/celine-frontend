@@ -63,6 +63,14 @@ export type Settings = {
   simple_mode: boolean;
   font_scale: number;
   notifications: {
+    kinds: {
+      kind: string;
+      label: string;
+      description: string;
+      cadence: string;
+      enabled: boolean;
+      editable: boolean;
+    }[];
     email_enabled: boolean;
     email: string;
     webpush_enabled: boolean;
@@ -264,7 +272,7 @@ export const api = {
   notificationMarkAllRead: () =>
     j<{ ok: true }>('/api/notifications/read-all', { method: 'POST' }),
   acceptTerms: () => j<{ ok: true }>('/api/terms/accept', { method: 'POST', body: JSON.stringify({ accept: true }) }),
-  settingsGet: () => j<Settings>('/api/settings'),
+  settingsGet: (lang?: string) => j<Settings>(lang ? `/api/settings?lang=${encodeURIComponent(lang)}` : '/api/settings'),
   settingsPut: (s: Settings) => j<Settings>('/api/settings', { method: 'PUT', body: JSON.stringify(s) }),
   vapidPublicKey: () => j<{ public_key: string }>('/api/notifications/webpush/vapid-public-key'),
   subscribeWebPush: (subscription: PushSubscriptionJSON) =>
