@@ -1,8 +1,8 @@
 {
     "git": {
-        "commitMessage": "chore(assistant): release v${version}",
-        "tagName": "assistant-v${version}",
-        "tagAnnotation": "Release assistant v${version}",
+        "commitMessage": "chore(grid): release v${version}",
+        "tagName": "grid-v${version}",
+        "tagAnnotation": "Release grid v${version}",
         "requireBranch": "main",
         "push": true,
         "pushArgs": [
@@ -56,7 +56,7 @@
     },
     "hooks": {
         "before:init": [
-            "pnpm --filter @celine-eu/assistant check"
+            "pnpm --filter @celine-eu/grid check"
         ]
     }
 }
