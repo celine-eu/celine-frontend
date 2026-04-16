@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.8.0...roi-v0.9.0) (2026-04-16)
+
+### Features
+
+* add accept/deny on flexibility offers ([9406d12](https://github.com/celine-eu/celine-frontend/commit/9406d12d4557ebebfe12e761e76aecfade73b8a5))
+* give the user the possibility to enable and disable notification ([8514d2e](https://github.com/celine-eu/celine-frontend/commit/8514d2ee3194b440c8b8e066085e6930938fafd5))
+* review manage page ([d8ec17e](https://github.com/celine-eu/celine-frontend/commit/d8ec17ebd55ca69c54a5818a81e32a8c1140ca58))
+
+### Bug Fixes
+
+* correct build errors ([1367837](https://github.com/celine-eu/celine-frontend/commit/1367837035dcafc5249a9eea05d933be4c19fcf3))
+
 ## [0.5.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.4.0...roi-v0.5.0) (2026-04-07)
 
 ### Features
