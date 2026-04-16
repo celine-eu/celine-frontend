@@ -5,7 +5,7 @@
     import { onMount } from "svelte";
     import { t, locale } from "svelte-i18n";
 
-    let settings: Settings | null = $state(null);
+    let settings = $state<Settings | null>(null);
     let loading = $state(true);
     let err = $state("");
     let saved = $state("");
@@ -15,7 +15,7 @@
     let pushLoading = $state(false);
     let loadedLocale = $state("");
     let notificationsEnabled = $derived(
-        !!settings && (settings.notifications.webpush_enabled || settings.notifications.email_enabled)
+        !!(settings?.notifications.webpush_enabled || settings?.notifications.email_enabled)
     );
 
     function isValidEmail(value: string): boolean {

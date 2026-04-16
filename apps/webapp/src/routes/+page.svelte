@@ -636,16 +636,6 @@
     margin: 2px 0 0;
   }
 
-  .weather-cta {
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: var(--celine-primary);
-    text-decoration: none;
-    white-space: nowrap;
-    margin-top: 2px;
-  }
-  .weather-cta:hover { text-decoration: underline; }
-
   /* Combined contribution grid */
   .contribution-grid {
     display: flex;
