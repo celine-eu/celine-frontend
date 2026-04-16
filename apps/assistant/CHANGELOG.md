@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.13.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.12.0...assistant-v0.13.0) (2026-04-16)
+
+### Features
+
+* add accept/deny on flexibility offers ([9406d12](https://github.com/celine-eu/celine-frontend/commit/9406d12d4557ebebfe12e761e76aecfade73b8a5))
+* add org level access control, normalize risk labels, review presentation ([58a649b](https://github.com/celine-eu/celine-frontend/commit/58a649b3a2bfc314fd08dbf5159998890c1d0c12))
+* added new AI-Assistant buttons and made the response more user-friendly ([d94f338](https://github.com/celine-eu/celine-frontend/commit/d94f33822d1790c795825f4629aa6683d0f557f4))
+* fix roi personal estimation ([b7a09f0](https://github.com/celine-eu/celine-frontend/commit/b7a09f00d7dc4d987adb5c27fdcaa7f0cc059e94))
+* give the user the possibility to enable and disable notification ([8514d2e](https://github.com/celine-eu/celine-frontend/commit/8514d2ee3194b440c8b8e066085e6930938fafd5))
+* improve grid interfaces ([a2a92af](https://github.com/celine-eu/celine-frontend/commit/a2a92af525a97743c02dad33ddd02bd2d0a5cef6))
+* review manage page ([d8ec17e](https://github.com/celine-eu/celine-frontend/commit/d8ec17ebd55ca69c54a5818a81e32a8c1140ca58))
+* update pnpm lock and versions ([1a16cf6](https://github.com/celine-eu/celine-frontend/commit/1a16cf6b185a4a28fc0da81ec153da8d75b59ef6))
+
+### Bug Fixes
+
+* battery bug fix ([931fa66](https://github.com/celine-eu/celine-frontend/commit/931fa660ca13063db7d2a9d04a53a6062202a97c))
+* correct build errors ([1367837](https://github.com/celine-eu/celine-frontend/commit/1367837035dcafc5249a9eea05d933be4c19fcf3))
+* minor bug ([41f42c7](https://github.com/celine-eu/celine-frontend/commit/41f42c72f1d355fce1526782c11bef8f1ff47870))
+* update table scenario ideale ([8e74328](https://github.com/celine-eu/celine-frontend/commit/8e74328da5d76750fb47d3e572fcbb33cc51b781))
+
 ## [0.12.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.11.0...assistant-v0.12.0) (2026-04-07)
 
 ### Features
