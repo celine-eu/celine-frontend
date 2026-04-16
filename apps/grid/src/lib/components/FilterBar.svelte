@@ -38,7 +38,7 @@
 
   let collapsed = $state(false);
   let exportOpen = $state(false);
-  let exportRoot: HTMLDivElement;
+  let exportRoot: HTMLDivElement = $state()!;
 
   $effect(() => {
     if (!exportOpen) return;
@@ -100,27 +100,27 @@
 
       <div class="sidebar-body">
         <div class="filter-group">
-          <label class="filter-label">{$_('filter.date')}</label>
+          <span class="filter-label">{$_('filter.date')}</span>
           <AutocompleteSelect options={dates} bind:selected={selectedDates} placeholder="Search dates…" />
         </div>
 
         <div class="filter-group">
-          <label class="filter-label">{$_('filter.substation')}</label>
+          <span class="filter-label">{$_('filter.substation')}</span>
           <AutocompleteSelect options={substations} bind:selected={selectedSubstations} placeholder="Search substations…" />
         </div>
 
         <div class="filter-group">
-          <label class="filter-label">{$_('filter.line')}</label>
+          <span class="filter-label">{$_('filter.line')}</span>
           <AutocompleteSelect options={lines} bind:selected={selectedLines} placeholder="Search lines…" />
         </div>
 
         <div class="filter-group">
-          <label class="filter-label">{$_('filter.unit')}</label>
+          <span class="filter-label">{$_('filter.unit')}</span>
           <AutocompleteSelect options={units} bind:selected={selectedUnits} placeholder="Search units…" />
         </div>
 
         <div class="filter-group">
-          <label class="filter-label">{$_('filter.risk')}</label>
+          <span class="filter-label">{$_('filter.risk')}</span>
           <div class="risk-chips">
             {#each RISK_LEVELS as r}
               <button

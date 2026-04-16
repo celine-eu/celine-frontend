@@ -31,7 +31,7 @@
   // ---------------------------------------------------------------------------
   // Network ID — derived from the authenticated user's DSO organisation
   // ---------------------------------------------------------------------------
-  const NETWORK_ID = data.me.network_id;
+  const NETWORK_ID = $derived(data.me?.network_id ?? '');
 
   // ---------------------------------------------------------------------------
   // Map state

@@ -44,7 +44,7 @@
 </script>
 
 {#if feature}
-  <aside class="inspect-panel" role="complementary" aria-label="Line details">
+  <aside class="inspect-panel" aria-label="Line details">
     <div class="panel-header">
       <span class="panel-title">{String(feature.line_name ?? $_('panel.line_name'))}</span>
       <button class="close-btn" onclick={onclose} aria-label="Close">✕</button>

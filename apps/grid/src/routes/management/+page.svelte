@@ -298,8 +298,7 @@
   }
 
   .rules-table select,
-  .rules-table input[type='text'],
-  .rules-table input[type='url'] {
+  .rules-table input[type='text'] {
     border: 1px solid var(--celine-border, #e2e8f0);
     border-radius: 4px;
     padding: 0.25rem 0.5rem;
