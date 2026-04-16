@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.2.0...grid-v0.3.0) (2026-04-16)
+
+### Bug Fixes
+
+* add grid to release workflow ([2ffe1f3](https://github.com/celine-eu/celine-frontend/commit/2ffe1f3c55370fc4d70aebc7ea4ded383d2acee3))
+
 ## 0.2.0 (2026-04-16)
 
 ### Features
