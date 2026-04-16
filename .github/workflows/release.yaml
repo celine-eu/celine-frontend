@@ -36,6 +36,9 @@ jobs:
             roi:
               - 'apps/roi/**'
               - 'packages/**'
+            grid:
+              - 'apps/grid/**'
+              - 'packages/**'
 
   build-webapp:
     name: Build Webapp
