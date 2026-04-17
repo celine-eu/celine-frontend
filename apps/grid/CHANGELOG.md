@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.3.0...grid-v0.4.0) (2026-04-17)
+
+### Bug Fixes
+
+* release ([0b06d89](https://github.com/celine-eu/celine-frontend/commit/0b06d8987d495e4717a6e811a5bc2c553eb45efa))
+
 ## [0.3.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.2.0...grid-v0.3.0) (2026-04-16)
 
 ### Bug Fixes
