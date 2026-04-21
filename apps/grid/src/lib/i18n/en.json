@@ -20,8 +20,6 @@
   "layer.wind": "Overhead lines",
   "layer.heat": "Underground cables",
   "layer.cabine": "Substation (MV/LV)",
-  "kpi.wind_trend": "Wind gust excess",
-  "kpi.heat_trend": "Max temperature (°C)",
   "panel.line_name": "Line",
   "panel.conductor_type": "Conductor",
   "panel.substation_name": "Substation",

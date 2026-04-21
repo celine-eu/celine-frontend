@@ -8,23 +8,14 @@
   const { data }: { data: PageData } = $props();
 
   import FilterBar from '$lib/components/FilterBar.svelte';
-  import TrendSparkline from '$lib/components/TrendSparkline.svelte';
-  import RiskDonut from '$lib/components/RiskDonut.svelte';
   import LineInspectPanel from '$lib/components/LineInspectPanel.svelte';
 
   import {
     getWindMap,
-
-    getWindAlertDistribution,
-    getWindTrend,
     getHeatMap,
-    getHeatAlertDistribution,
-    getHeatTrend,
     getSubstationsMap,
     getFilters,
     type FeatureCollection,
-    type AlertDistributionItem,
-    type TrendItem,
     type GridFilters,
   } from '$lib/api';
 
@@ -42,14 +33,10 @@
 
   let showWind = $state(true);
   let showHeat = $state(true);
-  let showCabine = $state(true);
+  let showCabine = $state(false);
 
   let inspectedFeature = $state<Record<string, unknown> | null>(null);
-
-  let windTrend = $state<TrendItem[]>([]);
-  let heatTrend = $state<TrendItem[]>([]);
-  let windDist = $state<AlertDistributionItem[]>([]);
-  let heatDist = $state<AlertDistributionItem[]>([]);
+  let loading = $state(false);
 
   let filterDates = $state<string[]>([]);
   let filterSubstations = $state<string[]>([]);
@@ -57,7 +44,16 @@
   let filterUnits = $state<string[]>([]);
   let filterRisk = $state<string[]>([]);
 
-  let availDates = $state<string[]>([]);
+  const selectedDate = $derived(filterDates[0] ?? '');
+
+  // Date bounds: Jan 1 of current year → tomorrow (+1 day)
+  const minDate = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10);
+  const maxDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  })();
+
   let availSubstations = $state<string[]>([]);
   let availLines = $state<string[]>([]);
   let availUnits = $state<string[]>([]);
@@ -90,14 +86,49 @@
     };
   }
 
-  function buildAvailDates(): string[] {
-    const dates: string[] = [];
-    for (let i = 0; i <= 2; i++) {
-      const d = new Date();
-      d.setDate(d.getDate() + i);
-      dates.push(d.toISOString().slice(0, 10));
+  // ---------------------------------------------------------------------------
+  // URL state sync
+  // ---------------------------------------------------------------------------
+
+  function syncUrl() {
+    const params = new URLSearchParams();
+    if (filterDates[0]) params.set('date', filterDates[0]);
+    filterSubstations.forEach((v) => params.append('substation', v));
+    filterLines.forEach((v) => params.append('line', v));
+    filterUnits.forEach((v) => params.append('unit', v));
+    filterRisk.forEach((v) => params.append('risk', v));
+    if (map) {
+      const c = map.getCenter();
+      params.set('lat', c.lat.toFixed(5));
+      params.set('lng', c.lng.toFixed(5));
+      params.set('zoom', map.getZoom().toFixed(2));
     }
-    return dates;
+    history.replaceState(null, '', '?' + params.toString());
+  }
+
+  function readUrlFilters() {
+    const p = new URLSearchParams(window.location.search);
+    return {
+      date: p.get('date') ?? undefined,
+      substations: p.getAll('substation'),
+      lines: p.getAll('line'),
+      units: p.getAll('unit'),
+      risk: p.getAll('risk'),
+    };
+  }
+
+  function readUrlMapState(): { lat: number; lng: number; zoom: number } | null {
+    const p = new URLSearchParams(window.location.search);
+    const lat = p.get('lat');
+    const lng = p.get('lng');
+    const zoom = p.get('zoom');
+    if (lat && lng && zoom) return { lat: parseFloat(lat), lng: parseFloat(lng), zoom: parseFloat(zoom) };
+    return null;
+  }
+
+  function shareLink() {
+    syncUrl();
+    navigator.clipboard.writeText(window.location.href).catch(() => {});
   }
 
   function exportCsv(fc: FeatureCollection, filename: string) {
@@ -259,15 +290,12 @@
   let cabineData: FeatureCollection = { type: 'FeatureCollection', features: [] };
 
   async function loadAllData() {
+    loading = true;
     const f = buildFilters();
-    const [wm, hm, cm, wd, hd, wt, ht] = await Promise.allSettled([
+    const [wm, hm, cm] = await Promise.allSettled([
       getWindMap(f),
       getHeatMap(f),
       getSubstationsMap(NETWORK_ID),
-      getWindAlertDistribution(f),
-      getHeatAlertDistribution(f),
-      getWindTrend(NETWORK_ID),
-      getHeatTrend(NETWORK_ID),
     ]);
 
     if (wm.status === 'fulfilled') {
@@ -285,22 +313,25 @@
       upsertGeoJsonSource('cabine', cabineData);
       addCircleLayer('cabine', 'cabine-points', showCabine);
     }
-    if (wd.status === 'fulfilled') windDist = wd.value;
-    if (hd.status === 'fulfilled') heatDist = hd.value;
-    if (wt.status === 'fulfilled') windTrend = wt.value;
-    if (ht.status === 'fulfilled') heatTrend = ht.value;
 
     fitToData(windData, heatData, cabineData);
+    loading = false;
   }
 
   function applyFilters(f: {
-    dates: string[]; substations: string[]; lines: string[]; units: string[]; risk: string[];
+    substations: string[]; lines: string[]; units: string[]; risk: string[];
   }) {
-    filterDates = f.dates;
     filterSubstations = f.substations;
     filterLines = f.lines;
     filterUnits = f.units;
     filterRisk = f.risk;
+    syncUrl();
+    loadAllData();
+  }
+
+  function onDateChange(dateStr: string) {
+    filterDates = dateStr ? [dateStr] : [];
+    syncUrl();
     loadAllData();
   }
 
@@ -328,22 +359,42 @@
   onMount(() => {
     const initialStyle = currentStyleUrl();
     activeMapStyle = initialStyle;
+
+    const mapState = readUrlMapState();
     map = new maplibregl.Map({
       container: mapContainer,
       style: initialStyle,
-      center: [0, 40],
-      zoom: 2,
+      center: mapState ? [mapState.lng, mapState.lat] : [0, 40],
+      zoom: mapState?.zoom ?? 2,
     });
+
+    // Don't override URL-provided viewport with fitToData.
+    if (mapState) hasFit = true;
 
     map.addControl(new maplibregl.NavigationControl(), 'top-left');
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
+
+    // Sync URL whenever the user pans or zooms.
+    map.on('moveend', syncUrl);
 
     // Re-add user layers whenever the basemap style is swapped (theme change).
     // Fires on initial load too, but restoreLayers is a no-op when data is empty.
     map.on('style.load', restoreLayers);
 
     map.on('load', async () => {
-      availDates = buildAvailDates();
+      // Apply URL filters if present, otherwise default to today.
+      const urlFilters = readUrlFilters();
+      if (urlFilters.substations.length) filterSubstations = urlFilters.substations;
+      if (urlFilters.lines.length) filterLines = urlFilters.lines;
+      if (urlFilters.units.length) filterUnits = urlFilters.units;
+      if (urlFilters.risk.length) filterRisk = urlFilters.risk;
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const dateFromUrl = urlFilters.date;
+      filterDates = [dateFromUrl && dateFromUrl >= minDate && dateFromUrl <= maxDate
+        ? dateFromUrl
+        : todayStr];
+
       const f = await getFilters(NETWORK_ID).catch(() => null);
       if (f) {
         availSubstations = f.parent_substations;
@@ -358,36 +409,23 @@
 </script>
 
 <div class="page">
-  <!-- ── Top bar: KPI charts ─────────────────────────────────────── -->
-  <div class="top-bar">
-    <div class="chart-card">
-      <TrendSparkline label={$_('kpi.wind_trend')} unit="m/s" data={windTrend} color="#3b82f6" />
-    </div>
-    <div class="chart-card">
-      <TrendSparkline label={$_('kpi.heat_trend')} unit="°C" data={heatTrend} color="#ef4444" />
-    </div>
-    <div class="chart-card donut-card">
-      <RiskDonut label={$_('layer.wind')} data={windDist} />
-    </div>
-    <div class="chart-card donut-card">
-      <RiskDonut label={$_('layer.heat')} data={heatDist} />
-    </div>
-  </div>
-
   <!-- ── Body: sidebar + map ──────────────────────────────────────── -->
   <div class="body">
     <FilterBar
-      dates={availDates}
       substations={availSubstations}
       lines={availLines}
       units={availUnits}
-      bind:selectedDates={filterDates}
+      selectedDate={selectedDate}
+      {minDate}
+      {maxDate}
       bind:selectedSubstations={filterSubstations}
       bind:selectedLines={filterLines}
       bind:selectedUnits={filterUnits}
       bind:selectedRisk={filterRisk}
       onchange={applyFilters}
+      ondatechange={onDateChange}
       onexport={(type) => exportCsv(type === 'wind' ? windData : heatData, `${type}_risk.csv`)}
+      onshare={shareLink}
     />
 
     <div class="map-area">
@@ -412,6 +450,12 @@
 
       <div class="map-container" bind:this={mapContainer}></div>
 
+      {#if loading}
+        <div class="map-loader" aria-label="Loading">
+          <div class="spinner"></div>
+        </div>
+      {/if}
+
       <LineInspectPanel feature={inspectedFeature} onclose={() => (inspectedFeature = null)} />
     </div>
   </div>
@@ -423,29 +467,6 @@
     flex-direction: column;
     height: 100%;
     overflow: hidden;
-  }
-
-  /* ── Top bar ─────────────────────────────────── */
-  .top-bar {
-    display: flex;
-    align-items: stretch;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    background: var(--celine-bg-elevated, #fff);
-    border-bottom: 1px solid var(--celine-border, #e2e8f0);
-    flex-shrink: 0;
-    overflow-x: auto;
-  }
-
-  .chart-card {
-    flex: 1;
-    min-width: 160px;
-    max-width: 280px;
-  }
-
-  .chart-card.donut-card {
-    min-width: 180px;
-    max-width: 220px;
   }
 
   /* ── Body ────────────────────────────────────── */
@@ -466,6 +487,36 @@
   .map-container {
     width: 100%;
     height: 100%;
+  }
+
+  /* ── Loading overlay ─────────────────────── */
+  .map-loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(1px);
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  :global(.dark) .map-loader {
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid rgba(13, 148, 136, 0.25);
+    border-top-color: var(--celine-primary, #0d9488);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 
   /* Layer toggles — top-right overlay */

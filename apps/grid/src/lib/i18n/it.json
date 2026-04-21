@@ -20,8 +20,6 @@
   "layer.wind": "Linee aeree",
   "layer.heat": "Linee interrate",
   "layer.cabine": "Cabine (MT/BT)",
-  "kpi.wind_trend": "Eccesso raffica di vento",
-  "kpi.heat_trend": "Temperatura massima (°C)",
   "panel.line_name": "Linea",
   "panel.conductor_type": "Tipo conduttore",
   "panel.substation_name": "Cabina primaria",

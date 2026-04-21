@@ -3,42 +3,88 @@
   import AutocompleteSelect from './AutocompleteSelect.svelte';
 
   interface Props {
-    dates: string[];
     substations: string[];
     lines: string[];
     units: string[];
-    selectedDates: string[];
+    selectedDate: string;
     selectedSubstations: string[];
     selectedLines: string[];
     selectedUnits: string[];
     selectedRisk: string[];
+    minDate: string;
+    maxDate: string;
     onchange: (filters: {
-      dates: string[];
       substations: string[];
       lines: string[];
       units: string[];
       risk: string[];
     }) => void;
+    ondatechange: (date: string) => void;
     onexport: (type: 'wind' | 'heat') => void;
+    onshare: () => void;
   }
 
   let {
-    dates = [],
     substations = [],
     lines = [],
     units = [],
-    selectedDates = $bindable([]),
+    selectedDate = '',
     selectedSubstations = $bindable([]),
     selectedLines = $bindable([]),
     selectedUnits = $bindable([]),
     selectedRisk = $bindable([]),
+    minDate = '',
+    maxDate = '',
     onchange,
+    ondatechange,
     onexport,
+    onshare,
   }: Props = $props();
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  let editingDate = $state(false);
+  let dateInputEl = $state<HTMLInputElement | null>(null);
+
+  function fmtDate(d: string): string {
+    if (!d) return '—';
+    const [y, m, day] = d.split('-');
+    return `${day}/${m}/${y}`;
+  }
+
+  function startDateEdit() {
+    editingDate = true;
+    setTimeout(() => dateInputEl?.showPicker?.(), 50);
+  }
+
+  function commitDateEdit(e: Event) {
+    const val = (e.target as HTMLInputElement).value;
+    editingDate = false;
+    if (val) ondatechange(val);
+  }
+
+  function handleDateKey(e: KeyboardEvent) {
+    if (e.key === 'Enter') {
+      const val = (e.target as HTMLInputElement).value;
+      editingDate = false;
+      if (val) ondatechange(val);
+    } else if (e.key === 'Escape') {
+      editingDate = false;
+    }
+  }
+
+  let copied = $state(false);
+
+  function handleShare() {
+    onshare();
+    copied = true;
+    setTimeout(() => { copied = false; }, 2000);
+  }
 
   let collapsed = $state(false);
   let exportOpen = $state(false);
   let exportRoot: HTMLDivElement = $state()!;
+
 
   $effect(() => {
     if (!exportOpen) return;
@@ -57,7 +103,6 @@
 
   function apply() {
     onchange({
-      dates: selectedDates,
       substations: selectedSubstations,
       lines: selectedLines,
       units: selectedUnits,
@@ -66,17 +111,18 @@
   }
 
   function reset() {
-    selectedDates = [];
     selectedSubstations = [];
     selectedLines = [];
     selectedUnits = [];
     selectedRisk = [];
-    onchange({ dates: [], substations: [], lines: [], units: [], risk: [] });
+    onchange({ substations: [], lines: [], units: [], risk: [] });
+    ondatechange(todayStr);
   }
 
   const hasFilters = $derived(
-    selectedDates.length + selectedSubstations.length + selectedLines.length +
-    selectedUnits.length + selectedRisk.length > 0
+    selectedSubstations.length + selectedLines.length +
+    selectedUnits.length + selectedRisk.length > 0 ||
+    (!!selectedDate && selectedDate !== todayStr)
   );
 </script>
 
@@ -93,15 +139,48 @@
     <div class="sidebar-inner">
       <div class="sidebar-header">
         <span class="sidebar-title">{$_('filter.title', { default: 'Filters' })}</span>
-        {#if hasFilters}
-          <button class="clear-all" onclick={reset}>{$_('filter.reset')}</button>
-        {/if}
+        <button
+          class="reset-icon-btn"
+          class:visible={hasFilters}
+          onclick={reset}
+          title={$_('filter.reset')}
+          aria-label={$_('filter.reset')}
+        >
+          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M2 8a6 6 0 1 0 1.06-3.394" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <polyline points="2,4.5 2,8 5.5,8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
 
       <div class="sidebar-body">
+        <!-- Date picker -->
         <div class="filter-group">
-          <span class="filter-label">{$_('filter.date')}</span>
-          <AutocompleteSelect options={dates} bind:selected={selectedDates} placeholder="Search dates…" />
+          <span class="filter-label">{$_('filter.date', { default: 'Date' })}</span>
+          <div class="date-row">
+            {#if editingDate}
+              <input
+                bind:this={dateInputEl}
+                type="date"
+                class="date-input"
+                value={selectedDate}
+                min={minDate}
+                max={maxDate}
+                onchange={commitDateEdit}
+                onblur={commitDateEdit}
+                onkeydown={handleDateKey}
+              />
+            {:else}
+              <button class="date-display" onclick={startDateEdit} title="Click to pick a date">
+                {fmtDate(selectedDate)}
+              </button>
+            {/if}
+            <button
+              class="quick-date-btn"
+              class:active={selectedDate === todayStr}
+              onclick={() => ondatechange(todayStr)}
+            >Today</button>
+          </div>
         </div>
 
         <div class="filter-group">
@@ -135,6 +214,13 @@
       </div>
 
       <div class="sidebar-footer">
+        <button class="btn-share" onclick={handleShare}>
+          {#if copied}
+            ✓ Link copied!
+          {:else}
+            Share link
+          {/if}
+        </button>
         <div class="export-wrapper" bind:this={exportRoot}>
           <button class="btn-export" onclick={() => (exportOpen = !exportOpen)}>
             {$_('export.button')} <span class="export-chevron" class:open={exportOpen}>▾</span>
@@ -223,17 +309,36 @@
     color: var(--celine-text-muted, #64748b);
   }
 
-  .clear-all {
-    font-size: 0.7rem;
-    color: var(--celine-primary, #0d9488);
-    background: none;
-    border: none;
-    cursor: pointer;
+  .reset-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
     padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--celine-text-muted, #94a3b8);
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
   }
 
-  .clear-all:hover {
-    text-decoration: underline;
+  .reset-icon-btn.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .reset-icon-btn:hover {
+    color: var(--celine-primary, #0d9488);
+    background: var(--celine-bg-hover, #f0fdfa);
+  }
+
+  .reset-icon-btn svg {
+    width: 14px;
+    height: 14px;
   }
 
   .sidebar-body {
@@ -368,4 +473,90 @@
   }
 
   .btn-primary:hover { filter: brightness(1.1); }
+
+  /* ── Date picker ─────────────────────────── */
+  .date-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-wrap: wrap;
+  }
+
+  .date-display {
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--celine-text, #1e293b);
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 0.2rem 0.35rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    letter-spacing: 0.02em;
+  }
+
+  .date-display:hover {
+    border-color: var(--celine-border, #cbd5e1);
+    background: var(--celine-bg-hover, #f1f5f9);
+  }
+
+  .date-input {
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--celine-text, #1e293b);
+    background: var(--celine-bg, #f8fafc);
+    border: 1px solid var(--celine-primary, #0d9488);
+    border-radius: 4px;
+    padding: 0.2rem 0.35rem;
+    outline: none;
+    max-width: 140px;
+  }
+
+  .quick-date-btn {
+    font-size: 0.65rem;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid var(--celine-border, #cbd5e1);
+    background: none;
+    color: var(--celine-text-muted, #64748b);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .quick-date-btn:hover {
+    border-color: var(--celine-primary, #0d9488);
+    color: var(--celine-primary, #0d9488);
+  }
+
+  .quick-date-btn.active {
+    background: var(--celine-primary, #0d9488);
+    border-color: var(--celine-primary, #0d9488);
+    color: #fff;
+  }
+
+
+  .btn-share {
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    background: none;
+    border: 1px dashed var(--celine-border, #cbd5e1);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--celine-text-muted, #64748b);
+    text-align: center;
+    transition: all 0.15s;
+  }
+
+  .btn-share:hover {
+    border-color: var(--celine-primary, #0d9488);
+    color: var(--celine-primary, #0d9488);
+    background: var(--celine-bg-hover, #f0fdfa);
+  }
 </style>
