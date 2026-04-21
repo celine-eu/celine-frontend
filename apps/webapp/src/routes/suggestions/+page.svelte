@@ -28,16 +28,7 @@
     return $t(`suggestions.ask_ai.${section}`);
   }
 
-  async function refreshHistory() {
-    const h = await api.gamificationHistory().catch(() => null);
-    if (h) history = h;
-  }
-
-  function handleCommitted(id: string) {
-    suggestions = suggestions.filter(s => s.id !== id);
-  }
-
-  function handleDeclined(id: string) {
+  function handleReminded(id: string) {
     suggestions = suggestions.filter(s => s.id !== id);
   }
 
@@ -159,9 +150,7 @@
         {#each suggestions as suggestion (suggestion.id)}
           <SuggestionCard
             {suggestion}
-            oncommitted={() => handleCommitted(suggestion.id)}
-            ondeclined={() => handleDeclined(suggestion.id)}
-            onhistorychanged={refreshHistory}
+            onreminded={() => handleReminded(suggestion.id)}
           />
         {/each}
       </div>
