@@ -134,6 +134,7 @@
   "suggestion_card": {
     "done": "Fatto! +{points} punti aggiunti al tuo punteggio.",
     "committed": "Promemoria impostato! ~{points} punti in attesa — verificheremo dopo {time}.",
+    "scheduled": "Promemoria programmato. Ti avviseremo quando si apre la finestra di flessibilità.",
     "saving": "Salvataggio…",
     "remind_me": "Ricordamelo",
     "accept": "Accetta",

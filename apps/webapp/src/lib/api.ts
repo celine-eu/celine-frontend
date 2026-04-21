@@ -289,6 +289,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ response, ...(reward_points !== undefined ? { reward_points } : {}), ...(period_start ? { period_start, period_end } : {}) })
     }),
+  suggestionRemind: (id: string, period_start: string, period_end: string, reward_points: number, lang?: string) =>
+    j<{ ok: true }>(`/api/suggestions/${id}/remind`, {
+      method: 'POST',
+      body: JSON.stringify({ period_start, period_end, reward_points, ...(lang ? { lang } : {}) })
+    }),
   cancelCommitment: (id: string) =>
     j<void>(`/api/commitments/${id}`, { method: 'DELETE' }),
   gamification: () => j<GamificationResponse>('/api/gamification'),

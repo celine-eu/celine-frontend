@@ -130,6 +130,7 @@
   "suggestion_card": {
     "done": "¡Hecho! +{points} puntos añadidos a tu puntuación.",
     "committed": "¡Recordatorio establecido! ~{points} puntos pendientes — verificaremos después de {time}.",
+    "scheduled": "Recordatorio programado. Te avisaremos cuando se abra la ventana de flexibilidad.",
     "saving": "Guardando…",
     "remind_me": "Recuérdamelo",
     "accept": "Aceptar",

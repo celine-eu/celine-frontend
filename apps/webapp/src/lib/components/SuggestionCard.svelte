@@ -1,23 +1,18 @@
 <script lang="ts">
-  import type { SuggestionItem, GamificationResponse } from '$lib/api';
+  import type { SuggestionItem } from '$lib/api';
   import { api } from '$lib/api';
   import { Icon } from '@celine-eu/ui';
-  import { t } from 'svelte-i18n';
+  import { locale, t } from 'svelte-i18n';
 
   interface Props {
     suggestion: SuggestionItem;
-    ongamificationupdated?: (data: GamificationResponse) => void;
-    oncommitted?: () => void;
-    ondeclined?: () => void;
-    onhistorychanged?: () => void;
+    onreminded?: () => void;
   }
 
-  let { suggestion, ongamificationupdated, oncommitted, ondeclined, onhistorychanged }: Props = $props();
+  let { suggestion, onreminded }: Props = $props();
 
-  type CardState = 'idle' | 'loading' | 'committed' | 'accepted' | 'declined' | 'error';
+  type CardState = 'idle' | 'loading' | 'scheduled' | 'error';
   let cardState: CardState = $state('idle');
-  let earnedPoints = $state(0);
-  let windowEnd = $state('');
   let errorMsg = $state('');
 
   const TYPE_ICONS: Record<string, string> = {
@@ -30,43 +25,18 @@
     return TYPE_ICONS[type] ?? 'zap';
   }
 
-  function fmtPeriodEnd(isoStr: string): string {
-    try {
-      return new Date(isoStr).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return isoStr;
-    }
-  }
-
-  async function respond(response: 'accepted' | 'declined') {
+  async function remind() {
     cardState = 'loading';
     try {
-      const result = await api.suggestionRespond(suggestion.id, response, suggestion.reward_points, suggestion.period_start, suggestion.period_end);
-      if (response === 'accepted') {
-        ongamificationupdated?.(result);
-        if (result.pending_commitment) {
-          if (result.pending_commitment.status === 'settled') {
-            earnedPoints = result.pending_commitment.reward_points_actual ?? suggestion.reward_points;
-            cardState = 'accepted';
-          } else {
-            earnedPoints = result.pending_commitment.reward_points_estimated;
-            windowEnd = fmtPeriodEnd(result.pending_commitment.period_end);
-            cardState = 'committed';
-          }
-        } else {
-          earnedPoints = suggestion.reward_points;
-          cardState = 'accepted';
-        }
-        // Refresh history immediately so the committed entry is visible right away,
-        // then remove the card after the confirmation animation.
-        onhistorychanged?.();
-        setTimeout(() => oncommitted?.(), 2500);
-      } else {
-        cardState = 'declined';
-        // Refresh history immediately, remove card shortly after.
-        onhistorychanged?.();
-        setTimeout(() => ondeclined?.(), 400);
-      }
+      await api.suggestionRemind(
+        suggestion.id,
+        suggestion.period_start,
+        suggestion.period_end,
+        suggestion.reward_points,
+        $locale ?? undefined,
+      );
+      cardState = 'scheduled';
+      setTimeout(() => onreminded?.(), 1800);
     } catch (e) {
       errorMsg = e instanceof Error ? e.message : String(e);
       cardState = 'error';
@@ -74,72 +44,58 @@
   }
 </script>
 
-{#if cardState !== 'declined'}
-  <div class="suggestion-card" class:accepted={cardState === 'accepted'} class:committed={cardState === 'committed'}>
-    {#if cardState === 'accepted'}
-      <div class="confirmation">
-        <Icon name="check-circle" size={20} class="check-icon" />
-        <span>{$t('suggestion_card.done', { values: { points: earnedPoints } })}</span>
+<div class="suggestion-card" class:scheduled={cardState === 'scheduled'}>
+  {#if cardState === 'scheduled'}
+    <div class="commitment">
+      <Icon name="clock" size={20} class="clock-icon" />
+      <span>{$t('suggestion_card.scheduled')}</span>
+    </div>
+  {:else}
+    <div class="card-header">
+      <div class="type-badge">
+        <Icon name={typeIcon(suggestion.suggestion_type) as any} size={16} />
       </div>
-    {:else if cardState === 'committed'}
-      <div class="commitment">
-        <Icon name="clock" size={20} class="clock-icon" />
-        <span>{$t('suggestion_card.committed', { values: { points: earnedPoints, time: windowEnd } })}</span>
-      </div>
-    {:else}
-      <div class="card-header">
-        <div class="type-badge">
-          <Icon name={typeIcon(suggestion.suggestion_type) as any} size={16} />
-        </div>
-        <div class="shift-label">
-          {#if suggestion.from_period}
-            <span class="from-label">{$t('suggestion_card.from_label', { values: { period: $t(`suggestion_card.period.${suggestion.from_period}`), range: suggestion.clock_range } })}</span>
-            {#if suggestion.to_period}
-              <Icon name="chevron-right" size={14} class="arrow-icon" />
-              <span class="to-label">{suggestion.to_is_tomorrow ? $t('suggestion_card.to_label_tomorrow', { values: { period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } }) : $t('suggestion_card.to_label_today', { values: { period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } })}</span>
-            {/if}
-          {:else}
-            <span class="from-label">{$t('suggestion_card.window_label', { values: { range: suggestion.clock_range } })}</span>
+      <div class="shift-label">
+        {#if suggestion.from_period}
+          <span class="from-label">{$t('suggestion_card.from_label', { values: { period: $t(`suggestion_card.period.${suggestion.from_period}`), range: suggestion.clock_range } })}</span>
+          {#if suggestion.to_period}
+            <Icon name="chevron-right" size={14} class="arrow-icon" />
+            <span class="to-label">{suggestion.to_is_tomorrow ? $t('suggestion_card.to_label_tomorrow', { values: { period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } }) : $t('suggestion_card.to_label_today', { values: { period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } })}</span>
           {/if}
-        </div>
-        <div class="reward-badge">+{suggestion.reward_points} pts</div>
+        {:else}
+          <span class="from-label">{$t('suggestion_card.window_label', { values: { range: suggestion.clock_range } })}</span>
+        {/if}
       </div>
+      <div class="reward-badge">+{suggestion.reward_points} pts</div>
+    </div>
 
-      <p class="description">{suggestion.from_period ? $t('suggestion_card.description', { values: { period: $t(`suggestion_card.period.${suggestion.from_period}`), range: suggestion.clock_range, target_period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } }) : $t('suggestion_card.description_today', { values: { range: suggestion.clock_range, target_period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } })}</p>
-      <p class="reason">{$t('suggestion_card.reason')}</p>
+    <p class="description">{suggestion.from_period ? $t('suggestion_card.description', { values: { period: $t(`suggestion_card.period.${suggestion.from_period}`), range: suggestion.clock_range, target_period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } }) : $t('suggestion_card.description_today', { values: { range: suggestion.clock_range, target_period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } })}</p>
+    <p class="reason">{$t('suggestion_card.reason')}</p>
 
-      <div class="meta-row">
-        <span class="impact-chip">
-          <Icon name="zap" size={12} /> {suggestion.impact_kwh_estimated.toFixed(1)} kWh
-        </span>
-        <div class="confidence-wrap" title="Confidence: {(suggestion.confidence * 100).toFixed(0)}%">
-          <div class="confidence-bar" style="width: {(suggestion.confidence * 100).toFixed(0)}%"></div>
-        </div>
+    <div class="meta-row">
+      <span class="impact-chip">
+        <Icon name="zap" size={12} /> {suggestion.impact_kwh_estimated.toFixed(1)} kWh
+      </span>
+      <div class="confidence-wrap" title="Confidence: {(suggestion.confidence * 100).toFixed(0)}%">
+        <div class="confidence-bar" style="width: {(suggestion.confidence * 100).toFixed(0)}%"></div>
       </div>
+    </div>
 
-      {#if cardState === 'error'}
-        <p class="error-msg">{errorMsg}</p>
-      {/if}
-
-      <div class="actions">
-        <button
-          class="btn btn-primary"
-          disabled={cardState === 'loading'}
-          onclick={() => respond('accepted')}
-        >
-          {cardState === 'loading' ? $t('suggestion_card.saving') : $t('suggestion_card.accept')}
-        </button>
-        <button
-          class="btn btn-ghost"
-          disabled={cardState === 'loading'}
-          onclick={() => respond('declined')}
-        >
-          {$t('suggestion_card.not_now')}
-        </button>
-      </div>
+    {#if cardState === 'error'}
+      <p class="error-msg">{errorMsg}</p>
     {/if}
-  </div>
-{/if}
+
+    <div class="actions">
+      <button
+        class="btn btn-primary"
+        disabled={cardState === 'loading'}
+        onclick={remind}
+      >
+        {cardState === 'loading' ? $t('suggestion_card.saving') : $t('suggestion_card.remind_me')}
+      </button>
+    </div>
+  {/if}
+</div>
 
 <style>
   .suggestion-card {
@@ -153,25 +109,10 @@
     transition: border-color var(--celine-transition-fast);
   }
 
-  .suggestion-card.accepted {
-    border-color: var(--celine-success);
-    background: var(--celine-success-bg, rgba(34,197,94,0.05));
-  }
-
-  .suggestion-card.committed {
+  .suggestion-card.scheduled {
     border-color: var(--celine-warning, #f59e0b);
     background: rgba(245,158,11,0.05);
   }
-
-  .confirmation {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--celine-success);
-    font-size: 0.875rem;
-    padding: var(--celine-space-sm) 0;
-  }
-  :global(.check-icon) { color: var(--celine-success); }
 
   .commitment {
     display: flex;
@@ -295,15 +236,4 @@
     border-color: var(--celine-primary);
   }
   .btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
-
-  .btn-ghost {
-    background: transparent;
-    color: var(--celine-text-secondary);
-    border-color: var(--celine-border);
-  }
-  .btn-ghost:hover:not(:disabled) {
-    background: var(--celine-bg);
-    color: var(--celine-text);
-  }
-
 </style>

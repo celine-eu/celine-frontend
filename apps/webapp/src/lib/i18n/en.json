@@ -134,6 +134,7 @@
   "suggestion_card": {
     "done": "Done! +{points} pts added to your score.",
     "committed": "Reminder set! ~{points} pts pending — we'll verify after {time}.",
+    "scheduled": "Reminder scheduled. We'll notify you when the flexibility window opens.",
     "saving": "Saving…",
     "remind_me": "Remind me",
     "accept": "Accept",
