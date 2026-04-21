@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.5.0...grid-v0.6.0) (2026-04-21)
+
+### Features
+
+* add the flexibility reminder ([287c300](https://github.com/celine-eu/celine-frontend/commit/287c30073f987eedba37983c9cb70c6dbcc877f1))
+* review ui, add history, improve navigation ([de2a3d1](https://github.com/celine-eu/celine-frontend/commit/de2a3d1ad95be3dd63c78cd17391f8acbffa3082))
+
 ## [0.5.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.4.0...grid-v0.5.0) (2026-04-17)
 
 ## [0.4.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.3.0...grid-v0.4.0) (2026-04-17)
