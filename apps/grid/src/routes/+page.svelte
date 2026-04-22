@@ -310,7 +310,7 @@
 
     for (const f of fc.features) {
       if (!f.geometry) continue;
-      const p = f.properties as GridShapeProperties;
+      const p = f.properties as unknown as GridShapeProperties;
       const base = { ...f, properties: { ...p, risk_level: 'NORMAL', risk_color_hex: null } };
       if (p.asset_type === 'substation') substations.push(base);
       else if (p.conductor_type === 'underground_cable') underground.push(base);
