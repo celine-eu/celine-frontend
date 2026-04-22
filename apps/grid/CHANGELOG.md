@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.6.0...grid-v0.7.0) (2026-04-22)
+
+### Features
+
+* refactor to use shapes + risks overlay ([5866348](https://github.com/celine-eu/celine-frontend/commit/58663480797fc80b584107159878d523c592d14d))
+
+### Bug Fixes
+
+* correct typing ([4e92b77](https://github.com/celine-eu/celine-frontend/commit/4e92b77197d706de751d8563506bbeb4ba98c0a0))
+
 ## [0.6.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.5.0...grid-v0.6.0) (2026-04-21)
 
 ### Features
