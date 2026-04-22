@@ -42,6 +42,7 @@
   }: Props = $props();
 
   const todayStr = new Date().toISOString().slice(0, 10);
+  const tomorrowStr = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); })();
 
   let editingDate = $state(false);
   let dateInputEl = $state<HTMLInputElement | null>(null);
@@ -95,7 +96,7 @@
     return () => document.removeEventListener('pointerdown', handleOutside, true);
   });
 
-  const RISK_LEVELS = ['ALERT', 'WARNING', 'NORMAL'];
+  const RISK_LEVELS = ['ALERT', 'WARNING'];
 
   function toggle(arr: string[], val: string): string[] {
     return arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
@@ -179,7 +180,12 @@
               class="quick-date-btn"
               class:active={selectedDate === todayStr}
               onclick={() => ondatechange(todayStr)}
-            >Today</button>
+            >{$_('filter.today')}</button>
+            <button
+              class="quick-date-btn"
+              class:active={selectedDate === tomorrowStr}
+              onclick={() => ondatechange(tomorrowStr)}
+            >{$_('filter.tomorrow')}</button>
           </div>
         </div>
 
@@ -216,9 +222,9 @@
       <div class="sidebar-footer">
         <button class="btn-share" onclick={handleShare}>
           {#if copied}
-            ✓ Link copied!
+            {$_('filter.share_copied')}
           {:else}
-            Share link
+            {$_('filter.share')}
           {/if}
         </button>
         <div class="export-wrapper" bind:this={exportRoot}>

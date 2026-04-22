@@ -127,7 +127,7 @@ export const getHeatTrend = (networkId: string) =>
   j<TrendItem[]>(gridUrl(networkId, '/heat/trend'));
 
 // ---------------------------------------------------------------------------
-// Filter metadata — topology dimension values for autocomplete
+// Filter metadata — topology dimension values for autocomplete + network extent
 // ---------------------------------------------------------------------------
 
 export interface FilterOptions {
@@ -135,17 +135,95 @@ export interface FilterOptions {
   lines: string[];
   operational_units: string[];
   municipalities: string[];
+  extent_min_lng: number | null;
+  extent_min_lat: number | null;
+  extent_max_lng: number | null;
+  extent_max_lat: number | null;
 }
 
 export const getFilters = (networkId: string) =>
   j<FilterOptions>(gridUrl(networkId, '/filters'));
 
 // ---------------------------------------------------------------------------
-// Substations (CIM: Substation — secondary substations) — static layer
+// Substations (CIM: Substation — secondary substations) — static layer (legacy)
 // ---------------------------------------------------------------------------
 
 export const getSubstationsMap = (networkId: string) =>
   j<FeatureCollection>(gridUrl(networkId, '/substations/map'));
+
+// ---------------------------------------------------------------------------
+// Shapes / Risks / Trendline  (new schema)
+// ---------------------------------------------------------------------------
+
+export interface GridShapeProperties {
+  segment_id: string;
+  asset_type: 'ac_line_segment' | 'substation';
+  asset_key: string;
+  conductor_type?: string;
+  parent_substation_name?: string;
+  operational_unit?: string;
+  municipality?: string;
+  feeder_id?: string;
+  length_m?: number;
+  is_vegetated_zone?: boolean;
+  voltage_class?: string;
+  label?: string;
+  label_id?: string;
+}
+
+export interface GridRisk {
+  segment_id: string;
+  date: string;
+  risk_vector: 'wind' | 'heat';
+  risk_level: 'ALERT' | 'WARNING';
+  risk_color_hex: string;
+  metrics: Record<string, unknown>;
+}
+
+export interface TrendlineItem {
+  date: string;
+  risk_vector: string;
+  alert_count: number;
+  warning_count: number;
+  total_segments: number;
+  risk_ratio: number;
+  day_risk_level: 'ALERT' | 'WARNING' | 'NORMAL';
+}
+
+// FetchResultSchema wrapper returned by the DT values API
+interface FetchResult<T> {
+  items: T[];
+  limit: number;
+  offset: number;
+  count: number;
+}
+
+export const getShapes = (networkId: string, assetType?: string[]) => {
+  const params: Record<string, string | string[]> = {};
+  if (assetType?.length) params['asset_type'] = assetType;
+  return j<FeatureCollection>(gridUrl(networkId, '/shapes', params));
+};
+
+export const getRisks = (f: GridFilters) => {
+  const params = filtersToParams(f);
+  return j<FetchResult<GridRisk>>(gridUrl(f.networkId, '/risks', params))
+    .then((r) => r.items);
+};
+
+export const getTrendline = (
+  networkId: string,
+  dateFrom: string,
+  dateTo: string,
+  riskVector?: string[]
+) => {
+  const params: Record<string, string | string[]> = {
+    date_from: dateFrom,
+    date_to: dateTo,
+  };
+  if (riskVector?.length) params['risk_vector'] = riskVector;
+  return j<FetchResult<TrendlineItem>>(gridUrl(networkId, '/trendline', params))
+    .then((r) => r.items);
+};
 
 // ---------------------------------------------------------------------------
 // Alert rules

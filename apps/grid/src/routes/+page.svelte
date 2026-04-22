@@ -11,12 +11,16 @@
   import LineInspectPanel from '$lib/components/LineInspectPanel.svelte';
 
   import {
-    getWindMap,
-    getHeatMap,
-    getSubstationsMap,
     getFilters,
+    getShapes,
+    getRisks,
+    getTrendline,
     type FeatureCollection,
+    type GeoFeature,
     type GridFilters,
+    type GridShapeProperties,
+    type GridRisk,
+    type TrendlineItem,
   } from '$lib/api';
 
   // ---------------------------------------------------------------------------
@@ -283,38 +287,86 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Data loading
+  // Data loading — shape cache + client-side join
   // ---------------------------------------------------------------------------
   let windData: FeatureCollection = { type: 'FeatureCollection', features: [] };
   let heatData: FeatureCollection = { type: 'FeatureCollection', features: [] };
   let cabineData: FeatureCollection = { type: 'FeatureCollection', features: [] };
 
-  async function loadAllData() {
-    loading = true;
-    const f = buildFilters();
-    const [wm, hm, cm] = await Promise.allSettled([
-      getWindMap(f),
-      getHeatMap(f),
-      getSubstationsMap(NETWORK_ID),
-    ]);
+  // Shapes loaded once; split into three layer buckets by conductor type.
+  // baseWind/baseHeat hold the permanent grey topology — applyRisks always starts from these.
+  let baseWindData: FeatureCollection = { type: 'FeatureCollection', features: [] };
+  let baseHeatData: FeatureCollection = { type: 'FeatureCollection', features: [] };
+  let shapesLoaded = false;
 
-    if (wm.status === 'fulfilled') {
-      windData = wm.value;
-      upsertGeoJsonSource('wind', windData);
-      addLineLayer('wind', 'wind-lines', showWind, NORMAL_COLOR_WIND);
+  async function loadShapes() {
+    if (shapesLoaded) return;
+
+    const fc = await getShapes(NETWORK_ID);
+
+    const overhead: GeoFeature[] = [];
+    const underground: GeoFeature[] = [];
+    const substations: GeoFeature[] = [];
+
+    for (const f of fc.features) {
+      if (!f.geometry) continue;
+      const p = f.properties as GridShapeProperties;
+      const base = { ...f, properties: { ...p, risk_level: 'NORMAL', risk_color_hex: null } };
+      if (p.asset_type === 'substation') substations.push(base);
+      else if (p.conductor_type === 'underground_cable') underground.push(base);
+      else overhead.push(base);
     }
-    if (hm.status === 'fulfilled') {
-      heatData = hm.value;
-      upsertGeoJsonSource('heat', heatData);
-      addLineLayer('heat', 'heat-lines', showHeat, NORMAL_COLOR_HEAT);
-    }
-    if (cm.status === 'fulfilled') {
-      cabineData = cm.value;
-      upsertGeoJsonSource('cabine', cabineData);
-      addCircleLayer('cabine', 'cabine-points', showCabine);
-    }
+
+    shapesLoaded = true;
+
+    baseWindData = { type: 'FeatureCollection', features: overhead };
+    windData = baseWindData;
+    upsertGeoJsonSource('wind', windData);
+    addLineLayer('wind', 'wind-lines', showWind, NORMAL_COLOR_WIND);
+
+    baseHeatData = { type: 'FeatureCollection', features: underground };
+    heatData = baseHeatData;
+    upsertGeoJsonSource('heat', heatData);
+    addLineLayer('heat', 'heat-lines', showHeat, NORMAL_COLOR_HEAT);
+
+    cabineData = { type: 'FeatureCollection', features: substations };
+    upsertGeoJsonSource('cabine', cabineData);
+    addCircleLayer('cabine', 'cabine-points', showCabine);
 
     fitToData(windData, heatData, cabineData);
+  }
+
+  function applyRisks(risks: GridRisk[]) {
+    const byId = new Map<string, GridRisk>();
+    for (const r of risks) byId.set(r.segment_id, r);
+
+    function recolor(base: FeatureCollection): FeatureCollection {
+      if (!byId.size) return base;
+      return {
+        type: 'FeatureCollection',
+        features: base.features.map((f) => {
+          const r = byId.get((f.properties as unknown as GridShapeProperties).segment_id);
+          if (!r) return f;
+          return { ...f, properties: { ...f.properties, risk_level: r.risk_level, risk_color_hex: r.risk_color_hex, ...r.metrics as object } };
+        }),
+      };
+    }
+
+    windData = recolor(baseWindData);
+    upsertGeoJsonSource('wind', windData);
+
+    heatData = recolor(baseHeatData);
+    upsertGeoJsonSource('heat', heatData);
+  }
+
+  async function loadAllData() {
+    loading = true;
+    await loadShapes();
+
+    const f = buildFilters();
+    const risks = await getRisks(f).catch(() => [] as GridRisk[]);
+
+    applyRisks(risks);
     loading = false;
   }
 
@@ -374,15 +426,11 @@
     map.addControl(new maplibregl.NavigationControl(), 'top-left');
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
-    // Sync URL whenever the user pans or zooms.
     map.on('moveend', syncUrl);
-
-    // Re-add user layers whenever the basemap style is swapped (theme change).
-    // Fires on initial load too, but restoreLayers is a no-op when data is empty.
     map.on('style.load', restoreLayers);
 
     map.on('load', async () => {
-      // Apply URL filters if present, otherwise default to today.
+      // Restore URL filters, default date to today.
       const urlFilters = readUrlFilters();
       if (urlFilters.substations.length) filterSubstations = urlFilters.substations;
       if (urlFilters.lines.length) filterLines = urlFilters.lines;
@@ -395,12 +443,23 @@
         ? dateFromUrl
         : todayStr];
 
-      const f = await getFilters(NETWORK_ID).catch(() => null);
-      if (f) {
-        availSubstations = f.parent_substations;
-        availLines = f.lines;
-        availUnits = f.operational_units;
+      // Fetch filter metadata (autocomplete values + network extent).
+      const filters = await getFilters(NETWORK_ID).catch(() => null);
+      if (filters) {
+        availSubstations = filters.parent_substations;
+        availLines = filters.lines;
+        availUnits = filters.operational_units;
+
+        if (!hasFit && filters.extent_min_lng != null) {
+          map!.fitBounds(
+            [[filters.extent_min_lng, filters.extent_min_lat!], [filters.extent_max_lng!, filters.extent_max_lat!]],
+            { padding: 48, maxZoom: 14, animate: false }
+          );
+          hasFit = true;
+        }
       }
+
+      // Always load shapes + risks for the resolved date.
       loadAllData();
     });
 
