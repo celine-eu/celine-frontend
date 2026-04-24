@@ -8,23 +8,20 @@
   const { data }: { data: PageData } = $props();
 
   import FilterBar from '$lib/components/FilterBar.svelte';
-  import LineInspectPanel from '$lib/components/LineInspectPanel.svelte';
 
   import {
     getFilters,
     getShapes,
     getRisks,
-    getTrendline,
     type FeatureCollection,
     type GeoFeature,
     type GridFilters,
     type GridShapeProperties,
     type GridRisk,
-    type TrendlineItem,
   } from '$lib/api';
 
   // ---------------------------------------------------------------------------
-  // Network ID — derived from the authenticated user's DSO organisation
+  // Network ID
   // ---------------------------------------------------------------------------
   const NETWORK_ID = $derived(data.me?.network_id ?? '');
 
@@ -34,23 +31,28 @@
   let mapContainer: HTMLDivElement;
   let map: maplibregl.Map | null = null;
   let activeMapStyle = $state('');
+  let currentPopup: maplibregl.Popup | null = null;
+  let hoveredFeatureId: number | null = null;
+  let hoveredSourceId: string | null = null;
 
-  let showWind = $state(true);
-  let showHeat = $state(true);
-  let showCabine = $state(false);
+  let showOverheadBare = $state(true);
+  let showOverheadInsulated = $state(true);
+  let showUndergroundCable = $state(true);
+  let showCabine = $state(true);
 
-  let inspectedFeature = $state<Record<string, unknown> | null>(null);
   let loading = $state(false);
+  let loadError = $state<string | null>(null);
 
   let filterDates = $state<string[]>([]);
   let filterSubstations = $state<string[]>([]);
+  let filterSecondarySubstations = $state<string[]>([]);
   let filterLines = $state<string[]>([]);
   let filterUnits = $state<string[]>([]);
+  let filterMunicipalities = $state<string[]>([]);
   let filterRisk = $state<string[]>([]);
 
   const selectedDate = $derived(filterDates[0] ?? '');
 
-  // Date bounds: Jan 1 of current year → tomorrow (+1 day)
   const minDate = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10);
   const maxDate = (() => {
     const d = new Date();
@@ -61,20 +63,20 @@
   let availSubstations = $state<string[]>([]);
   let availLines = $state<string[]>([]);
   let availUnits = $state<string[]>([]);
+  let availMunicipalities = $state<string[]>([]);
 
   // ---------------------------------------------------------------------------
-  // Line dash patterns
+  // Conductor-type layer config
   // ---------------------------------------------------------------------------
-  const DASH_BY_TYPE: Record<string, number[]> = {
-    overhead_bare: [1],
-    overhead_insulated: [6, 2, 1, 2],
-    underground_cable: [4, 3],
-    overhead_vegetated: [2, 2],
-  };
+  const UNIFORM_GREY = '#6b7280';
 
-  // Neutral colours for NORMAL/GREEN risk — aerial vs underground use different shades of grey
-  const NORMAL_COLOR_WIND = '#9ca3af'; // lighter grey — overhead / aerial lines
-  const NORMAL_COLOR_HEAT = '#374151'; // darker grey — underground cables
+  const LINE_LAYER_DEFS = [
+    { sourceId: 'overhead-bare',      layerId: 'lines-overhead-bare',      dash: undefined as number[] | undefined },
+    { sourceId: 'overhead-insulated', layerId: 'lines-overhead-insulated', dash: [2, 4] },
+    { sourceId: 'underground-cable',  layerId: 'lines-underground-cable',  dash: [8, 4] },
+  ] as const;
+
+  function emptyFC(): FeatureCollection { return { type: 'FeatureCollection', features: [] }; }
 
   // ---------------------------------------------------------------------------
   // Helpers
@@ -93,13 +95,14 @@
   // ---------------------------------------------------------------------------
   // URL state sync
   // ---------------------------------------------------------------------------
-
   function syncUrl() {
     const params = new URLSearchParams();
     if (filterDates[0]) params.set('date', filterDates[0]);
     filterSubstations.forEach((v) => params.append('substation', v));
+    filterSecondarySubstations.forEach((v) => params.append('secondary', v));
     filterLines.forEach((v) => params.append('line', v));
     filterUnits.forEach((v) => params.append('unit', v));
+    filterMunicipalities.forEach((v) => params.append('municipality', v));
     filterRisk.forEach((v) => params.append('risk', v));
     if (map) {
       const c = map.getCenter();
@@ -115,8 +118,10 @@
     return {
       date: p.get('date') ?? undefined,
       substations: p.getAll('substation'),
+      secondarySubstations: p.getAll('secondary'),
       lines: p.getAll('line'),
       units: p.getAll('unit'),
+      municipalities: p.getAll('municipality'),
       risk: p.getAll('risk'),
     };
   }
@@ -203,32 +208,78 @@
     if (src) {
       src.setData(data as GeoJSON.FeatureCollection);
     } else {
-      map.addSource(id, { type: 'geojson', data: data as GeoJSON.FeatureCollection });
+      map.addSource(id, { type: 'geojson', data: data as GeoJSON.FeatureCollection, generateId: true });
     }
   }
 
-  function addLineLayer(sourceId: string, layerId: string, visible = true, normalColor = '#374151') {
+  function clearHover() {
+    if (!map || hoveredFeatureId === null || !hoveredSourceId) return;
+    map.setFeatureState({ source: hoveredSourceId, id: hoveredFeatureId }, { hover: false });
+    hoveredFeatureId = null;
+    hoveredSourceId = null;
+  }
+
+  function addLineLayer(sourceId: string, layerId: string, visible: boolean, dashArray?: number[]) {
     if (!map || map.getLayer(layerId)) return;
+
+    const paint: Record<string, unknown> = {
+      'line-color': [
+        'case',
+        ['boolean', ['feature-state', 'hover'], false],
+        // hovered
+        ['match', ['get', 'risk_level'],
+          'ALERT',   '#D00000',
+          'WARNING', '#F7D000',
+          '#16a34a',
+        ],
+        // default
+        ['match', ['get', 'risk_level'],
+          'ALERT',   '#D00000',
+          'WARNING', '#F7D000',
+          UNIFORM_GREY,
+        ],
+      ],
+      'line-width': [
+        'case',
+        ['boolean', ['feature-state', 'hover'], false],
+        5, 3,
+      ],
+      'line-opacity': 0.9,
+    };
+
+    if (dashArray) {
+      paint['line-dasharray'] = dashArray;
+    }
+
     map.addLayer({
       id: layerId,
       type: 'line',
       source: sourceId,
-      paint: {
-        'line-color': [
-          'case',
-          ['==', ['get', 'risk_level'], 'NORMAL'], normalColor,
-          ['coalesce', ['get', 'risk_color_hex'], '#808080'],
-        ],
-        'line-width': 3,
-        'line-opacity': 0.9,
-      },
+      paint: paint as maplibregl.LinePaint,
       layout: { 'line-cap': 'round', 'line-join': 'round', visibility: visible ? 'visible' : 'none' },
     });
+
     map.on('click', layerId, (e) => {
-      if (e.features?.[0]) inspectedFeature = e.features[0].properties as Record<string, unknown>;
+      if (!map || !e.features?.[0]) return;
+      showLinePopup(e.lngLat, e.features[0].properties as Record<string, unknown>);
     });
-    map.on('mouseenter', layerId, () => { if (map) map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', layerId, () => { if (map) map.getCanvas().style.cursor = ''; });
+
+    map.on('mouseenter', layerId, (e) => {
+      if (!map) return;
+      map.getCanvas().style.cursor = 'pointer';
+      if (e.features?.[0]) {
+        clearHover();
+        hoveredFeatureId = e.features[0].id as number;
+        hoveredSourceId = sourceId;
+        map.setFeatureState({ source: sourceId, id: hoveredFeatureId }, { hover: true });
+      }
+    });
+
+    map.on('mouseleave', layerId, () => {
+      if (!map) return;
+      map.getCanvas().style.cursor = '';
+      clearHover();
+    });
   }
 
   function addCircleLayer(sourceId: string, layerId: string, visible = true) {
@@ -238,22 +289,159 @@
       type: 'circle',
       source: sourceId,
       paint: {
-        'circle-radius': 2,
+        'circle-radius': 5,
         'circle-color': '#1E88E5',
-        'circle-opacity': 0.8,
+        'circle-opacity': 0.9,
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 1.5,
       },
       layout: { visibility: visible ? 'visible' : 'none' },
     });
     map.on('click', layerId, (e) => {
-      if (e.features?.[0]) inspectedFeature = e.features[0].properties as Record<string, unknown>;
+      if (!map || !e.features?.[0]) return;
+      showCabinePopup(e.lngLat, e.features[0].properties as Record<string, unknown>);
     });
     map.on('mouseenter', layerId, () => { if (map) map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', layerId, () => { if (map) map.getCanvas().style.cursor = ''; });
   }
 
+  function addCabineLabelsLayer(visible = true) {
+    if (!map || map.getLayer('cabine-labels')) return;
+    const isDark =
+      document.documentElement.classList.contains('dark') ||
+      (!document.documentElement.classList.contains('light') &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+    map.addLayer({
+      id: 'cabine-labels',
+      type: 'symbol',
+      source: 'cabine',
+      minzoom: 12,
+      layout: {
+        'text-field': ['concat',
+          ['coalesce', ['get', 'name'], ''], ' - ', ['coalesce', ['get', 'label_id'], ''],
+          '\nLMT: ', ['coalesce', ['get', 'line_name'], ['get', 'asset_key']],
+          '\nCP: ', ['coalesce', ['get', 'parent_substation_name'], '-'],
+        ],
+        'text-size': 10,
+        'text-offset': [0, 1.8],
+        'text-anchor': 'top',
+        'text-max-width': 18,
+        'text-allow-overlap': false,
+        visibility: visible ? 'visible' : 'none',
+      },
+      paint: {
+        'text-color': isDark ? '#e2e8f0' : '#374151',
+        'text-halo-color': isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+        'text-halo-width': 1.5,
+      },
+    });
+  }
+
   function setLayerVisibility(layerId: string, visible: boolean) {
     if (!map || !map.getLayer(layerId)) return;
     map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Popup / Tooltip
+  // ---------------------------------------------------------------------------
+  function popupRow(label: string, value: unknown, filterType?: string): string {
+    if (value === null || value === undefined || value === '') return '';
+    const v = typeof value === 'number' ? value.toFixed(2).replace(/\.?0+$/, '') : String(value);
+    const valHtml = filterType
+      ? `<a href="#" data-filter-type="${filterType}" data-filter-value="${v}" style="font-weight:500;color:#0d9488;cursor:pointer;text-decoration:none">${v}</a>`
+      : `<span style="font-weight:500">${v}</span>`;
+    return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:12px"><span style="color:#64748b">${label}</span>${valHtml}</div>`;
+  }
+
+  function handlePopupFilterClick(e: Event) {
+    const link = (e.target as HTMLElement).closest('[data-filter-type]') as HTMLElement | null;
+    if (!link) return;
+    e.preventDefault();
+    const type = link.dataset.filterType!;
+    const value = link.dataset.filterValue!;
+    currentPopup?.remove();
+
+    function addUnique(arr: string[], val: string): string[] {
+      return arr.includes(val) ? arr : [...arr, val];
+    }
+
+    switch (type) {
+      case 'substation':
+        filterSubstations = addUnique(filterSubstations, value);
+        break;
+      case 'line':
+        filterLines = addUnique(filterLines, value);
+        break;
+      case 'municipality':
+        filterMunicipalities = addUnique(filterMunicipalities, value);
+        break;
+    }
+
+    syncUrl();
+    loadAllData();
+  }
+
+  function attachPopupLinks() {
+    currentPopup?.getElement()?.addEventListener('click', handlePopupFilterClick);
+  }
+
+  function showLinePopup(lngLat: maplibregl.LngLat, props: Record<string, unknown>) {
+    if (!map) return;
+    currentPopup?.remove();
+
+    const riskLevel = String(props.risk_level ?? 'NORMAL');
+    const riskColors: Record<string, string> = { ALERT: '#D00000', WARNING: '#F7D000', NORMAL: '#00A000' };
+    const lineName = String(props.line_name ?? props.asset_key ?? '—');
+    const conductorType = String(props.conductor_type ?? '');
+    const isHeat = conductorType === 'underground_cable';
+
+    let html = `<div style="font-weight:700;font-size:13px;margin-bottom:6px;border-bottom:1px solid #e2e8f0;padding-bottom:6px">${lineName}</div>`;
+    html += `<div style="margin-bottom:8px"><span style="background:${riskColors[riskLevel] ?? '#808080'};color:#fff;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700">${riskLevel}</span></div>`;
+    html += popupRow($_('panel.conductor_type'), $_(`conductor.${conductorType}`, { default: conductorType }));
+    html += popupRow($_('panel.substation_name'), props.parent_substation_name, 'substation');
+    html += popupRow($_('panel.operational_unit'), props.operational_unit);
+    html += popupRow($_('panel.municipality'), props.municipality, 'municipality');
+    html += popupRow($_('panel.line_mt'), lineName, 'line');
+
+    if (isHeat) {
+      html += popupRow($_('panel.temp_max_c'), props.temp_max_c);
+      html += popupRow($_('panel.p90_threshold'), props.p90_threshold);
+      html += popupRow($_('panel.consecutive_heat_days'), props.consecutive_heat_days);
+    } else {
+      html += popupRow($_('panel.gust_excess'), props.gust_excess);
+      html += popupRow($_('panel.wind_speed_max'), props.wind_speed_max);
+      html += popupRow($_('panel.wind_gusts_max'), props.wind_gusts_max);
+    }
+
+    currentPopup = new maplibregl.Popup({ closeOnClick: true, maxWidth: '280px' })
+      .setLngLat(lngLat)
+      .setHTML(html)
+      .addTo(map);
+    attachPopupLinks();
+  }
+
+  function showCabinePopup(lngLat: maplibregl.LngLat, props: Record<string, unknown>) {
+    if (!map) return;
+    currentPopup?.remove();
+
+    const cabName = String(props.name ?? '—');
+    const lineName = props.line_name
+      ?? secondarySubIndex.get(cabName)?.lineNames[0]
+      ?? null;
+    let html = `<div style="font-weight:700;font-size:13px;margin-bottom:6px;border-bottom:1px solid #e2e8f0;padding-bottom:6px">${cabName}</div>`;
+    html += popupRow($_('panel.code'), props.label_id ?? props.asset_key);
+    html += popupRow($_('panel.line_mt'), lineName, 'line');
+    html += popupRow($_('panel.primary_substation'), props.parent_substation_name, 'substation');
+    html += popupRow($_('panel.operational_unit'), props.operational_unit);
+    html += popupRow($_('panel.municipality'), props.municipality, 'municipality');
+
+    currentPopup = new maplibregl.Popup({ closeOnClick: true, maxWidth: '280px' })
+      .setLngLat(lngLat)
+      .setHTML(html)
+      .addTo(map);
+    attachPopupLinks();
   }
 
   // ---------------------------------------------------------------------------
@@ -272,39 +460,79 @@
 
   function restoreLayers() {
     if (!map) return;
-    if (windData.features.length) {
-      upsertGeoJsonSource('wind', windData);
-      addLineLayer('wind', 'wind-lines', showWind, NORMAL_COLOR_WIND);
+    if (overheadBareData.features.length) {
+      upsertGeoJsonSource('overhead-bare', overheadBareData);
+      addLineLayer('overhead-bare', 'lines-overhead-bare', showOverheadBare);
     }
-    if (heatData.features.length) {
-      upsertGeoJsonSource('heat', heatData);
-      addLineLayer('heat', 'heat-lines', showHeat, NORMAL_COLOR_HEAT);
+    if (overheadInsulatedData.features.length) {
+      upsertGeoJsonSource('overhead-insulated', overheadInsulatedData);
+      addLineLayer('overhead-insulated', 'lines-overhead-insulated', showOverheadInsulated, [2, 4]);
+    }
+    if (undergroundCableData.features.length) {
+      upsertGeoJsonSource('underground-cable', undergroundCableData);
+      addLineLayer('underground-cable', 'lines-underground-cable', showUndergroundCable, [8, 4]);
     }
     if (cabineData.features.length) {
       upsertGeoJsonSource('cabine', cabineData);
       addCircleLayer('cabine', 'cabine-points', showCabine);
+      addCabineLabelsLayer(showCabine);
     }
+    updateLayerFilters();
   }
 
   // ---------------------------------------------------------------------------
-  // Data loading — shape cache + client-side join
+  // Data
   // ---------------------------------------------------------------------------
-  let windData: FeatureCollection = { type: 'FeatureCollection', features: [] };
-  let heatData: FeatureCollection = { type: 'FeatureCollection', features: [] };
-  let cabineData: FeatureCollection = { type: 'FeatureCollection', features: [] };
+  let overheadBareData: FeatureCollection = emptyFC();
+  let overheadInsulatedData: FeatureCollection = emptyFC();
+  let undergroundCableData: FeatureCollection = emptyFC();
+  let cabineData: FeatureCollection = emptyFC();
 
-  // Shapes loaded once; split into three layer buckets by conductor type.
-  // baseWind/baseHeat hold the permanent grey topology — applyRisks always starts from these.
-  let baseWindData: FeatureCollection = { type: 'FeatureCollection', features: [] };
-  let baseHeatData: FeatureCollection = { type: 'FeatureCollection', features: [] };
+  let baseOverheadBareData: FeatureCollection = emptyFC();
+  let baseOverheadInsulatedData: FeatureCollection = emptyFC();
+  let baseUndergroundCableData: FeatureCollection = emptyFC();
+
   let shapesLoaded = false;
+
+  // Lightweight lookup for secondary substations — populated once in loadShapes
+  // Maps substation name → { parent, lineNames }
+  let secondarySubIndex = $state<Map<string, { parent: string; lineNames: string[] }>>(new Map());
+
+  const availSecondarySubstations = $derived.by(() => {
+    if (!secondarySubIndex.size) return [] as string[];
+    if (!filterSubstations.length) return [...secondarySubIndex.keys()].sort();
+    return [...secondarySubIndex.entries()]
+      .filter(([, info]) => filterSubstations.includes(info.parent))
+      .map(([name]) => name)
+      .sort();
+  });
+
+  // Clean up invalid secondary selections when available list changes
+  $effect(() => {
+    if (!filterSecondarySubstations.length) return;
+    const valid = new Set(availSecondarySubstations);
+    const cleaned = filterSecondarySubstations.filter((s) => valid.has(s));
+    if (cleaned.length !== filterSecondarySubstations.length) {
+      filterSecondarySubstations = cleaned;
+    }
+  });
 
   async function loadShapes() {
     if (shapesLoaded) return;
 
-    const fc = await getShapes(NETWORK_ID);
+    let fc: FeatureCollection;
+    try {
+      fc = await getShapes(NETWORK_ID);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[grid] Failed to load shapes:', msg);
+      loadError = `Failed to load grid topology: ${msg}`;
+      loading = false;
+      throw err;
+    }
 
-    const overhead: GeoFeature[] = [];
+    const bare: GeoFeature[] = [];
+    const insulated: GeoFeature[] = [];
     const underground: GeoFeature[] = [];
     const substations: GeoFeature[] = [];
 
@@ -312,28 +540,55 @@
       if (!f.geometry) continue;
       const p = f.properties as unknown as GridShapeProperties;
       const base = { ...f, properties: { ...p, risk_level: 'NORMAL', risk_color_hex: null } };
-      if (p.asset_type === 'substation') substations.push(base);
-      else if (p.conductor_type === 'underground_cable') underground.push(base);
-      else overhead.push(base);
+      if (p.asset_type === 'substation') {
+        substations.push(base);
+      } else {
+        switch (p.conductor_type) {
+          case 'overhead_insulated': insulated.push(base); break;
+          case 'underground_cable': underground.push(base); break;
+          default: bare.push(base); break;
+        }
+      }
     }
 
     shapesLoaded = true;
 
-    baseWindData = { type: 'FeatureCollection', features: overhead };
-    windData = baseWindData;
-    upsertGeoJsonSource('wind', windData);
-    addLineLayer('wind', 'wind-lines', showWind, NORMAL_COLOR_WIND);
+    baseOverheadBareData = { type: 'FeatureCollection', features: bare };
+    overheadBareData = baseOverheadBareData;
+    upsertGeoJsonSource('overhead-bare', overheadBareData);
+    addLineLayer('overhead-bare', 'lines-overhead-bare', showOverheadBare);
 
-    baseHeatData = { type: 'FeatureCollection', features: underground };
-    heatData = baseHeatData;
-    upsertGeoJsonSource('heat', heatData);
-    addLineLayer('heat', 'heat-lines', showHeat, NORMAL_COLOR_HEAT);
+    baseOverheadInsulatedData = { type: 'FeatureCollection', features: insulated };
+    overheadInsulatedData = baseOverheadInsulatedData;
+    upsertGeoJsonSource('overhead-insulated', overheadInsulatedData);
+    addLineLayer('overhead-insulated', 'lines-overhead-insulated', showOverheadInsulated, [2, 4]);
+
+    baseUndergroundCableData = { type: 'FeatureCollection', features: underground };
+    undergroundCableData = baseUndergroundCableData;
+    upsertGeoJsonSource('underground-cable', undergroundCableData);
+    addLineLayer('underground-cable', 'lines-underground-cable', showUndergroundCable, [8, 4]);
 
     cabineData = { type: 'FeatureCollection', features: substations };
     upsertGeoJsonSource('cabine', cabineData);
     addCircleLayer('cabine', 'cabine-points', showCabine);
+    addCabineLabelsLayer(showCabine);
 
-    fitToData(windData, heatData, cabineData);
+    // Build secondary substation index for hierarchical filter
+    const subIdx = new Map<string, { parent: string; lineNames: string[] }>();
+    for (const f of substations) {
+      const p = f.properties as unknown as GridShapeProperties;
+      if (!p.name) continue;
+      const existing = subIdx.get(p.name);
+      const ln = p.line_name ?? p.asset_key;
+      if (existing) {
+        if (ln && !existing.lineNames.includes(ln)) existing.lineNames.push(ln);
+      } else {
+        subIdx.set(p.name, { parent: p.parent_substation_name ?? '', lineNames: ln ? [ln] : [] });
+      }
+    }
+    secondarySubIndex = subIdx;
+
+    fitToData(overheadBareData, overheadInsulatedData, undergroundCableData, cabineData);
   }
 
   function applyRisks(risks: GridRisk[]) {
@@ -352,30 +607,115 @@
       };
     }
 
-    windData = recolor(baseWindData);
-    upsertGeoJsonSource('wind', windData);
+    overheadBareData = recolor(baseOverheadBareData);
+    upsertGeoJsonSource('overhead-bare', overheadBareData);
 
-    heatData = recolor(baseHeatData);
-    upsertGeoJsonSource('heat', heatData);
+    overheadInsulatedData = recolor(baseOverheadInsulatedData);
+    upsertGeoJsonSource('overhead-insulated', overheadInsulatedData);
+
+    undergroundCableData = recolor(baseUndergroundCableData);
+    upsertGeoJsonSource('underground-cable', undergroundCableData);
   }
 
   async function loadAllData() {
     loading = true;
-    await loadShapes();
+    loadError = null;
+    try {
+      await loadShapes();
+    } catch {
+      return;
+    }
 
     const f = buildFilters();
     const risks = await getRisks(f).catch(() => [] as GridRisk[]);
 
     applyRisks(risks);
+    updateLayerFilters();
     loading = false;
   }
 
+  // ---------------------------------------------------------------------------
+  // Client-side layer filtering via MapLibre filter expressions
+  // ---------------------------------------------------------------------------
+  function updateLayerFilters() {
+    if (!map) return;
+
+    const lineConditions: unknown[] = [];
+    if (filterSubstations.length) {
+      lineConditions.push(['in', ['get', 'parent_substation_name'], ['literal', filterSubstations]]);
+    }
+    if (filterSecondarySubstations.length) {
+      const lineNames = new Set<string>();
+      for (const name of filterSecondarySubstations) {
+        const info = secondarySubIndex.get(name);
+        if (info) info.lineNames.forEach((ln) => lineNames.add(ln));
+      }
+      if (lineNames.size) {
+        lineConditions.push(['in', ['get', 'asset_key'], ['literal', [...lineNames]]]);
+      }
+    }
+    if (filterLines.length) {
+      lineConditions.push(['in', ['get', 'asset_key'], ['literal', filterLines]]);
+    }
+    if (filterUnits.length) {
+      lineConditions.push(['in', ['get', 'operational_unit'], ['literal', filterUnits]]);
+    }
+    if (filterMunicipalities.length) {
+      lineConditions.push(['in', ['get', 'municipality'], ['literal', filterMunicipalities]]);
+    }
+    if (filterRisk.length) {
+      lineConditions.push(['in', ['get', 'risk_level'], ['literal', filterRisk]]);
+    }
+
+    const lineFilter: unknown = lineConditions.length ? ['all', ...lineConditions] : null;
+
+    for (const def of LINE_LAYER_DEFS) {
+      if (map.getLayer(def.layerId)) {
+        map.setFilter(def.layerId, lineFilter as maplibregl.FilterSpecification | null);
+      }
+    }
+
+    // Cabine filter — same filters as lines (except risk), plus secondary name
+    const cabineConditions: unknown[] = [];
+    if (filterSubstations.length) {
+      cabineConditions.push(['in', ['get', 'parent_substation_name'], ['literal', filterSubstations]]);
+    }
+    if (filterSecondarySubstations.length) {
+      cabineConditions.push(['in', ['get', 'name'], ['literal', filterSecondarySubstations]]);
+    }
+    if (filterLines.length) {
+      cabineConditions.push([
+        'any',
+        ['in', ['get', 'line_name'], ['literal', filterLines]],
+        ['in', ['get', 'asset_key'], ['literal', filterLines]],
+      ]);
+    }
+    if (filterUnits.length) {
+      cabineConditions.push(['in', ['get', 'operational_unit'], ['literal', filterUnits]]);
+    }
+    if (filterMunicipalities.length) {
+      cabineConditions.push(['in', ['get', 'municipality'], ['literal', filterMunicipalities]]);
+    }
+    const cabineFilter: unknown = cabineConditions.length ? ['all', ...cabineConditions] : null;
+    if (map.getLayer('cabine-points')) {
+      map.setFilter('cabine-points', cabineFilter as maplibregl.FilterSpecification | null);
+    }
+    if (map.getLayer('cabine-labels')) {
+      map.setFilter('cabine-labels', cabineFilter as maplibregl.FilterSpecification | null);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Filter callbacks
+  // ---------------------------------------------------------------------------
   function applyFilters(f: {
-    substations: string[]; lines: string[]; units: string[]; risk: string[];
+    substations: string[]; secondarySubstations: string[]; lines: string[]; units: string[]; municipalities: string[]; risk: string[];
   }) {
     filterSubstations = f.substations;
+    filterSecondarySubstations = f.secondarySubstations;
     filterLines = f.lines;
     filterUnits = f.units;
+    filterMunicipalities = f.municipalities;
     filterRisk = f.risk;
     syncUrl();
     loadAllData();
@@ -390,13 +730,16 @@
   // ---------------------------------------------------------------------------
   // Layer visibility reactivity
   // ---------------------------------------------------------------------------
-  $effect(() => { setLayerVisibility('wind-lines', showWind); });
-  $effect(() => { setLayerVisibility('heat-lines', showHeat); });
-  $effect(() => { setLayerVisibility('cabine-points', showCabine); });
-
-  // Swap basemap style when theme changes
+  $effect(() => { setLayerVisibility('lines-overhead-bare', showOverheadBare); });
+  $effect(() => { setLayerVisibility('lines-overhead-insulated', showOverheadInsulated); });
+  $effect(() => { setLayerVisibility('lines-underground-cable', showUndergroundCable); });
   $effect(() => {
-    $themeOverride; // subscribe to trigger on theme change
+    setLayerVisibility('cabine-points', showCabine);
+    setLayerVisibility('cabine-labels', showCabine);
+  });
+
+  $effect(() => {
+    $themeOverride;
     if (!map) return;
     const newStyle = currentStyleUrl();
     if (newStyle !== activeMapStyle) {
@@ -420,7 +763,6 @@
       zoom: mapState?.zoom ?? 2,
     });
 
-    // Don't override URL-provided viewport with fitToData.
     if (mapState) hasFit = true;
 
     map.addControl(new maplibregl.NavigationControl(), 'top-left');
@@ -430,11 +772,12 @@
     map.on('style.load', restoreLayers);
 
     map.on('load', async () => {
-      // Restore URL filters, default date to today.
       const urlFilters = readUrlFilters();
       if (urlFilters.substations.length) filterSubstations = urlFilters.substations;
+      if (urlFilters.secondarySubstations.length) filterSecondarySubstations = urlFilters.secondarySubstations;
       if (urlFilters.lines.length) filterLines = urlFilters.lines;
       if (urlFilters.units.length) filterUnits = urlFilters.units;
+      if (urlFilters.municipalities.length) filterMunicipalities = urlFilters.municipalities;
       if (urlFilters.risk.length) filterRisk = urlFilters.risk;
 
       const todayStr = new Date().toISOString().slice(0, 10);
@@ -443,12 +786,12 @@
         ? dateFromUrl
         : todayStr];
 
-      // Fetch filter metadata (autocomplete values + network extent).
       const filters = await getFilters(NETWORK_ID).catch(() => null);
       if (filters) {
         availSubstations = filters.parent_substations;
         availLines = filters.lines;
         availUnits = filters.operational_units;
+        availMunicipalities = filters.municipalities;
 
         if (!hasFit && filters.extent_min_lng != null) {
           map!.fitBounds(
@@ -459,7 +802,6 @@
         }
       }
 
-      // Always load shapes + risks for the resolved date.
       loadAllData();
     });
 
@@ -468,22 +810,32 @@
 </script>
 
 <div class="page">
-  <!-- ── Body: sidebar + map ──────────────────────────────────────── -->
   <div class="body">
     <FilterBar
       substations={availSubstations}
+      secondarySubstations={availSecondarySubstations}
       lines={availLines}
       units={availUnits}
+      municipalities={availMunicipalities}
       selectedDate={selectedDate}
       {minDate}
       {maxDate}
       bind:selectedSubstations={filterSubstations}
+      bind:selectedSecondarySubstations={filterSecondarySubstations}
       bind:selectedLines={filterLines}
       bind:selectedUnits={filterUnits}
+      bind:selectedMunicipalities={filterMunicipalities}
       bind:selectedRisk={filterRisk}
       onchange={applyFilters}
       ondatechange={onDateChange}
-      onexport={(type) => exportCsv(type === 'wind' ? windData : heatData, `${type}_risk.csv`)}
+      onexport={(type) => {
+        if (type === 'wind') {
+          const merged = { type: 'FeatureCollection' as const, features: [...overheadBareData.features, ...overheadInsulatedData.features] };
+          exportCsv(merged, 'wind_risk.csv');
+        } else {
+          exportCsv(undergroundCableData, 'heat_risk.csv');
+        }
+      }}
       onshare={shareLink}
     />
 
@@ -491,14 +843,19 @@
       <!-- Layer toggles -->
       <div class="layer-controls">
         <label class="layer-toggle">
-          <input type="checkbox" bind:checked={showWind} />
-          <span class="swatch swatch-risk"></span>
-          {$_('layer.wind')}
+          <input type="checkbox" bind:checked={showOverheadBare} />
+          <span class="swatch swatch-line-solid"></span>
+          {$_('conductor.overhead_bare')}
         </label>
         <label class="layer-toggle">
-          <input type="checkbox" bind:checked={showHeat} />
-          <span class="swatch swatch-risk"></span>
-          {$_('layer.heat')}
+          <input type="checkbox" bind:checked={showOverheadInsulated} />
+          <span class="swatch swatch-line-dotted"></span>
+          {$_('conductor.overhead_insulated')}
+        </label>
+        <label class="layer-toggle">
+          <input type="checkbox" bind:checked={showUndergroundCable} />
+          <span class="swatch swatch-line-dashed"></span>
+          {$_('conductor.underground_cable')}
         </label>
         <label class="layer-toggle">
           <input type="checkbox" bind:checked={showCabine} />
@@ -515,7 +872,13 @@
         </div>
       {/if}
 
-      <LineInspectPanel feature={inspectedFeature} onclose={() => (inspectedFeature = null)} />
+      {#if loadError}
+        <div class="map-error">
+          <span class="error-text">{loadError}</span>
+          <button class="error-retry" onclick={() => loadAllData()}>Retry</button>
+          <button class="error-dismiss" onclick={() => (loadError = null)}>✕</button>
+        </div>
+      {/if}
     </div>
   </div>
 </div>
@@ -528,7 +891,6 @@
     overflow: hidden;
   }
 
-  /* ── Body ────────────────────────────────────── */
   .body {
     flex: 1;
     display: flex;
@@ -536,7 +898,6 @@
     overflow: hidden;
   }
 
-  /* ── Map area ────────────────────────────────── */
   .map-area {
     flex: 1;
     position: relative;
@@ -548,7 +909,6 @@
     height: 100%;
   }
 
-  /* ── Loading overlay ─────────────────────── */
   .map-loader {
     position: absolute;
     inset: 0;
@@ -563,6 +923,76 @@
 
   :global(.dark) .map-loader {
     background: rgba(0, 0, 0, 0.35);
+  }
+
+  .map-error {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+    z-index: 30;
+    max-width: 90%;
+  }
+
+  :global(.dark) .map-error {
+    background: #450a0a;
+    border-color: #991b1b;
+  }
+
+  .error-text {
+    font-size: 0.8rem;
+    color: #991b1b;
+  }
+
+  :global(.dark) .error-text {
+    color: #fca5a5;
+  }
+
+  .error-retry {
+    padding: 0.25rem 0.625rem;
+    border-radius: 6px;
+    border: 1px solid #fca5a5;
+    background: none;
+    color: #991b1b;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .error-retry:hover {
+    background: #fee2e2;
+  }
+
+  :global(.dark) .error-retry {
+    color: #fca5a5;
+    border-color: #991b1b;
+  }
+
+  :global(.dark) .error-retry:hover {
+    background: #7f1d1d;
+  }
+
+  .error-dismiss {
+    background: none;
+    border: none;
+    color: #991b1b;
+    cursor: pointer;
+    font-size: 0.875rem;
+    padding: 0 0.125rem;
+    line-height: 1;
+  }
+
+  :global(.dark) .error-dismiss {
+    color: #fca5a5;
   }
 
   .spinner {
@@ -618,13 +1048,33 @@
     flex-shrink: 0;
   }
 
-  .swatch.swatch-risk {
-    background: linear-gradient(to right, #D00000 33%, #F08000 33% 66%, #16a34a 66%);
+  .swatch-line-solid {
+    background: #6b7280;
+  }
+
+  .swatch-line-dotted {
+    background: repeating-linear-gradient(90deg, #6b7280 0 2px, transparent 2px 5px);
+    height: 4px;
+  }
+
+  .swatch-line-dashed {
+    background: repeating-linear-gradient(90deg, #6b7280 0 6px, transparent 6px 10px);
+    height: 4px;
   }
 
   .swatch.swatch-dot {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
+  }
+
+  /* MapLibre popup styling */
+  :global(.maplibregl-popup-content) {
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--celine-text, #1e293b);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   }
 </style>

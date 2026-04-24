@@ -4,19 +4,25 @@
 
   interface Props {
     substations: string[];
+    secondarySubstations: string[];
     lines: string[];
     units: string[];
+    municipalities: string[];
     selectedDate: string;
     selectedSubstations: string[];
+    selectedSecondarySubstations: string[];
     selectedLines: string[];
     selectedUnits: string[];
+    selectedMunicipalities: string[];
     selectedRisk: string[];
     minDate: string;
     maxDate: string;
     onchange: (filters: {
       substations: string[];
+      secondarySubstations: string[];
       lines: string[];
       units: string[];
+      municipalities: string[];
       risk: string[];
     }) => void;
     ondatechange: (date: string) => void;
@@ -26,12 +32,16 @@
 
   let {
     substations = [],
+    secondarySubstations = [],
     lines = [],
     units = [],
+    municipalities = [],
     selectedDate = '',
     selectedSubstations = $bindable([]),
+    selectedSecondarySubstations = $bindable([]),
     selectedLines = $bindable([]),
     selectedUnits = $bindable([]),
+    selectedMunicipalities = $bindable([]),
     selectedRisk = $bindable([]),
     minDate = '',
     maxDate = '',
@@ -105,26 +115,34 @@
   function apply() {
     onchange({
       substations: selectedSubstations,
+      secondarySubstations: selectedSecondarySubstations,
       lines: selectedLines,
       units: selectedUnits,
+      municipalities: selectedMunicipalities,
       risk: selectedRisk,
     });
   }
 
   function reset() {
     selectedSubstations = [];
+    selectedSecondarySubstations = [];
     selectedLines = [];
     selectedUnits = [];
+    selectedMunicipalities = [];
     selectedRisk = [];
-    onchange({ substations: [], lines: [], units: [], risk: [] });
+    onchange({ substations: [], secondarySubstations: [], lines: [], units: [], municipalities: [], risk: [] });
     ondatechange(todayStr);
   }
 
-  const hasFilters = $derived(
-    selectedSubstations.length + selectedLines.length +
-    selectedUnits.length + selectedRisk.length > 0 ||
-    (!!selectedDate && selectedDate !== todayStr)
-  );
+  let hasFilters = $state(false);
+
+  $effect(() => {
+    hasFilters =
+      selectedSubstations.length + selectedSecondarySubstations.length +
+      selectedLines.length + selectedUnits.length +
+      selectedMunicipalities.length + selectedRisk.length > 0 ||
+      (!!selectedDate && selectedDate !== todayStr);
+  });
 </script>
 
 <aside class="sidebar" class:collapsed>
@@ -195,6 +213,11 @@
         </div>
 
         <div class="filter-group">
+          <span class="filter-label">{$_('filter.secondary_substation')}</span>
+          <AutocompleteSelect options={secondarySubstations} bind:selected={selectedSecondarySubstations} placeholder="Search secondary…" />
+        </div>
+
+        <div class="filter-group">
           <span class="filter-label">{$_('filter.line')}</span>
           <AutocompleteSelect options={lines} bind:selected={selectedLines} placeholder="Search lines…" />
         </div>
@@ -202,6 +225,11 @@
         <div class="filter-group">
           <span class="filter-label">{$_('filter.unit')}</span>
           <AutocompleteSelect options={units} bind:selected={selectedUnits} placeholder="Search units…" />
+        </div>
+
+        <div class="filter-group">
+          <span class="filter-label">{$_('filter.municipality')}</span>
+          <AutocompleteSelect options={municipalities} bind:selected={selectedMunicipalities} placeholder="Search municipalities…" />
         </div>
 
         <div class="filter-group">

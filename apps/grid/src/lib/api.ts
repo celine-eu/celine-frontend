@@ -159,6 +159,7 @@ export interface GridShapeProperties {
   segment_id: string;
   asset_type: 'ac_line_segment' | 'substation';
   asset_key: string;
+  line_name?: string;
   conductor_type?: string;
   parent_substation_name?: string;
   operational_unit?: string;
@@ -169,6 +170,7 @@ export interface GridShapeProperties {
   voltage_class?: string;
   label?: string;
   label_id?: string;
+  name?: string;
 }
 
 export interface GridRisk {
