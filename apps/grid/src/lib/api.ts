@@ -212,6 +212,13 @@ export const getRisks = (f: GridFilters) => {
     .then((r) => r.items);
 };
 
+export const getRisksNow = (networkId: string, riskVector?: string[]) => {
+  const params: Record<string, string | string[]> = {};
+  if (riskVector?.length) params['risk_vector'] = riskVector;
+  return j<FetchResult<GridRisk>>(gridUrl(networkId, '/risks-now', params))
+    .then((r) => r.items);
+};
+
 export const getTrendline = (
   networkId: string,
   dateFrom: string,

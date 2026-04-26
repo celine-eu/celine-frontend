@@ -2,7 +2,10 @@
   import { _ } from 'svelte-i18n';
   import AutocompleteSelect from './AutocompleteSelect.svelte';
 
+  type DataMode = 'forecast' | 'nowcasting';
+
   interface Props {
+    mode: DataMode;
     substations: string[];
     secondarySubstations: string[];
     lines: string[];
@@ -26,11 +29,13 @@
       risk: string[];
     }) => void;
     ondatechange: (date: string) => void;
+    onmodechange: (mode: DataMode) => void;
     onexport: (type: 'wind' | 'heat') => void;
     onshare: () => void;
   }
 
   let {
+    mode = 'forecast',
     substations = [],
     secondarySubstations = [],
     lines = [],
@@ -47,6 +52,7 @@
     maxDate = '',
     onchange,
     ondatechange,
+    onmodechange,
     onexport,
     onshare,
   }: Props = $props();
@@ -131,6 +137,7 @@
     selectedMunicipalities = [];
     selectedRisk = [];
     onchange({ substations: [], secondarySubstations: [], lines: [], units: [], municipalities: [], risk: [] });
+    onmodechange('forecast');
     ondatechange(todayStr);
   }
 
@@ -138,6 +145,7 @@
 
   $effect(() => {
     hasFilters =
+      mode === 'nowcasting' ||
       selectedSubstations.length + selectedSecondarySubstations.length +
       selectedLines.length + selectedUnits.length +
       selectedMunicipalities.length + selectedRisk.length > 0 ||
@@ -173,7 +181,25 @@
       </div>
 
       <div class="sidebar-body">
-        <!-- Date picker -->
+        <!-- Mode toggle -->
+        <div class="filter-group">
+          <span class="filter-label">{$_('filter.mode', { default: 'Data source' })}</span>
+          <div class="mode-toggle">
+            <button
+              class="mode-btn"
+              class:active={mode === 'forecast'}
+              onclick={() => onmodechange('forecast')}
+            >{$_('filter.mode_forecast')}</button>
+            <button
+              class="mode-btn"
+              class:active={mode === 'nowcasting'}
+              onclick={() => onmodechange('nowcasting')}
+            >{$_('filter.mode_nowcasting')}</button>
+          </div>
+        </div>
+
+        <!-- Date picker (forecast only) -->
+        {#if mode === 'forecast'}
         <div class="filter-group">
           <span class="filter-label">{$_('filter.date', { default: 'Date' })}</span>
           <div class="date-row">
@@ -206,6 +232,7 @@
             >{$_('filter.tomorrow')}</button>
           </div>
         </div>
+        {/if}
 
         <div class="filter-group">
           <span class="filter-label">{$_('filter.substation')}</span>
@@ -592,5 +619,40 @@
     border-color: var(--celine-primary, #0d9488);
     color: var(--celine-primary, #0d9488);
     background: var(--celine-bg-hover, #f0fdfa);
+  }
+
+  /* ── Mode toggle ────────────────────────── */
+  .mode-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--celine-border, #e2e8f0);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .mode-btn {
+    flex: 1;
+    padding: 0.3rem 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: inherit;
+    border: none;
+    background: transparent;
+    color: var(--celine-text-muted, #64748b);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .mode-btn:not(:last-child) {
+    border-right: 1px solid var(--celine-border, #e2e8f0);
+  }
+
+  .mode-btn:hover:not(.active) {
+    background: var(--celine-bg-hover, #f1f5f9);
+  }
+
+  .mode-btn.active {
+    background: var(--celine-primary, #0d9488);
+    color: #fff;
   }
 </style>

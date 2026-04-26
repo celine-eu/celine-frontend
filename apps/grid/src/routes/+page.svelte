@@ -13,12 +13,15 @@
     getFilters,
     getShapes,
     getRisks,
+    getRisksNow,
     type FeatureCollection,
     type GeoFeature,
     type GridFilters,
     type GridShapeProperties,
     type GridRisk,
   } from '$lib/api';
+
+  type DataMode = 'forecast' | 'nowcasting';
 
   // ---------------------------------------------------------------------------
   // Network ID
@@ -43,6 +46,7 @@
   let loading = $state(false);
   let loadError = $state<string | null>(null);
 
+  let dataMode = $state<DataMode>('forecast');
   let filterDates = $state<string[]>([]);
   let filterSubstations = $state<string[]>([]);
   let filterSecondarySubstations = $state<string[]>([]);
@@ -97,6 +101,7 @@
   // ---------------------------------------------------------------------------
   function syncUrl() {
     const params = new URLSearchParams();
+    if (dataMode === 'nowcasting') params.set('mode', 'nowcasting');
     if (filterDates[0]) params.set('date', filterDates[0]);
     filterSubstations.forEach((v) => params.append('substation', v));
     filterSecondarySubstations.forEach((v) => params.append('secondary', v));
@@ -116,6 +121,7 @@
   function readUrlFilters() {
     const p = new URLSearchParams(window.location.search);
     return {
+      mode: (p.get('mode') === 'nowcasting' ? 'nowcasting' : 'forecast') as DataMode,
       date: p.get('date') ?? undefined,
       substations: p.getAll('substation'),
       secondarySubstations: p.getAll('secondary'),
@@ -626,8 +632,13 @@
       return;
     }
 
-    const f = buildFilters();
-    const risks = await getRisks(f).catch(() => [] as GridRisk[]);
+    let risks: GridRisk[];
+    if (dataMode === 'nowcasting') {
+      risks = await getRisksNow(NETWORK_ID).catch(() => [] as GridRisk[]);
+    } else {
+      const f = buildFilters();
+      risks = await getRisks(f).catch(() => [] as GridRisk[]);
+    }
 
     applyRisks(risks);
     updateLayerFilters();
@@ -727,6 +738,13 @@
     loadAllData();
   }
 
+  function onModeChange(newMode: DataMode) {
+    if (newMode === dataMode) return;
+    dataMode = newMode;
+    syncUrl();
+    loadAllData();
+  }
+
   // ---------------------------------------------------------------------------
   // Layer visibility reactivity
   // ---------------------------------------------------------------------------
@@ -773,6 +791,7 @@
 
     map.on('load', async () => {
       const urlFilters = readUrlFilters();
+      dataMode = urlFilters.mode;
       if (urlFilters.substations.length) filterSubstations = urlFilters.substations;
       if (urlFilters.secondarySubstations.length) filterSecondarySubstations = urlFilters.secondarySubstations;
       if (urlFilters.lines.length) filterLines = urlFilters.lines;
@@ -812,6 +831,7 @@
 <div class="page">
   <div class="body">
     <FilterBar
+      mode={dataMode}
       substations={availSubstations}
       secondarySubstations={availSecondarySubstations}
       lines={availLines}
@@ -828,6 +848,7 @@
       bind:selectedRisk={filterRisk}
       onchange={applyFilters}
       ondatechange={onDateChange}
+      onmodechange={onModeChange}
       onexport={(type) => {
         if (type === 'wind') {
           const merged = { type: 'FeatureCollection' as const, features: [...overheadBareData.features, ...overheadInsulatedData.features] };
