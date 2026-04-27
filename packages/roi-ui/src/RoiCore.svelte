@@ -203,7 +203,7 @@
         equity_fraction: equityFraction,
         ...(hasLoan ? { loan_rate: loanRate / 100, loan_duration_years: loanDuration } : {}),
         location: location.name || '',
-        ...(useLidar ? { rooftop_wkt: location.wkt } : {}),
+        ...(hasWkt ? { rooftop_wkt: location.wkt } : {}),
         ...(batteryKwh > 0 && !useCapexEstimator ? { battery_kwh: batteryKwh } : {}),
         ...(heatPumpKwh > 0 ? { heat_pump_kwh_annual: heatPumpKwh } : {}),
         ...(userType === 'residential' ? { abitazione_principale: abitazionePrincipale } : {}),
