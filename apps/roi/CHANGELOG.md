@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.10.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.9.0...roi-v0.10.0) (2026-04-27)
+
+### Features
+
+* add nowcasting view mode ([b28d886](https://github.com/celine-eu/celine-frontend/commit/b28d8865ff91bbfe027796f50e73a90c8e2ce593))
+* add the flexibility reminder ([287c300](https://github.com/celine-eu/celine-frontend/commit/287c30073f987eedba37983c9cb70c6dbcc877f1))
+* **grid:** review UI components ([fc217c2](https://github.com/celine-eu/celine-frontend/commit/fc217c24bfb3fad9572c89a090fdb4f8c965fb21))
+* refactor to use shapes + risks overlay ([5866348](https://github.com/celine-eu/celine-frontend/commit/58663480797fc80b584107159878d523c592d14d))
+* review ui, add history, improve navigation ([de2a3d1](https://github.com/celine-eu/celine-frontend/commit/de2a3d1ad95be3dd63c78cd17391f8acbffa3082))
+
+### Bug Fixes
+
+* add grid to release workflow ([2ffe1f3](https://github.com/celine-eu/celine-frontend/commit/2ffe1f3c55370fc4d70aebc7ea4ded383d2acee3))
+* correct typing ([4e92b77](https://github.com/celine-eu/celine-frontend/commit/4e92b77197d706de751d8563506bbeb4ba98c0a0))
+* **grid:** correct release-it tag and hook config ([964c2bd](https://github.com/celine-eu/celine-frontend/commit/964c2bda06d4d894cdc21c7bc60f02e29efbf084))
+* linter checks ([11b5467](https://github.com/celine-eu/celine-frontend/commit/11b5467452727cade8bd7026e7557bc55c0e6cac))
+* release ([0b06d89](https://github.com/celine-eu/celine-frontend/commit/0b06d8987d495e4717a6e811a5bc2c553eb45efa))
+* resolve svelte-check errors and warnings blocking release ([d0b3d3b](https://github.com/celine-eu/celine-frontend/commit/d0b3d3bb709088cc698feeb2048199e0c9b315df))
+* roi compare table ([436b554](https://github.com/celine-eu/celine-frontend/commit/436b554d72738ef73b0337a5025f03d1f2fa25d7))
+
 ## [0.9.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.8.0...roi-v0.9.0) (2026-04-16)
 
 ### Features
