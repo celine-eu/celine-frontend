@@ -261,7 +261,7 @@
       id: layerId,
       type: 'line',
       source: sourceId,
-      paint: paint as maplibregl.LinePaint,
+      paint,
       layout: { 'line-cap': 'round', 'line-join': 'round', visibility: visible ? 'visible' : 'none' },
     });
 
