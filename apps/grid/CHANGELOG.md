@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.7.0...grid-v0.8.0) (2026-04-27)
+
+### Features
+
+* add nowcasting view mode ([b28d886](https://github.com/celine-eu/celine-frontend/commit/b28d8865ff91bbfe027796f50e73a90c8e2ce593))
+* **grid:** review UI components ([fc217c2](https://github.com/celine-eu/celine-frontend/commit/fc217c24bfb3fad9572c89a090fdb4f8c965fb21))
+
+### Bug Fixes
+
+* linter checks ([11b5467](https://github.com/celine-eu/celine-frontend/commit/11b5467452727cade8bd7026e7557bc55c0e6cac))
+
 ## [0.7.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.6.0...grid-v0.7.0) (2026-04-22)
 
 ### Features
