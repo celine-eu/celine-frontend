@@ -12,6 +12,7 @@
   import {
     getFilters,
     getShapes,
+    getTileIndex,
     getRisks,
     getRisksNow,
     type FeatureCollection,
@@ -19,6 +20,7 @@
     type GridFilters,
     type GridShapeProperties,
     type GridRisk,
+    type TileInfo,
   } from '$lib/api';
 
   type DataMode = 'forecast' | 'nowcasting';
@@ -500,6 +502,14 @@
 
   let shapesLoaded = false;
 
+  // Tile-based progressive loading state
+  let tileIndex: TileInfo[] = [];
+  let loadedTileIds = new Set<string>();
+  let loadedSegmentIds = new Set<string>();
+  let tilesReady = false;
+  let tileLoadInProgress = false;
+  let currentRisks: GridRisk[] = [];
+
   // Lightweight lookup for secondary substations — populated once in loadShapes
   // Maps substation name → { parent, lineNames }
   let secondarySubIndex = $state<Map<string, { parent: string; lineNames: string[] }>>(new Map());
@@ -523,18 +533,58 @@
     }
   });
 
-  async function loadShapes() {
-    if (shapesLoaded) return;
+  // ---------------------------------------------------------------------------
+  // Tile viewport helpers
+  // ---------------------------------------------------------------------------
+  function tileIntersectsViewport(tile: TileInfo, bounds: maplibregl.LngLatBounds): boolean {
+    const coords = tile.tile_bbox_geojson.coordinates[0];
+    let tMinLng = Infinity, tMinLat = Infinity, tMaxLng = -Infinity, tMaxLat = -Infinity;
+    for (const c of coords) {
+      if (c[0] < tMinLng) tMinLng = c[0];
+      if (c[1] < tMinLat) tMinLat = c[1];
+      if (c[0] > tMaxLng) tMaxLng = c[0];
+      if (c[1] > tMaxLat) tMaxLat = c[1];
+    }
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+    return tMinLng <= ne.lng && tMaxLng >= sw.lng && tMinLat <= ne.lat && tMaxLat >= sw.lat;
+  }
+
+  function categorizeFeature(f: GeoFeature): 'bare' | 'insulated' | 'underground' | 'substation' | null {
+    if (!f.geometry) return null;
+    const p = f.properties as unknown as GridShapeProperties;
+    if (p.asset_type === 'substation') return 'substation';
+    switch (p.conductor_type) {
+      case 'overhead_insulated': return 'insulated';
+      case 'underground_cable': return 'underground';
+      default: return 'bare';
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Progressive tile loading
+  // ---------------------------------------------------------------------------
+  async function loadVisibleTiles() {
+    if (!map || !tilesReady || !tileIndex.length || tileLoadInProgress) return;
+
+    const bounds = map.getBounds();
+    const newTileIds = tileIndex
+      .filter((t) => !loadedTileIds.has(t.tile_id) && tileIntersectsViewport(t, bounds))
+      .map((t) => t.tile_id);
+
+    if (!newTileIds.length) return;
+
+    tileLoadInProgress = true;
+    newTileIds.forEach((id) => loadedTileIds.add(id));
 
     let fc: FeatureCollection;
     try {
-      fc = await getShapes(NETWORK_ID);
+      fc = await getShapes(NETWORK_ID, undefined, newTileIds);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error('[grid] Failed to load shapes:', msg);
-      loadError = `Failed to load grid topology: ${msg}`;
-      loading = false;
-      throw err;
+      newTileIds.forEach((id) => loadedTileIds.delete(id));
+      console.error('[grid] Failed to load tiles:', err);
+      tileLoadInProgress = false;
+      return;
     }
 
     const bare: GeoFeature[] = [];
@@ -543,58 +593,126 @@
     const substations: GeoFeature[] = [];
 
     for (const f of fc.features) {
-      if (!f.geometry) continue;
       const p = f.properties as unknown as GridShapeProperties;
+      if (loadedSegmentIds.has(p.segment_id)) continue;
+      loadedSegmentIds.add(p.segment_id);
+
       const base = { ...f, properties: { ...p, risk_level: 'NORMAL', risk_color_hex: null } };
-      if (p.asset_type === 'substation') {
-        substations.push(base);
-      } else {
-        switch (p.conductor_type) {
-          case 'overhead_insulated': insulated.push(base); break;
-          case 'underground_cable': underground.push(base); break;
-          default: bare.push(base); break;
-        }
-      }
+      const cat = categorizeFeature(f);
+      if (cat === 'substation') substations.push(base);
+      else if (cat === 'insulated') insulated.push(base);
+      else if (cat === 'underground') underground.push(base);
+      else if (cat === 'bare') bare.push(base);
     }
 
-    shapesLoaded = true;
+    baseOverheadBareData = { type: 'FeatureCollection', features: [...baseOverheadBareData.features, ...bare] };
+    baseOverheadInsulatedData = { type: 'FeatureCollection', features: [...baseOverheadInsulatedData.features, ...insulated] };
+    baseUndergroundCableData = { type: 'FeatureCollection', features: [...baseUndergroundCableData.features, ...underground] };
+    cabineData = { type: 'FeatureCollection', features: [...cabineData.features, ...substations] };
 
-    baseOverheadBareData = { type: 'FeatureCollection', features: bare };
-    overheadBareData = baseOverheadBareData;
-    upsertGeoJsonSource('overhead-bare', overheadBareData);
-    addLineLayer('overhead-bare', 'lines-overhead-bare', showOverheadBare);
-
-    baseOverheadInsulatedData = { type: 'FeatureCollection', features: insulated };
-    overheadInsulatedData = baseOverheadInsulatedData;
-    upsertGeoJsonSource('overhead-insulated', overheadInsulatedData);
-    addLineLayer('overhead-insulated', 'lines-overhead-insulated', showOverheadInsulated, [2, 4]);
-
-    baseUndergroundCableData = { type: 'FeatureCollection', features: underground };
-    undergroundCableData = baseUndergroundCableData;
-    upsertGeoJsonSource('underground-cable', undergroundCableData);
-    addLineLayer('underground-cable', 'lines-underground-cable', showUndergroundCable, [8, 4]);
-
-    cabineData = { type: 'FeatureCollection', features: substations };
+    if (currentRisks.length) {
+      applyRisks(currentRisks);
+    } else {
+      overheadBareData = baseOverheadBareData;
+      overheadInsulatedData = baseOverheadInsulatedData;
+      undergroundCableData = baseUndergroundCableData;
+      upsertGeoJsonSource('overhead-bare', overheadBareData);
+      upsertGeoJsonSource('overhead-insulated', overheadInsulatedData);
+      upsertGeoJsonSource('underground-cable', undergroundCableData);
+    }
     upsertGeoJsonSource('cabine', cabineData);
-    addCircleLayer('cabine', 'cabine-points', showCabine);
-    addCabineLabelsLayer(showCabine);
 
-    // Build secondary substation index for hierarchical filter
-    const subIdx = new Map<string, { parent: string; lineNames: string[] }>();
+    // Extend secondary substation index
     for (const f of substations) {
       const p = f.properties as unknown as GridShapeProperties;
       if (!p.name) continue;
-      const existing = subIdx.get(p.name);
+      const existing = secondarySubIndex.get(p.name);
       const ln = p.line_name ?? p.asset_key;
       if (existing) {
         if (ln && !existing.lineNames.includes(ln)) existing.lineNames.push(ln);
       } else {
-        subIdx.set(p.name, { parent: p.parent_substation_name ?? '', lineNames: ln ? [ln] : [] });
+        secondarySubIndex.set(p.name, { parent: p.parent_substation_name ?? '', lineNames: ln ? [ln] : [] });
       }
     }
-    secondarySubIndex = subIdx;
+    if (substations.length) secondarySubIndex = new Map(secondarySubIndex);
 
-    fitToData(overheadBareData, overheadInsulatedData, undergroundCableData, cabineData);
+    if (!hasFit) {
+      fitToData(overheadBareData, overheadInsulatedData, undergroundCableData, cabineData);
+    }
+
+    updateLayerFilters();
+    tileLoadInProgress = false;
+  }
+
+  async function loadShapes() {
+    if (shapesLoaded) return;
+
+    // Fetch tile index for progressive loading
+    try {
+      tileIndex = await getTileIndex(NETWORK_ID);
+    } catch (err) {
+      console.warn('[grid] Tile index unavailable, falling back to full load:', err);
+    }
+
+    // Set up empty sources + layers once
+    upsertGeoJsonSource('overhead-bare', emptyFC());
+    addLineLayer('overhead-bare', 'lines-overhead-bare', showOverheadBare);
+    upsertGeoJsonSource('overhead-insulated', emptyFC());
+    addLineLayer('overhead-insulated', 'lines-overhead-insulated', showOverheadInsulated, [2, 4]);
+    upsertGeoJsonSource('underground-cable', emptyFC());
+    addLineLayer('underground-cable', 'lines-underground-cable', showUndergroundCable, [8, 4]);
+    upsertGeoJsonSource('cabine', emptyFC());
+    addCircleLayer('cabine', 'cabine-points', showCabine);
+    addCabineLabelsLayer(showCabine);
+
+    shapesLoaded = true;
+
+    if (tileIndex.length) {
+      tilesReady = true;
+      await loadVisibleTiles();
+    } else {
+      // Fallback: load all shapes at once (no tile_ids)
+      try {
+        const fc = await getShapes(NETWORK_ID);
+        for (const f of fc.features) {
+          const p = f.properties as unknown as GridShapeProperties;
+          const base = { ...f, properties: { ...p, risk_level: 'NORMAL', risk_color_hex: null } };
+          const cat = categorizeFeature(f);
+          if (cat === 'substation') cabineData.features.push(base);
+          else if (cat === 'insulated') baseOverheadInsulatedData.features.push(base);
+          else if (cat === 'underground') baseUndergroundCableData.features.push(base);
+          else if (cat === 'bare') baseOverheadBareData.features.push(base);
+        }
+        overheadBareData = baseOverheadBareData;
+        overheadInsulatedData = baseOverheadInsulatedData;
+        undergroundCableData = baseUndergroundCableData;
+        upsertGeoJsonSource('overhead-bare', overheadBareData);
+        upsertGeoJsonSource('overhead-insulated', overheadInsulatedData);
+        upsertGeoJsonSource('underground-cable', undergroundCableData);
+        upsertGeoJsonSource('cabine', cabineData);
+
+        const subIdx = new Map<string, { parent: string; lineNames: string[] }>();
+        for (const f of cabineData.features) {
+          const p = f.properties as unknown as GridShapeProperties;
+          if (!p.name) continue;
+          const existing = subIdx.get(p.name);
+          const ln = p.line_name ?? p.asset_key;
+          if (existing) {
+            if (ln && !existing.lineNames.includes(ln)) existing.lineNames.push(ln);
+          } else {
+            subIdx.set(p.name, { parent: p.parent_substation_name ?? '', lineNames: ln ? [ln] : [] });
+          }
+        }
+        secondarySubIndex = subIdx;
+        fitToData(overheadBareData, overheadInsulatedData, undergroundCableData, cabineData);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[grid] Failed to load shapes:', msg);
+        loadError = `Failed to load grid topology: ${msg}`;
+        loading = false;
+        throw err;
+      }
+    }
   }
 
   function applyRisks(risks: GridRisk[]) {
@@ -640,6 +758,7 @@
       risks = await getRisks(f).catch(() => [] as GridRisk[]);
     }
 
+    currentRisks = risks;
     applyRisks(risks);
     updateLayerFilters();
     loading = false;
@@ -786,7 +905,7 @@
     map.addControl(new maplibregl.NavigationControl(), 'top-left');
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
 
-    map.on('moveend', syncUrl);
+    map.on('moveend', () => { syncUrl(); loadVisibleTiles(); });
     map.on('style.load', restoreLayers);
 
     map.on('load', async () => {

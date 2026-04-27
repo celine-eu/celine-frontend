@@ -152,6 +152,22 @@ export const getSubstationsMap = (networkId: string) =>
   j<FeatureCollection>(gridUrl(networkId, '/substations/map'));
 
 // ---------------------------------------------------------------------------
+// Tile index (progressive loading)
+// ---------------------------------------------------------------------------
+
+export interface TileInfo {
+  tile_id: string;
+  tile_x: number;
+  tile_y: number;
+  tile_bbox_geojson: GeoJSON.Polygon;
+  segment_count: number;
+}
+
+export const getTileIndex = (networkId: string) =>
+  j<FetchResult<TileInfo>>(gridUrl(networkId, '/tile-index'))
+    .then((r) => r.items);
+
+// ---------------------------------------------------------------------------
 // Shapes / Risks / Trendline  (new schema)
 // ---------------------------------------------------------------------------
 
@@ -200,9 +216,10 @@ interface FetchResult<T> {
   count: number;
 }
 
-export const getShapes = (networkId: string, assetType?: string[]) => {
+export const getShapes = (networkId: string, assetType?: string[], tileIds?: string[]) => {
   const params: Record<string, string | string[]> = {};
   if (assetType?.length) params['asset_type'] = assetType;
+  if (tileIds?.length) params['tile_id'] = tileIds;
   return j<FeatureCollection>(gridUrl(networkId, '/shapes', params));
 };
 
