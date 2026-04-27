@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.8.0...grid-v0.9.0) (2026-04-27)
+
+### Features
+
+* add partial shape loading ([40435ab](https://github.com/celine-eu/celine-frontend/commit/40435abb50d568efd2085eb3dfdd06b03f6e6a96))
+
+### Bug Fixes
+
+* roi compare table ([436b554](https://github.com/celine-eu/celine-frontend/commit/436b554d72738ef73b0337a5025f03d1f2fa25d7))
+
 ## [0.8.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.7.0...grid-v0.8.0) (2026-04-27)
 
 ### Features
