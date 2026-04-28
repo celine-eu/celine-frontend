@@ -18,7 +18,17 @@
     "terms": "Términos",
     "privacy": "Privacidad",
     "profile": "Tu perfil",
-    "open_notifications": "Notificaciones"
+    "open_notifications": "Notificaciones",
+    "feedback_button": "Feedback",
+    "feedback_title": "Comparte tu opinión",
+    "feedback_description": "Recogemos valoración, comentario y metadatos técnicos útiles para depuración y análisis.",
+    "feedback_rating": "Valoración",
+    "feedback_comment": "Comentario",
+    "feedback_comment_placeholder": "Describe qué ha funcionado bien o qué ha ido mal.",
+    "feedback_current_selection": "Selección actual",
+    "feedback_close": "Cerrar",
+    "feedback_submit": "Enviar",
+    "feedback_success": "Feedback enviado correctamente."
   },
   "overview": {
     "welcome": "¡Bienvenido, {name}!",

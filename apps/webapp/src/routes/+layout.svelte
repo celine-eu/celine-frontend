@@ -1,8 +1,10 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import type { Me, CommunityMeta } from "$lib/api";
+  import { api } from "$lib/api";
+  import { collectFeedbackDiagnostics } from "$lib/feedback";
   import { meStore } from "$lib/stores";
-  import { Icon } from "@celine-eu/ui";
+  import { FeedbackWidget, Icon } from "@celine-eu/ui";
   import "@celine-eu/ui/theme.css";
   import type { Snippet } from "svelte";
   import { onMount } from "svelte";
@@ -229,6 +231,27 @@
     </footer>
   {/if}
 </div>
+
+<FeedbackWidget
+  buttonLabel={$t('layout.feedback_button')}
+  title={$t('layout.feedback_title')}
+  description={$t('layout.feedback_description')}
+  labels={{
+    rating: $t('layout.feedback_rating'),
+    comment: $t('layout.feedback_comment'),
+    commentPlaceholder: $t('layout.feedback_comment_placeholder'),
+    currentSelection: $t('layout.feedback_current_selection'),
+    close: $t('layout.feedback_close'),
+    submit: $t('layout.feedback_submit'),
+    success: $t('layout.feedback_success'),
+  }}
+  collectContext={() => collectFeedbackDiagnostics({
+    community_key: data.community?.key ?? null,
+    auth_error: data.auth_error,
+    unread_count: data.unread_count,
+  })}
+  submitFeedback={api.submitFeedback}
+/>
 
 <style>
   :global(html) {

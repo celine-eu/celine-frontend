@@ -62,7 +62,8 @@
     | "message-square"
     | "history"
     | "file"
-    | "folder";
+    | "folder"
+    | "star";
 
   export let name: IconName;
   export let size: number = 24;
@@ -159,6 +160,7 @@
     file: "M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z M13 2v7h7",
     folder:
       "M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z",
+    star: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.86L12 17.77 5.82 21l1.18-6.86-5-4.87 6.91-1.01L12 2z",
   };
 </script>
 

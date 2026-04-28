@@ -19,7 +19,17 @@
     "terms": "Termini",
     "privacy": "Privacy",
     "profile": "Il tuo profilo",
-    "open_notifications": "Notifiche"
+    "open_notifications": "Notifiche",
+    "feedback_button": "Feedback",
+    "feedback_title": "Lascia un feedback",
+    "feedback_description": "Raccogliamo valutazione, commento e metadati tecnici utili per debug e analisi.",
+    "feedback_rating": "Valutazione",
+    "feedback_comment": "Commento",
+    "feedback_comment_placeholder": "Descrivi cosa ha funzionato o cosa e andato storto.",
+    "feedback_current_selection": "Selezione corrente",
+    "feedback_close": "Chiudi",
+    "feedback_submit": "Invia",
+    "feedback_success": "Feedback inviato correttamente."
   },
   "overview": {
     "welcome": "Benvenuto, {name}!",

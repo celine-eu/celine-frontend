@@ -263,6 +263,39 @@ export type Co2SettingsResponse = {
   available: Co2LocaleSettings[];
 };
 
+export type FeedbackContextPayload = {
+  page_url: string;
+  page_title?: string | null;
+  page_path?: string | null;
+  locale?: string | null;
+  timezone?: string | null;
+  user_agent?: string | null;
+  viewport_width?: number | null;
+  viewport_height?: number | null;
+  screen_width?: number | null;
+  screen_height?: number | null;
+  color_scheme?: 'light' | 'dark' | null;
+  client_timestamp?: string | null;
+  extra?: Record<string, unknown>;
+};
+
+export type FeedbackScreenshotPayload = {
+  mime_type: string;
+  data_base64: string;
+};
+
+export type FeedbackSubmission = {
+  rating: number;
+  comment: string;
+  context: FeedbackContextPayload;
+  screenshot?: FeedbackScreenshotPayload | null;
+};
+
+export type FeedbackCreated = {
+  id: string;
+  created_at: string;
+};
+
 export const api = {
   me: () => j<Me>('/api/me'),
   overview: (days: number = 7) => j<Overview>(`/api/overview?days=${days}`),
@@ -299,4 +332,6 @@ export const api = {
   gamification: () => j<GamificationResponse>('/api/gamification'),
   gamificationHistory: () => j<CommitmentHistoryResponse>('/api/gamification/history'),
   co2Settings: () => j<Co2SettingsResponse>('/api/settings/co2'),
+  submitFeedback: (payload: FeedbackSubmission) =>
+    j<FeedbackCreated>('/api/feedback', { method: 'POST', body: JSON.stringify(payload) }),
 };

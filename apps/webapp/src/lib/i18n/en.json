@@ -19,7 +19,17 @@
     "terms": "Terms",
     "privacy": "Privacy",
     "profile": "Your profile",
-    "open_notifications": "Notifications"
+    "open_notifications": "Notifications",
+    "feedback_button": "Feedback",
+    "feedback_title": "Share feedback",
+    "feedback_description": "We collect rating, comment, and technical metadata useful for debugging and analysis.",
+    "feedback_rating": "Rating",
+    "feedback_comment": "Comment",
+    "feedback_comment_placeholder": "Describe what worked well or what went wrong.",
+    "feedback_current_selection": "Current selection",
+    "feedback_close": "Close",
+    "feedback_submit": "Submit",
+    "feedback_success": "Feedback submitted successfully."
   },
   "overview": {
     "welcome": "Welcome, {name}!",
