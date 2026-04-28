@@ -12,7 +12,7 @@
     "@celine-eu/ui": "workspace:*",
     "@celine-eu/assistant-ui": "workspace:*",
     "@sveltejs/kit": "^2.58.0",
-    "svelte": "^5.54.1",
+    "svelte": "^5.55.5",
     "svelte-i18n": "^4.0.0"
   },
   "devDependencies": {
