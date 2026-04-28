@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.10.0...roi-v0.11.0) (2026-04-28)
+
+### Features
+
+* add partial shape loading ([40435ab](https://github.com/celine-eu/celine-frontend/commit/40435abb50d568efd2085eb3dfdd06b03f6e6a96))
+* add the feedback ([53cab10](https://github.com/celine-eu/celine-frontend/commit/53cab107888a23b622c095f0aebcc1103e94a134))
+* add the feedback ([44b9650](https://github.com/celine-eu/celine-frontend/commit/44b96505c6bc284ea6792fa46df355fd9f9a4fcc))
+
 ## [0.10.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.9.0...roi-v0.10.0) (2026-04-27)
 
 ### Features
