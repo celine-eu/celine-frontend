@@ -42,7 +42,7 @@
   };
 
   interface Props {
-    submitFeedback: (payload: FeedbackSubmission) => Promise<void>;
+    submitFeedback: (payload: FeedbackSubmission) => Promise<unknown>;
     collectContext: () => Promise<{ context: FeedbackContext; screenshot?: FeedbackScreenshot | null }>;
     buttonLabel?: string;
     title?: string;
@@ -137,7 +137,7 @@
       <p class="feedback-widget__description">{description}</p>
 
       <div class="feedback-widget__group">
-        <label class="feedback-widget__label">{resolvedLabels.rating}</label>
+        <div class="feedback-widget__label">{resolvedLabels.rating}</div>
         <div class="feedback-widget__rating" role="radiogroup" aria-label={resolvedLabels.rating}>
           {#each [1, 2, 3, 4, 5] as value}
             <button
