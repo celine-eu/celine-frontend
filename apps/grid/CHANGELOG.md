@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.9.0...grid-v0.10.0) (2026-04-28)
+
+### Features
+
+* add the feedback ([53cab10](https://github.com/celine-eu/celine-frontend/commit/53cab107888a23b622c095f0aebcc1103e94a134))
+* add the feedback ([44b9650](https://github.com/celine-eu/celine-frontend/commit/44b96505c6bc284ea6792fa46df355fd9f9a4fcc))
+
 ## [0.9.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.8.0...grid-v0.9.0) (2026-04-27)
 
 ### Features
