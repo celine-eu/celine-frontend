@@ -76,9 +76,23 @@
       map.on('mousedown', onMapMouseDown);
       map.on('mousemove', onMapMouseMove);
       map.on('mouseup', onMapMouseUp);
+
+      // Touch support for mobile rectangle drawing
+      const container = map.getContainer();
+      container.addEventListener('touchstart', onTouchStart, { passive: false });
+      container.addEventListener('touchmove', onTouchMove, { passive: false });
+      container.addEventListener('touchend', onTouchEnd, { passive: false });
     })();
 
-    return () => map?.remove();
+    return () => {
+      if (map) {
+        const container = map.getContainer();
+        container.removeEventListener('touchstart', onTouchStart);
+        container.removeEventListener('touchmove', onTouchMove);
+        container.removeEventListener('touchend', onTouchEnd);
+        map.remove();
+      }
+    };
   });
 
   // ── Rectangle drawing ───────────────────────────────────────────────────────
@@ -124,6 +138,68 @@
       L.latLng(ne.lat, ne.lng), // NE
       L.latLng(sw.lat, ne.lng), // SE
       L.latLng(sw.lat, sw.lng), // SW
+    ];
+
+    drawingMode = false;
+    rebuildHandles();
+  }
+
+  // ── Touch rectangle drawing (mobile) ─────────────────────────────────────────
+
+  function touchToLatLng(touch: Touch): import('leaflet').LatLng {
+    if (!L || !map) return L!.latLng(0, 0);
+    const rect = map.getContainer().getBoundingClientRect();
+    const point = L.point(touch.clientX - rect.left, touch.clientY - rect.top);
+    return map.containerPointToLatLng(point);
+  }
+
+  function onTouchStart(e: TouchEvent) {
+    if (!drawingMode || !L || !map || e.touches.length !== 1) return;
+    e.preventDefault();
+    drawing = true;
+    startLatLng = touchToLatLng(e.touches[0]);
+    map.dragging.disable();
+    clearPolygonLayers();
+  }
+
+  function onTouchMove(e: TouchEvent) {
+    if (!drawing || !startLatLng || !L || !map || e.touches.length !== 1) return;
+    e.preventDefault();
+    const latlng = touchToLatLng(e.touches[0]);
+    if (previewRect) map.removeLayer(previewRect);
+    previewRect = L.rectangle(
+      [[startLatLng.lat, startLatLng.lng], [latlng.lat, latlng.lng]],
+      { color: '#0d9488', weight: 2, fillOpacity: 0.12, dashArray: '6 4' },
+    ).addTo(map);
+  }
+
+  function onTouchEnd(e: TouchEvent) {
+    if (!drawing || !startLatLng || !L || !map) return;
+    drawing = false;
+    map.dragging.enable();
+
+    const latlng = e.changedTouches.length > 0
+      ? touchToLatLng(e.changedTouches[0])
+      : startLatLng;
+
+    if (previewRect) { map.removeLayer(previewRect); previewRect = null; }
+
+    const sw = L.latLng(
+      Math.min(startLatLng.lat, latlng.lat),
+      Math.min(startLatLng.lng, latlng.lng),
+    );
+    const ne = L.latLng(
+      Math.max(startLatLng.lat, latlng.lat),
+      Math.max(startLatLng.lng, latlng.lng),
+    );
+
+    if (Math.abs(ne.lat - sw.lat) < 0.00005 || Math.abs(ne.lng - sw.lng) < 0.00005) return;
+
+    vertices = [
+      L.latLng(ne.lat, sw.lng),
+      L.latLng(ne.lat, ne.lng),
+      L.latLng(sw.lat, ne.lng),
+      L.latLng(sw.lat, sw.lng),
     ];
 
     drawingMode = false;
@@ -349,7 +425,7 @@
         </div>
       {:else if drawingMode}
         <div class="map-bar map-bar-hint">
-          Click and drag to draw a rectangle
+          Drag to draw a rectangle on the roof
         </div>
       {:else}
         <button class="btn btn-outline" onclick={startDrawing}>
