@@ -1,3 +1,5 @@
+import html2canvas from 'html2canvas';
+
 export type FeedbackContext = {
   page_url: string;
   page_title?: string | null;
@@ -24,6 +26,17 @@ function stripDataUrlPrefix(dataUrl: string): string {
   return payload;
 }
 
+function toScreenshotPayload(dataUrl: string): FeedbackScreenshot {
+  const [prefix = ''] = dataUrl.split(',', 1);
+  const match = prefix.match(/^data:(.+?);base64$/);
+  const mimeType = match?.[1] ?? 'image/png';
+
+  return {
+    mime_type: mimeType,
+    data_base64: stripDataUrlPrefix(dataUrl),
+  };
+}
+
 async function captureScreenshot(): Promise<FeedbackScreenshot | null> {
   const hiddenNodes = Array.from(document.querySelectorAll<HTMLElement>('[data-feedback-widget-root]'));
   const previousDisplay = hiddenNodes.map((node) => node.style.display);
@@ -35,48 +48,37 @@ async function captureScreenshot(): Promise<FeedbackScreenshot | null> {
     if ('fonts' in document) {
       await document.fonts.ready;
     }
-
-    const clone = document.documentElement.cloneNode(true) as HTMLElement;
-    clone.querySelectorAll('[data-feedback-widget-root]').forEach((node) => node.remove());
-
     const width = window.innerWidth;
     const height = window.innerHeight;
-    const xhtml = new XMLSerializer().serializeToString(clone);
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-        <foreignObject width="100%" height="100%">
-          ${xhtml}
-        </foreignObject>
-      </svg>
-    `.trim();
+    const scale = Math.min(window.devicePixelRatio || 1, 2);
+    const canvas = await html2canvas(document.documentElement, {
+      backgroundColor: getComputedStyle(document.body).backgroundColor || '#ffffff',
+      foreignObjectRendering: false,
+      logging: false,
+      scale,
+      useCORS: true,
+      width,
+      height,
+      windowWidth: width,
+      windowHeight: height,
+      scrollX: -window.scrollX,
+      scrollY: -window.scrollY,
+      ignoreElements: (element) => element.hasAttribute('data-feedback-widget-root'),
+      onclone: (clonedDocument) => {
+        clonedDocument
+          .querySelectorAll<HTMLElement>('[data-feedback-widget-root]')
+          .forEach((node) => {
+            node.style.display = 'none';
+          });
+      },
+    });
 
-    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-    const svgUrl = URL.createObjectURL(svgBlob);
-
-    try {
-      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error('Screenshot render failed'));
-        img.src = svgUrl;
-      });
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        return null;
-      }
-      ctx.drawImage(image, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL('image/png');
-      return {
-        mime_type: 'image/png',
-        data_base64: stripDataUrlPrefix(dataUrl),
-      };
-    } finally {
-      URL.revokeObjectURL(svgUrl);
+    const webpDataUrl = canvas.toDataURL('image/webp', 0.9);
+    if (webpDataUrl.startsWith('data:image/webp;base64,')) {
+      return toScreenshotPayload(webpDataUrl);
     }
+
+    return toScreenshotPayload(canvas.toDataURL('image/png'));
   } catch {
     return null;
   } finally {
