@@ -1,6 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { t, locale } from 'svelte-i18n';
+  import { replaceState } from '$app/navigation';
   import { RoiCore } from '@celine-eu/roi-ui';
+  import { SUPPORTED, LOCALE_LABELS, setLocale } from '$lib/i18n';
 
   let theme = $state('light');
 
@@ -16,28 +19,38 @@
 </script>
 
 <svelte:head>
-  <title>CELINE Solar ROI Calculator</title>
-  <meta
-    name="description"
-    content="Estimate the return on investment for your photovoltaic system in Italy."
-  />
+  <title>{$t('page.title')}</title>
+  <meta name="description" content={$t('page.description')} />
 </svelte:head>
 
 <main class="page">
   <header class="header">
     <div class="header-content">
       <div>
-        <div class="logo">☀ CELINE Solar ROI</div>
-        <p class="tagline">Estimate the return on investment for your photovoltaic system</p>
+        <div class="logo">{$t('page.logo')}</div>
+        <p class="tagline">{$t('page.tagline')}</p>
       </div>
-      <button class="theme-btn" onclick={toggleTheme} title="Toggle dark / light mode">
-        {theme === 'dark' ? '☀' : '🌙'}
-      </button>
+      <div class="header-actions">
+        <div class="lang-switcher">
+          {#each SUPPORTED as lang}
+            <button
+              class="lang-btn"
+              class:active={$locale === lang}
+              onclick={() => setLocale(lang)}
+            >
+              {LOCALE_LABELS[lang]}
+            </button>
+          {/each}
+        </div>
+        <button class="theme-btn" onclick={toggleTheme} title={$t('page.title')}>
+          {theme === 'dark' ? '☀' : '🌙'}
+        </button>
+      </div>
     </div>
   </header>
 
   <div class="content">
-    <RoiCore apiBaseUrl="/api" />
+    <RoiCore apiBaseUrl="/api" onUrlChange={(url) => replaceState(url, {})} />
   </div>
 </main>
 
@@ -77,6 +90,42 @@
     opacity: 0.85;
   }
 
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .lang-switcher {
+    display: flex;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--celine-radius-full);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .lang-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background var(--celine-transition-fast), color var(--celine-transition-fast);
+  }
+
+  .lang-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .lang-btn.active {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+  }
+
   .theme-btn {
     background: rgba(255, 255, 255, 0.15);
     border: 1px solid rgba(255, 255, 255, 0.25);
@@ -99,5 +148,26 @@
 
   .content {
     flex: 1;
+  }
+
+  @media print {
+    .theme-btn,
+    .lang-switcher {
+      display: none !important;
+    }
+
+    .header {
+      padding: 0.625rem 1rem;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .tagline {
+      margin: 0;
+    }
+
+    .page {
+      min-height: auto;
+    }
   }
 </style>

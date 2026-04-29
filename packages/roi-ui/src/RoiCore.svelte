@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from 'svelte-i18n';
   import MapPicker from './MapPicker.svelte';
   import RoiResults from './RoiResults.svelte';
   import { createRoiApi } from './api.js';
@@ -7,9 +8,10 @@
   interface Props {
     apiBaseUrl?: string;
     embedded?: boolean;
+    onUrlChange?: (url: string) => void;
   }
 
-  let { apiBaseUrl = '/api', embedded = false }: Props = $props();
+  let { apiBaseUrl = '/api', embedded = false, onUrlChange }: Props = $props();
 
   const api = $derived(createRoiApi(apiBaseUrl));
 
@@ -17,7 +19,7 @@
   function readUrlParams(): Partial<{
     lat: number; lng: number; kwp: number; capex: number;
     consumption: number; regime: Regime; tilt: number; azimuth: number;
-    userType: UserType; battery: number; wkt: string;
+    userType: UserType; battery: number; wkt: string; profile: string;
   }> {
     if (typeof window === 'undefined') return {};
     const p = new URLSearchParams(window.location.search);
@@ -35,6 +37,7 @@
       regime: (p.get('regime') as Regime) || undefined,
       userType: (p.get('user_type') as UserType) || undefined,
       wkt: p.get('wkt') || undefined,
+      profile: p.get('profile') || undefined,
     };
   }
 
@@ -62,10 +65,11 @@
   let numPanels = $state(10);
   let capexEstimate: CapexEstimateResponse | null = $state(null);
   let capexEstimateLoading = $state(false);
+  let capexEstimateError = $state('');
   let rooftopAreaM2 = $state(0);
 
   // Load profile selection
-  let loadProfile = $state('residential_default.json');
+  let loadProfile = $state(urlParams.profile ?? 'residential_default.json');
   // Personal profile: manual 24h kWh values
   let customHourlyKwh: number[] = $state(Array(24).fill(0));
   // Personal profile: meter data (processed client-side from folder upload)
@@ -159,7 +163,7 @@
     }
 
     if (totalDays === 0) {
-      error = 'No valid meter data found in the selected folder.';
+      error = $t('fields.noValidMeterData');
       return;
     }
 
@@ -220,8 +224,9 @@
       lastSystem = system;
       lastOverrides = overrides;
       result = await api.runScenario(system, overrides);
+      syncUrlParams();
     } catch (e) {
-      error = e instanceof Error ? e.message : 'Calculation failed';
+      error = e instanceof Error ? e.message : $t('errors.calculationFailed');
     } finally {
       loading = false;
     }
@@ -248,9 +253,17 @@
     if (tilt !== 30) p.set('tilt', String(tilt));
     if (azimuth !== 0) p.set('azimuth', String(azimuth));
     if (batteryKwh > 0 && !useCapexEstimator) p.set('battery', String(batteryKwh));
+    if (loadProfile !== 'residential_default.json' && loadProfile !== 'personal_manual' && loadProfile !== 'personal_meter') {
+      p.set('profile', loadProfile);
+    }
     if (location.wkt) p.set('wkt', location.wkt);
     const base = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : '';
     return `${base}?${p.toString()}`;
+  }
+
+  function syncUrlParams() {
+    const url = buildShareUrl();
+    if (url) onUrlChange?.(url);
   }
 
   async function copyShareLink() {
@@ -278,19 +291,26 @@
     }
     if (rooftopAreaM2 <= 0) return;
 
+    const min = capexEstimate?.min_panels ?? 1;
+    const max = capexEstimate?.max_panels ?? 999;
+    if (numPanels < min || numPanels > max) {
+      capexEstimateError = $t('errors.panelRange', { values: { min, max } });
+      return;
+    }
+
     capexEstimateLoading = true;
+    capexEstimateError = '';
     try {
       capexEstimate = await api.estimateCapex(rooftopAreaM2, numPanels);
       if (capexEstimate.capex_eur != null) {
         capex = Math.round(capexEstimate.capex_eur);
         if (capexEstimate.kwp != null) {
           kwp = capexEstimate.kwp;
-          kwpAuto = false; // user is choosing panels, disable LIDAR auto
+          kwpAuto = false;
         }
       }
     } catch (e) {
-      console.error('CAPEX estimate failed:', e);
-      capexEstimate = null;
+      capexEstimateError = e instanceof Error ? e.message : $t('errors.capexEstimationFailed');
     } finally {
       capexEstimateLoading = false;
     }
@@ -298,19 +318,14 @@
 
   async function onCapexEstimatorToggle() {
     if (useCapexEstimator) {
-      // Panel-based CAPEX does NOT include battery — reset to avoid
-      // the backend subtracting a stale battery cost from the PV-only CAPEX.
       batteryKwh = 0;
       rooftopAreaM2 = computeRooftopArea();
-      // First call without num_panels to get min/max range
       if (rooftopAreaM2 > 0) {
         try {
           const rangeInfo = await api.estimateCapex(rooftopAreaM2);
           capexEstimate = rangeInfo;
-          // Clamp numPanels to valid range
           if (numPanels < rangeInfo.min_panels) numPanels = rangeInfo.min_panels;
           if (numPanels > rangeInfo.max_panels) numPanels = rangeInfo.max_panels;
-          // Now fetch with the clamped panel count
           await fetchCapexEstimate();
         } catch (e) {
           console.error('CAPEX range fetch failed:', e);
@@ -326,10 +341,9 @@
     <header class="section-header">
       <span class="step-num">1</span>
       <div>
-        <h2 class="section-title">Select location</h2>
+        <h2 class="section-title">{$t('step1.title')}</h2>
         <p class="section-hint">
-          Search your address, then <strong>draw your rooftop area</strong> on the map by clicking
-          and dragging a rectangle.
+          {$t('step1.hintBefore')} <strong>{$t('step1.hintStrong')}</strong> {$t('step1.hintAfter')}
         </p>
       </div>
     </header>
@@ -338,6 +352,7 @@
       initialLat={urlParams.lat ?? 46.07}
       initialLng={urlParams.lng ?? 11.12}
       initialZoom={urlParams.lat != null ? 17 : 13}
+      initialWkt={urlParams.wkt ?? ''}
     />
   </section>
 
@@ -347,8 +362,8 @@
       <header class="section-header">
         <span class="step-num">2</span>
         <div>
-          <h2 class="section-title">System parameters</h2>
-          <p class="section-hint">Enter the key financial and technical parameters for your installation.</p>
+          <h2 class="section-title">{$t('step2.title')}</h2>
+          <p class="section-hint">{$t('step2.hint')}</p>
         </div>
       </header>
 
@@ -356,8 +371,8 @@
         <!-- CAPEX -->
         <label class="field">
           <span class="field-label">
-            Installation cost
-            <span class="field-unit">€, net of VAT</span>
+            {$t('fields.installationCost')}
+            <span class="field-unit">{$t('fields.netOfVat')}</span>
             <span class="req">*</span>
           </span>
           <input
@@ -371,9 +386,9 @@
           />
           <span class="field-hint">
             {#if useCapexEstimator}
-              Auto-calculated from panel count below.
+              {$t('fields.installationCostHintAuto')}
             {:else}
-              Total project cost (materials + labour). Typical range: €1,200–2,000/kWp for residential.
+              {$t('fields.installationCostHint')}
             {/if}
           </span>
         </label>
@@ -382,8 +397,8 @@
         {#if !useCapexEstimator}
           <label class="field">
             <span class="field-label">
-              Battery capacity
-              <span class="field-unit">kWh (0 = none)</span>
+              {$t('fields.batteryCapacity')}
+              <span class="field-unit">{$t('fields.batteryUnit')}</span>
             </span>
             <input
               type="number"
@@ -395,11 +410,10 @@
               placeholder="0"
             />
             <span class="field-hint">
-              If your total cost includes a battery, enter its capacity here.
-              The estimated battery cost will be subtracted to isolate PV investment.
+              {$t('fields.batteryHint')}
               {#if batteryKwh > 0}
                 {@const estCost = Math.round(Math.max(1500, 2400 * Math.pow(batteryKwh, 0.53)))}
-                <strong>Est. battery: ~{estCost.toLocaleString('it-IT')} € ({Math.round(estCost / batteryKwh).toLocaleString('it-IT')} €/kWh)</strong>
+                <strong>{$t('fields.estBattery', { values: { cost: estCost.toLocaleString('it-IT'), perKwh: Math.round(estCost / batteryKwh).toLocaleString('it-IT') } })}</strong>
               {/if}
             </span>
           </label>
@@ -411,7 +425,7 @@
             <label class="checkbox-row">
               <input type="checkbox" bind:checked={useCapexEstimator} onchange={onCapexEstimatorToggle} />
               <span>
-                Estimate cost from number of panels
+                {$t('fields.estimateCostFromPanels')}
                 <span class="badge">Power Law</span>
               </span>
             </label>
@@ -419,10 +433,10 @@
               <div style="display: flex; gap: 0.75rem; align-items: flex-end; margin-top: 0.5rem; flex-wrap: wrap">
                 <label class="field" style="max-width: 200px">
                   <span class="field-label">
-                    Number of panels
+                    {$t('fields.numberOfPanels')}
                     {#if capexEstimate}
                       <span class="field-unit">
-                        ({capexEstimate.min_panels}–{capexEstimate.max_panels} for {Math.round(rooftopAreaM2)} m²)
+                        {$t('fields.panelRange', { values: { min: capexEstimate.min_panels, max: capexEstimate.max_panels, area: Math.round(rooftopAreaM2) } })}
                       </span>
                     {/if}
                   </span>
@@ -436,19 +450,20 @@
                     oninput={fetchCapexEstimate}
                   />
                 </label>
-                {#if capexEstimate?.capex_eur != null}
+                {#if capexEstimateError}
+                  <span class="field-error">{capexEstimateError}</span>
+                {:else if capexEstimate?.capex_eur != null}
                   <span class="field-hint" style="font-size: 0.8125rem">
                     <strong>{capexEstimate.kwp?.toFixed(1)} kWp</strong> ·
                     {Math.round(capexEstimate.capex_eur).toLocaleString('it-IT')} € ·
                     {Math.round(capexEstimate.eur_per_kwp ?? 0).toLocaleString('it-IT')} €/kWp ·
-                    {capexEstimate.rooftop_utilization_pct}% rooftop used
+                    {$t('fields.rooftopUsed', { values: { pct: capexEstimate.rooftop_utilization_pct } })}
                   </span>
                 {/if}
               </div>
               {#if capexEstimate}
                 <span class="field-hint">
-                  Panel: {capexEstimate.panel.watt_peak} Wp, {capexEstimate.panel.area_m2} m², {capexEstimate.panel.efficiency_pct}% efficiency.
-                  Cost curve: Italian market 2025-2026 (pre-IVA, chiavi in mano).
+                  {$t('fields.panelInfo', { values: { wattPeak: capexEstimate.panel.watt_peak, area: capexEstimate.panel.area_m2, efficiency: capexEstimate.panel.efficiency_pct } })}
                 </span>
               {/if}
             {/if}
@@ -458,8 +473,8 @@
         <!-- Consumption -->
         <label class="field">
           <span class="field-label">
-            Annual consumption
-            <span class="field-unit">kWh/year</span>
+            {$t('fields.annualConsumption')}
+            <span class="field-unit">{$t('fields.kwhYear')}</span>
             {#if loadProfile !== 'personal_manual' && loadProfile !== 'personal_meter'}
               <span class="req">*</span>
             {/if}
@@ -475,65 +490,63 @@
           />
           <span class="field-hint">
             {#if loadProfile === 'personal_manual'}
-              Auto-calculated from your 24h profile: <strong>{consumption.toLocaleString('it-IT')} kWh/year</strong>
+              {$t('fields.consumptionAutoCalc', { values: { value: consumption.toLocaleString('it-IT') } })}
             {:else if loadProfile === 'personal_meter'}
               {#if meterDataLoaded}
-                Estimated from your meter data: <strong>{consumption.toLocaleString('it-IT')} kWh/year</strong>
+                {$t('fields.consumptionMeterEstimated', { values: { value: consumption.toLocaleString('it-IT') } })}
               {:else}
-                Will be estimated from your meter data once loaded.
+                {$t('fields.consumptionMeterPending')}
               {/if}
             {:else}
-              Total electricity drawn from the grid per year. Check your utility bills.
+              {$t('fields.consumptionHint')}
             {/if}
           </span>
         </label>
 
         <!-- User type -->
         <label class="field">
-          <span class="field-label">User type</span>
+          <span class="field-label">{$t('fields.userType')}</span>
           <select class="field-input" bind:value={userType}>
-            <option value="residential">Residential</option>
-            <option value="commercial">Commercial</option>
-            <option value="office">Office</option>
-            <option value="industrial">Industrial</option>
-            <option value="agricultural">Agricultural</option>
+            <option value="residential">{$t('fields.userTypeResidential')}</option>
+            <option value="commercial">{$t('fields.userTypeCommercial')}</option>
+            <option value="office">{$t('fields.userTypeOffice')}</option>
+            <option value="industrial">{$t('fields.userTypeIndustrial')}</option>
+            <option value="agricultural">{$t('fields.userTypeAgricultural')}</option>
           </select>
-          <span class="field-hint">Affects applicable incentive tariffs (RID/CER rates differ by user category).</span>
+          <span class="field-hint">{$t('fields.userTypeHint')}</span>
         </label>
 
         <!-- Regime -->
         <label class="field">
-          <span class="field-label">Incentive regime</span>
+          <span class="field-label">{$t('fields.incentiveRegime')}</span>
           <select class="field-input" bind:value={regime}>
-            <option value="RID_CER">RID + CER (recommended)</option>
-            <option value="RID">RID only — feed-in tariff</option>
-            <option value="CER">CER only — energy community</option>
+            <option value="RID_CER">{$t('fields.regimeRidCer')}</option>
+            <option value="RID">{$t('fields.regimeRid')}</option>
+            <option value="CER">{$t('fields.regimeCer')}</option>
           </select>
-          <span class="field-hint">
-            RID: earn revenue selling excess energy back to the grid. CER: share energy within a community for additional incentives.
-          </span>
+          <span class="field-hint">{$t('fields.regimeHint')}</span>
         </label>
 
         <!-- Load profile -->
         <label class="field">
-          <span class="field-label">Consumption profile</span>
+          <span class="field-label">{$t('fields.consumptionProfile')}</span>
           <select class="field-input" bind:value={loadProfile}>
-            <option value="residential_default.json">Standard residential</option>
-            <option value="commercial_default.json">Commercial / Office</option>
-            <option value="industrial_default.json">Industrial / Agricultural</option>
-            <option value="residential_heat_pump.json">Residential + heat pump</option>
-            <option value="personal_manual">Personal profile (manual 24h)</option>
-            <option value="personal_meter">Personal profile (meter data)</option>
+            <option value="residential_default.json">{$t('fields.profileResidential')}</option>
+            <option value="commercial_default.json">{$t('fields.profileCommercial')}</option>
+            <option value="industrial_default.json">{$t('fields.profileIndustrial')}</option>
+            <option value="residential_heat_pump.json">{$t('fields.profileHeatPump')}</option>
+            <option value="personal_manual">{$t('fields.profilePersonalManual')}</option>
+            <option value="personal_meter">{$t('fields.profilePersonalMeter')}</option>
           </select>
           <span class="field-hint">
             {#if loadProfile === 'personal_manual'}
-              Enter your average hourly consumption (kWh) for each hour of the day.
+              {$t('fields.profileHintManual')}
             {:else if loadProfile === 'personal_meter'}
-              Use smart meter data from a folder of daily JSON files.
+              {$t('fields.profileHintMeter')}
             {:else if loadProfile === 'residential_heat_pump.json'}
-              Shifts consumption to daytime (higher self-consumption, +5-15pp autoconsumo).
+              {$t('fields.profileHintHeatPump')}
             {:else}
-              Select the profile that best matches your consumption pattern.
+              {$t('fields.profileHintDefault')}
             {/if}
           </span>
         </label>
@@ -541,7 +554,7 @@
         <!-- Personal profile: manual 24h input -->
         {#if loadProfile === 'personal_manual'}
           <div class="field" style="grid-column: 1 / -1">
-            <span class="field-label">Hourly consumption <span class="field-unit">kWh per hour (average day)</span></span>
+            <span class="field-label">{$t('fields.hourlyConsumption')} <span class="field-unit">{$t('fields.hourlyUnit')}</span></span>
             <div class="hourly-grid">
               {#each customHourlyKwh as val, i}
                 <label class="hourly-cell">
@@ -558,8 +571,7 @@
               {/each}
             </div>
             <span class="field-hint">
-              Daily total: <strong>{customHourlyKwh.reduce((a, b) => a + b, 0).toFixed(2)} kWh/day</strong>
-              ({Math.round(customHourlyKwh.reduce((a, b) => a + b, 0) * 365)} kWh/year)
+              {$t('fields.dailyTotal', { values: { daily: customHourlyKwh.reduce((a, b) => a + b, 0).toFixed(2), annual: Math.round(customHourlyKwh.reduce((a, b) => a + b, 0) * 365) } })}
             </span>
           </div>
         {/if}
@@ -568,8 +580,8 @@
         {#if loadProfile === 'personal_meter'}
           <div class="field" style="grid-column: 1 / -1">
             <span class="field-label">
-              Smart meter data
-              <span class="field-unit">select folder with daily JSON files</span>
+              {$t('fields.smartMeterData')}
+              <span class="field-unit">{$t('fields.smartMeterUnit')}</span>
             </span>
             <input
               type="file"
@@ -585,10 +597,9 @@
             />
             <span class="field-hint">
               {#if meterDataLoaded}
-                Loaded <strong>{meterDataDays} days</strong> of meter data.
-                Estimated consumption: <strong>{consumption.toLocaleString('it-IT')} kWh/year</strong>
+                {$t('fields.meterDataLoaded', { values: { days: meterDataDays, consumption: consumption.toLocaleString('it-IT') } })}
               {:else}
-                Select the folder containing daily JSON files (YYYY-MM-DD.json) from your smart meter (C2G/e-distribuzione format).
+                {$t('fields.meterDataHint')}
               {/if}
             </span>
           </div>
@@ -598,8 +609,8 @@
         {#if loadProfile === 'residential_heat_pump.json'}
           <label class="field">
             <span class="field-label">
-              Heat pump consumption
-              <span class="field-unit">kWh/year</span>
+              {$t('fields.heatPumpConsumption')}
+              <span class="field-unit">{$t('fields.kwhYear')}</span>
             </span>
             <input
               type="number"
@@ -611,9 +622,9 @@
               placeholder="3500"
             />
             <span class="field-hint">
-              Additional annual electricity for a heat pump. Typical: 2,500–4,500 kWh/year.
+              {$t('fields.heatPumpHint')}
               {#if heatPumpKwh > 0}
-                Total consumption: <strong>{(consumption + heatPumpKwh).toLocaleString('it-IT')} kWh/year</strong>
+                <strong>{$t('fields.totalConsumption', { values: { value: (consumption + heatPumpKwh).toLocaleString('it-IT') } })}</strong>
               {/if}
             </span>
           </label>
@@ -624,10 +635,10 @@
           <div class="field">
             <label class="checkbox-row">
               <input type="checkbox" bind:checked={abitazionePrincipale} />
-              <span>Primary residence (abitazione principale)</span>
+              <span>{$t('fields.primaryResidence')}</span>
             </label>
             <span class="field-hint" style="margin-left: 1.5rem">
-              Affects IRPEF deduction rate: 50% for primary residence, 36% for secondary (2026).
+              {$t('fields.primaryResidenceHint')}
             </span>
           </div>
         {/if}
@@ -638,19 +649,18 @@
         <label class="checkbox-row">
           <input type="checkbox" bind:checked={kwpAuto} />
           <span>
-            Auto-estimate system size from rooftop polygon
+            {$t('fields.autoEstimateKwp')}
             <span class="badge">Trentino LIDAR</span>
           </span>
         </label>
         <p class="field-hint" style="margin-left: 1.5rem">
-          Uses the Trentino Solar LIDAR database to calculate kWp from your rooftop area (only works
-          within the Trento province). For other areas, disable this and enter kWp manually.
+          {$t('fields.lidarHint')}
         </p>
         {#if !kwpAuto}
           <label class="field" style="margin-top: 0.75rem; max-width: 220px">
             <span class="field-label">
-              System size
-              <span class="field-unit">kWp</span>
+              {$t('fields.systemSize')}
+              <span class="field-unit">{$t('fields.kwp')}</span>
               <span class="req">*</span>
             </span>
             <input
@@ -662,7 +672,7 @@
               step="0.5"
               placeholder="10"
             />
-            <span class="field-hint">Rated peak power of the PV array. 1 kWp ≈ 4–6 m² of panels.</span>
+            <span class="field-hint">{$t('fields.systemSizeHint')}</span>
           </label>
         {/if}
       </div>
@@ -675,8 +685,8 @@
           onclick={() => (showAdvanced = !showAdvanced)}
           aria-expanded={showAdvanced}
         >
-          {showAdvanced ? '▾' : '▸'} Advanced options
-          <span class="adv-hint">(panel orientation, financing, incentives)</span>
+          {showAdvanced ? '▾' : '▸'} {$t('fields.advancedOptions')}
+          <span class="adv-hint">{$t('fields.advancedHint')}</span>
         </button>
       </div>
 
@@ -684,8 +694,8 @@
         <div class="advanced-grid">
           <label class="field">
             <span class="field-label">
-              Panel tilt
-              <span class="field-unit">degrees</span>
+              {$t('fields.panelTilt')}
+              <span class="field-unit">{$t('fields.degrees')}</span>
             </span>
             <input
               type="number"
@@ -695,13 +705,13 @@
               max="90"
               step="1"
             />
-            <span class="field-hint">Angle from horizontal. Optimal for Italy: 30–35°. Flat roof: 10–15°.</span>
+            <span class="field-hint">{$t('fields.panelTiltHint')}</span>
           </label>
 
           <label class="field">
             <span class="field-label">
-              Panel azimuth
-              <span class="field-unit">degrees</span>
+              {$t('fields.panelAzimuth')}
+              <span class="field-unit">{$t('fields.degrees')}</span>
             </span>
             <input
               type="number"
@@ -711,13 +721,13 @@
               max="180"
               step="5"
             />
-            <span class="field-hint">0° = south (optimal), −90° = east, +90° = west. Avoid north-facing (|az| &gt; 90°).</span>
+            <span class="field-hint">{$t('fields.panelAzimuthHint')}</span>
           </label>
 
           <label class="field">
             <span class="field-label">
-              Equity fraction
-              <span class="field-unit">0–1</span>
+              {$t('fields.equityFraction')}
+              <span class="field-unit">{$t('fields.equityFractionUnit')}</span>
             </span>
             <input
               type="number"
@@ -728,16 +738,14 @@
               step="0.05"
               placeholder="1.0"
             />
-            <span class="field-hint">
-              Fraction of CAPEX financed with own funds (1.0 = fully self-funded, no loan).
-            </span>
+            <span class="field-hint">{$t('fields.equityFractionHint')}</span>
           </label>
 
           {#if hasLoan}
             <label class="field">
               <span class="field-label">
-                Loan interest rate
-                <span class="field-unit">% / year</span>
+                {$t('fields.loanInterestRate')}
+                <span class="field-unit">{$t('fields.loanRateUnit')}</span>
               </span>
               <input
                 type="number"
@@ -752,8 +760,8 @@
 
             <label class="field">
               <span class="field-label">
-                Loan duration
-                <span class="field-unit">years</span>
+                {$t('fields.loanDuration')}
+                <span class="field-unit">{$t('fields.years')}</span>
               </span>
               <input
                 type="number"
@@ -771,22 +779,21 @@
           <div class="field" style="grid-column: 1 / -1">
             <label class="checkbox-row">
               <input type="checkbox" bind:checked={detrazioneEnabled} />
-              <span>IRPEF tax deduction (detrazione fiscale)</span>
+              <span>{$t('fields.irpefDeduction')}</span>
             </label>
             <span class="field-hint" style="margin-left: 1.5rem">
-              Italian IRPEF deduction on PV installation cost (residential, ≤20 kWp).
-              Uncheck if you don't have access to this incentive.
+              {$t('fields.irpefHint')}
             </span>
             {#if detrazioneEnabled}
               <label class="checkbox-row" style="margin-top: 0.5rem; margin-left: 1.5rem">
                 <input type="checkbox" bind:checked={detrazioneRateCustom} />
-                <span>Custom deduction rate</span>
+                <span>{$t('fields.customDeductionRate')}</span>
               </label>
               {#if detrazioneRateCustom}
                 <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem; margin-left: 1.5rem; flex-wrap: wrap">
                   <label class="field" style="max-width: 160px">
                     <span class="field-label">
-                      Deduction rate
+                      {$t('fields.deductionRate')}
                       <span class="field-unit">%</span>
                     </span>
                     <input
@@ -800,8 +807,8 @@
                   </label>
                   <label class="field" style="max-width: 160px">
                     <span class="field-label">
-                      Over
-                      <span class="field-unit">years</span>
+                      {$t('fields.over')}
+                      <span class="field-unit">{$t('fields.years')}</span>
                     </span>
                     <input
                       type="number"
@@ -814,9 +821,8 @@
                   </label>
                 </div>
                 <span class="field-hint" style="margin-left: 1.5rem">
-                  Annual deduction = (CAPEX + IVA 10%) × {detrazioneRate}% / {detrazioneYears} years
                   {#if capex > 0}
-                    = <strong>{Math.round(capex * 1.10 * (detrazioneRate / 100) / detrazioneYears).toLocaleString('it-IT')} €/year</strong>
+                    {$t('fields.annualDeduction', { values: { rate: detrazioneRate, years: detrazioneYears, value: Math.round(capex * 1.10 * (detrazioneRate / 100) / detrazioneYears).toLocaleString('it-IT') } })}
                   {/if}
                 </span>
               {/if}
@@ -833,9 +839,9 @@
         >
           {#if loading}
             <span class="spinner" aria-hidden="true"></span>
-            Calculating…
+            {$t('actions.calculating')}
           {:else}
-            Calculate ROI
+            {$t('actions.calculateRoi')}
           {/if}
         </button>
         {#if location}
@@ -843,9 +849,9 @@
             class="btn-share"
             onclick={copyShareLink}
             type="button"
-            title="Copy shareable link with current parameters"
+            title={$t('actions.copyLink')}
           >
-            {linkCopied ? 'Copied!' : 'Copy link'}
+            {linkCopied ? $t('actions.copied') : $t('actions.copyLink')}
           </button>
         {/if}
       </div>
@@ -855,13 +861,10 @@
   <!-- Error -->
   {#if error}
     <div class="error-banner" role="alert">
-      <strong>Error:</strong> {error}
+      <strong>{$t('errors.error')}</strong> {error}
       {#if kwpAuto}
         <br />
-        <small>
-          If your location is outside Trentino, disable the LIDAR estimation above and enter the
-          system size in kWp manually.
-        </small>
+        <small>{$t('errors.lidarFallback')}</small>
       {/if}
     </div>
   {/if}
@@ -871,7 +874,7 @@
     <section class="section">
       <header class="section-header">
         <span class="step-num step-num-muted">3</span>
-        <h2 class="section-title">ROI results</h2>
+        <h2 class="section-title">{$t('step3.title')}</h2>
       </header>
       <div class="skeleton-kpi-grid">
         {#each Array(6) as _}
@@ -885,12 +888,12 @@
 
   <!-- Results -->
   {#if result && !loading}
-    <section class="section">
+    <section class="section section-results">
       <header class="section-header">
         <span class="step-num">3</span>
-        <h2 class="section-title">ROI results</h2>
+        <h2 class="section-title">{$t('step3.title')}</h2>
       </header>
-      <RoiResults {result} {apiBaseUrl} systemInput={lastSystem} configOverrides={lastOverrides} />
+      <RoiResults {result} {apiBaseUrl} systemInput={lastSystem} configOverrides={lastOverrides} shareUrl={buildShareUrl()} />
     </section>
   {/if}
 </div>
@@ -1015,6 +1018,12 @@
   .field-hint {
     font-size: 0.75rem;
     color: var(--celine-text-tertiary);
+    line-height: 1.4;
+  }
+
+  .field-error {
+    font-size: 0.75rem;
+    color: var(--celine-danger);
     line-height: 1.4;
   }
 
@@ -1238,5 +1247,28 @@
     font-size: 0.8125rem;
     text-align: right;
     width: 100%;
+  }
+
+  /* ── Print styles ── */
+  @media print {
+    .roi-core > .section:not(.section-results),
+    .roi-core > .error-banner,
+    .roi-core > :not(.section) {
+      display: none !important;
+    }
+
+    .roi-core {
+      padding: 0;
+      max-width: none;
+    }
+
+    .section-results {
+      border-bottom: none;
+      padding-top: 0;
+    }
+
+    .step-num {
+      display: none;
+    }
   }
 </style>

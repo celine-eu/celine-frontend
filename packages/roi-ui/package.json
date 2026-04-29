@@ -11,13 +11,19 @@
       "default": "./src/index.ts"
     }
   },
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "peerDependencies": {
-    "svelte": "^5.0.0"
+    "svelte": "^5.0.0",
+    "svelte-i18n": "^4.0.0"
   },
   "dependencies": {
     "@celine-eu/ui": "workspace:*",
-    "leaflet": "^1.9.4"
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1",
+    "leaflet": "^1.9.4",
+    "qrcode-svg": "^1.1.0"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.0.0",

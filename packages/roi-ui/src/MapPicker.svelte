@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { t } from 'svelte-i18n';
   import type { PickedLocation } from './types.js';
 
   interface Props {
@@ -7,6 +8,7 @@
     initialLat?: number;
     initialLng?: number;
     initialZoom?: number;
+    initialWkt?: string;
   }
 
   let {
@@ -14,6 +16,7 @@
     initialLat = 46.07,
     initialLng = 11.12,
     initialZoom = 13,
+    initialWkt = '',
   }: Props = $props();
 
   // ── Reactive UI state ───────────────────────────────────────────────────────
@@ -50,7 +53,7 @@
       await import('leaflet/dist/leaflet.css');
       L = (mod.default ?? mod) as typeof import('leaflet');
 
-      map = L.map(mapEl, { center: [initialLat, initialLng], zoom: initialZoom });
+      map = L.map(mapEl, { center: [initialLat, initialLng], zoom: initialZoom, maxZoom: 19 });
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
@@ -82,6 +85,28 @@
       container.addEventListener('touchstart', onTouchStart, { passive: false });
       container.addEventListener('touchmove', onTouchMove, { passive: false });
       container.addEventListener('touchend', onTouchEnd, { passive: false });
+
+      // Restore polygon from URL WKT parameter
+      if (initialWkt && L) {
+        const Lref = L;
+        const coords = initialWkt.match(/[\d.]+\s+[\d.]+/g);
+        if (coords && coords.length >= 3) {
+          const parsed = coords.map(c => {
+            const [lng, lat] = c.split(/\s+/).map(Number);
+            return Lref.latLng(lat, lng);
+          });
+          if (parsed.length > 1 &&
+              parsed[0].lat === parsed[parsed.length - 1].lat &&
+              parsed[0].lng === parsed[parsed.length - 1].lng) {
+            parsed.pop();
+          }
+          if (parsed.length >= 3) {
+            vertices = parsed;
+            rebuildHandles();
+            map.fitBounds(Lref.latLngBounds(vertices), { padding: [40, 40], maxZoom: 19 });
+          }
+        }
+      }
     })();
 
     return () => {
@@ -208,11 +233,6 @@
 
   // ── Polygon editing ─────────────────────────────────────────────────────────
 
-  /**
-   * Full rebuild: re-creates the polygon layer, all vertex handles,
-   * and all midpoint handles from the current `vertices` array.
-   * Called after structural changes (insert/delete vertex, dragend).
-   */
   function rebuildHandles() {
     if (!L || !map) return;
     clearPolygonLayers();
@@ -231,18 +251,15 @@
         zIndexOffset: 1000,
       }).addTo(map);
 
-      // Real-time polygon reshape while dragging
       marker.on('drag', (e) => {
         vertices[idx] = (e.target as import('leaflet').Marker).getLatLng();
         polygon?.setLatLngs([vertices]);
-        slideMidpoints(); // lightweight position-only update
+        slideMidpoints();
         emitLocation();
       });
 
-      // Full rebuild after drag ends (cleans up stale handles)
       marker.on('dragend', () => rebuildHandles());
 
-      // Double-click removes vertex (minimum 3 kept)
       marker.on('dblclick', (e) => {
         L!.DomEvent.stopPropagation(e);
         if (vertices.length > 3) {
@@ -260,10 +277,6 @@
     emitLocation();
   }
 
-  /**
-   * Recreates midpoint handles.  Called by rebuildHandles and when
-   * vertex count changes.
-   */
   function rebuildMidpoints() {
     if (!L || !map) return;
     midpointMarkers.forEach(m => map!.removeLayer(m));
@@ -271,7 +284,7 @@
 
     const n = vertices.length;
     for (let i = 0; i < n; i++) {
-      const insertAfter = i; // capture for closure
+      const insertAfter = i;
       const v1 = vertices[i];
       const v2 = vertices[(i + 1) % n];
       const mid = L.latLng((v1.lat + v2.lat) / 2, (v1.lng + v2.lng) / 2);
@@ -283,7 +296,6 @@
 
       m.on('click', (e) => {
         L!.DomEvent.stopPropagation(e);
-        // Insert a new vertex at the midpoint position
         vertices.splice(insertAfter + 1, 0, (e.target as import('leaflet').Marker).getLatLng());
         rebuildHandles();
       });
@@ -292,10 +304,6 @@
     }
   }
 
-  /**
-   * Lightweight: only updates midpoint marker positions without
-   * removing/re-adding them.  Used during vertex drag for smooth animation.
-   */
   function slideMidpoints() {
     if (!L) return;
     const n = vertices.length;
@@ -307,7 +315,6 @@
     });
   }
 
-  /** Remove all Leaflet layers for the current polygon + handles. */
   function clearPolygonLayers() {
     if (!map) return;
     if (polygon) { map.removeLayer(polygon); polygon = null; }
@@ -317,7 +324,6 @@
     midpointMarkers = [];
   }
 
-  /** Emit the current polygon as a PickedLocation. */
   function emitLocation() {
     if (!L || vertices.length < 3) return;
     const bounds = L.latLngBounds(vertices);
@@ -334,13 +340,11 @@
 
   // ── Controls ────────────────────────────────────────────────────────────────
 
-  /** Start/cancel rectangle drawing. If a polygon exists, clear it first. */
   function startDrawing() {
     clearAll();
     drawingMode = true;
   }
 
-  /** Clear everything and notify parent. */
   function clearAll() {
     clearPolygonLayers();
     vertices = [];
@@ -367,12 +371,11 @@
       const data = (await res.json()) as Array<{ lat: string; lon: string; display_name: string }>;
       if (data.length > 0) {
         map?.flyTo([parseFloat(data[0].lat), parseFloat(data[0].lon)], 17);
-        // Keep existing polygon if already drawn (user may want to adjust)
       } else {
-        searchError = 'Address not found. Try a more specific search.';
+        searchError = $t('map.addressNotFound');
       }
     } catch {
-      searchError = 'Search failed. Check your connection.';
+      searchError = $t('map.searchFailed');
     } finally {
       searching = false;
     }
@@ -383,7 +386,6 @@
   }
 </script>
 
-<!-- Global styles for Leaflet DivIcon handles (outside Svelte scoping) -->
 <svelte:head>
   <!-- Handled via :global below -->
 </svelte:head>
@@ -394,7 +396,7 @@
     <input
       type="text"
       class="address-input"
-      placeholder="Enter address (e.g. Via Roma 1, Trento)"
+      placeholder={$t('map.searchPlaceholder')}
       bind:value={address}
       onkeydown={handleKeydown}
     />
@@ -403,7 +405,7 @@
       onclick={searchAddress}
       disabled={searching || !address.trim()}
     >
-      {searching ? 'Searching…' : 'Search'}
+      {searching ? $t('map.searching') : $t('map.search')}
     </button>
   </div>
 
@@ -419,17 +421,17 @@
     <div class="map-controls">
       {#if editingPolygon}
         <div class="map-bar">
-          <span class="bar-badge">✓ {vertexCount} vertices</span>
-          <button class="btn-bar" onclick={startDrawing}>Redraw</button>
-          <button class="btn-bar btn-bar-danger" onclick={clearAll}>Clear</button>
+          <span class="bar-badge">{$t('map.vertices', { values: { count: vertexCount } })}</span>
+          <button class="btn-bar" onclick={startDrawing}>{$t('map.redraw')}</button>
+          <button class="btn-bar btn-bar-danger" onclick={clearAll}>{$t('map.clear')}</button>
         </div>
       {:else if drawingMode}
         <div class="map-bar map-bar-hint">
-          Drag to draw a rectangle on the roof
+          {$t('map.dragHint')}
         </div>
       {:else}
         <button class="btn btn-outline" onclick={startDrawing}>
-          📐 Draw Rooftop
+          {$t('map.drawRooftop')}
         </button>
       {/if}
     </div>
@@ -438,19 +440,19 @@
   <!-- Edit instructions -->
   {#if editingPolygon}
     <div class="edit-hint">
-      <span class="hint-item">⬤ Drag white handles to move vertices</span>
+      <span class="hint-item">{$t('map.editDragHandle')}</span>
       <span class="hint-sep">·</span>
-      <span class="hint-item"><span class="mh-sample"></span> Click teal dots to add a vertex</span>
+      <span class="hint-item"><span class="mh-sample"></span> {$t('map.editAddVertex')}</span>
       <span class="hint-sep">·</span>
-      <span class="hint-item">Double-click a handle to delete it</span>
+      <span class="hint-item">{$t('map.editDeleteVertex')}</span>
     </div>
   {/if}
 
   <!-- Location summary -->
   {#if drawnLocation}
     <p class="location-details">
-      📍 {drawnLocation.lat.toFixed(5)}, {drawnLocation.lng.toFixed(5)}
-      &nbsp;·&nbsp; {vertexCount}-vertex polygon
+      {drawnLocation.lat.toFixed(5)}, {drawnLocation.lng.toFixed(5)}
+      &nbsp;·&nbsp; {$t('map.polygon', { values: { count: vertexCount } })}
     </p>
   {/if}
 </div>
@@ -662,9 +664,7 @@
     margin: 0;
   }
 
-  /* ── Global: Leaflet DivIcon handle styles ────────────────────────────────
-     These live outside Svelte's scoped CSS because the icons are injected
-     as raw HTML by Leaflet into its own DOM containers.              ── */
+  /* ── Global: Leaflet DivIcon handle styles ── */
   :global(.roi-vh) {
     width: 14px;
     height: 14px;

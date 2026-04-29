@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from 'svelte-i18n';
   import RoiCore from './RoiCore.svelte';
 
   interface Props {
@@ -9,9 +10,11 @@
 
   let {
     apiBaseUrl = '/api',
-    buttonLabel = 'Solar ROI',
+    buttonLabel,
     position = 'bottom-right',
   }: Props = $props();
+
+  const label = $derived(buttonLabel ?? $t('widget.title'));
 
   let open = $state(false);
 </script>
@@ -20,7 +23,7 @@
   {#if open}
     <div class="panel">
       <div class="panel-header">
-        <span class="panel-title">☀ Solar ROI Calculator</span>
+        <span class="panel-title">{label}</span>
         <button class="close-btn" onclick={() => (open = false)} aria-label="Close">✕</button>
       </div>
       <div class="panel-body">
@@ -29,11 +32,11 @@
     </div>
   {/if}
 
-  <button class="fab" onclick={() => (open = !open)} aria-label={buttonLabel}>
+  <button class="fab" onclick={() => (open = !open)} aria-label={label}>
     {#if open}
       ✕
     {:else}
-      ☀ <span class="fab-label">{buttonLabel}</span>
+      <span class="fab-label">{label}</span>
     {/if}
   </button>
 </div>
