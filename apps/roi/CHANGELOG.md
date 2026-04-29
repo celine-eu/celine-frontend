@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.12.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.11.0...roi-v0.12.0) (2026-04-29)
+
+### Bug Fixes
+
+* improve the screenshot and the CLI ([b0e2720](https://github.com/celine-eu/celine-frontend/commit/b0e2720e85acbca27a28e09874e4e6f42b0ce5f9))
+
 ## [0.11.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.10.0...roi-v0.11.0) (2026-04-28)
 
 ### Features
