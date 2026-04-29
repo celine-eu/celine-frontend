@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.13.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.12.0...roi-v0.13.0) (2026-04-29)
+
+### Features
+
+* update smartphone map selector ([ceda7c0](https://github.com/celine-eu/celine-frontend/commit/ceda7c0815bfe5ff633e8803eb8266ae46694d10))
+
 ## [0.12.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.11.0...roi-v0.12.0) (2026-04-29)
 
 ### Bug Fixes
