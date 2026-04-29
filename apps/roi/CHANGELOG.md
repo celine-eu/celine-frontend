@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.14.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.13.0...roi-v0.14.0) (2026-04-29)
+
+### Features
+
+* **roi:** add PDF download, use params in url ([f5eac7b](https://github.com/celine-eu/celine-frontend/commit/f5eac7b176798adee37e80eac9889657fd425811))
+
 ## [0.13.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.12.0...roi-v0.13.0) (2026-04-29)
 
 ### Features
