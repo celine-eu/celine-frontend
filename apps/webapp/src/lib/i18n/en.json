@@ -149,6 +149,7 @@
     "remind_me": "Remind me",
     "accept": "Accept",
     "not_now": "Not now",
+    "rejected": "Got it. We won't remind you about this one.",
     "from_label": "This {period} ({range})",
     "to_label_today": "To {period} ({time})",
     "to_label_tomorrow": "To tomorrow's {period} ({time})",

@@ -145,6 +145,7 @@
     "remind_me": "Recuérdamelo",
     "accept": "Aceptar",
     "not_now": "Ahora no",
+    "rejected": "Entendido. No te recordaremos sobre esta oportunidad.",
     "from_label": "Esta {period} ({range})",
     "to_label_today": "A {period} ({time})",
     "to_label_tomorrow": "A mañana {period} ({time})",

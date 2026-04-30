@@ -6,12 +6,12 @@
 
   interface Props {
     suggestion: SuggestionItem;
-    onreminded?: () => void;
+    onresponded?: (response: 'accepted' | 'declined') => void;
   }
 
-  let { suggestion, onreminded }: Props = $props();
+  let { suggestion, onresponded }: Props = $props();
 
-  type CardState = 'idle' | 'loading' | 'scheduled' | 'error';
+  type CardState = 'idle' | 'accepting' | 'rejecting' | 'accepted' | 'rejected' | 'error';
   let cardState: CardState = $state('idle');
   let errorMsg = $state('');
 
@@ -25,18 +25,40 @@
     return TYPE_ICONS[type] ?? 'zap';
   }
 
-  async function remind() {
-    cardState = 'loading';
+  function isBusy(s: CardState): boolean {
+    return s === 'accepting' || s === 'rejecting';
+  }
+
+  async function accept() {
+    cardState = 'accepting';
     try {
-      await api.suggestionRemind(
+      await api.suggestionRespond(
         suggestion.id,
+        'accepted',
+        suggestion.reward_points,
         suggestion.period_start,
         suggestion.period_end,
-        suggestion.reward_points,
-        $locale ?? undefined,
       );
-      cardState = 'scheduled';
-      setTimeout(() => onreminded?.(), 1800);
+      cardState = 'accepted';
+      setTimeout(() => onresponded?.('accepted'), 2000);
+    } catch (e) {
+      errorMsg = e instanceof Error ? e.message : String(e);
+      cardState = 'error';
+    }
+  }
+
+  async function reject() {
+    cardState = 'rejecting';
+    try {
+      await api.suggestionRespond(
+        suggestion.id,
+        'declined',
+        suggestion.reward_points,
+        suggestion.period_start,
+        suggestion.period_end,
+      );
+      cardState = 'rejected';
+      setTimeout(() => onresponded?.('declined'), 1200);
     } catch (e) {
       errorMsg = e instanceof Error ? e.message : String(e);
       cardState = 'error';
@@ -44,11 +66,16 @@
   }
 </script>
 
-<div class="suggestion-card" class:scheduled={cardState === 'scheduled'}>
-  {#if cardState === 'scheduled'}
-    <div class="commitment">
-      <Icon name="clock" size={20} class="clock-icon" />
-      <span>{$t('suggestion_card.scheduled')}</span>
+<div class="suggestion-card" class:accepted={cardState === 'accepted'} class:rejected={cardState === 'rejected'}>
+  {#if cardState === 'accepted'}
+    <div class="commitment commitment--accepted">
+      <Icon name="check-circle" size={20} class="check-icon" />
+      <span>{$t('suggestion_card.done', { values: { points: suggestion.reward_points } })}</span>
+    </div>
+  {:else if cardState === 'rejected'}
+    <div class="commitment commitment--rejected">
+      <Icon name="x-circle" size={20} class="x-icon" />
+      <span>{$t('suggestion_card.rejected')}</span>
     </div>
   {:else}
     <div class="card-header">
@@ -87,11 +114,18 @@
 
     <div class="actions">
       <button
-        class="btn btn-primary"
-        disabled={cardState === 'loading'}
-        onclick={remind}
+        class="btn btn-secondary"
+        disabled={isBusy(cardState)}
+        onclick={reject}
       >
-        {cardState === 'loading' ? $t('suggestion_card.saving') : $t('suggestion_card.remind_me')}
+        {cardState === 'rejecting' ? $t('suggestion_card.saving') : $t('suggestion_card.not_now')}
+      </button>
+      <button
+        class="btn btn-primary"
+        disabled={isBusy(cardState)}
+        onclick={accept}
+      >
+        {cardState === 'accepting' ? $t('suggestion_card.saving') : $t('suggestion_card.accept')}
       </button>
     </div>
   {/if}
@@ -109,20 +143,33 @@
     transition: border-color var(--celine-transition-fast);
   }
 
-  .suggestion-card.scheduled {
-    border-color: var(--celine-warning, #f59e0b);
-    background: rgba(245,158,11,0.05);
+  .suggestion-card.accepted {
+    border-color: var(--celine-success, #10b981);
+    background: rgba(16,185,129,0.05);
+  }
+
+  .suggestion-card.rejected {
+    border-color: var(--celine-border);
+    opacity: 0.7;
   }
 
   .commitment {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--celine-warning-text, #92400e);
     font-size: 0.875rem;
     padding: var(--celine-space-sm) 0;
   }
-  :global(.clock-icon) { color: var(--celine-warning, #f59e0b); }
+
+  .commitment--accepted {
+    color: var(--celine-success-text, #065f46);
+  }
+  :global(.check-icon) { color: var(--celine-success, #10b981); }
+
+  .commitment--rejected {
+    color: var(--celine-text-secondary);
+  }
+  :global(.x-icon) { color: var(--celine-text-tertiary); }
 
   .card-header {
     display: flex;
@@ -236,4 +283,14 @@
     border-color: var(--celine-primary);
   }
   .btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
+
+  .btn-secondary {
+    background: var(--celine-bg);
+    color: var(--celine-text-secondary);
+    border-color: var(--celine-border);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--celine-text-tertiary);
+    color: var(--celine-text);
+  }
 </style>

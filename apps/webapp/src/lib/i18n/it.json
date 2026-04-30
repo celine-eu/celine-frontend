@@ -149,6 +149,7 @@
     "remind_me": "Ricordamelo",
     "accept": "Accetta",
     "not_now": "Non ora",
+    "rejected": "Capito. Non ti ricorderemo di questa opportunità.",
     "from_label": "Questa {period} ({range})",
     "to_label_today": "A {period} ({time})",
     "to_label_tomorrow": "A domani {period} ({time})",

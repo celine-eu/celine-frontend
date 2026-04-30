@@ -28,8 +28,11 @@
     return $t(`suggestions.ask_ai.${section}`);
   }
 
-  function handleReminded(id: string) {
+  function handleResponded(id: string, response: 'accepted' | 'declined') {
     suggestions = suggestions.filter(s => s.id !== id);
+    if (response === 'accepted') {
+      api.gamificationHistory().then(h => { history = h; }).catch(() => {});
+    }
   }
 
   function fmtDate(isoStr: string): string {
@@ -150,7 +153,7 @@
         {#each suggestions as suggestion (suggestion.id)}
           <SuggestionCard
             {suggestion}
-            onreminded={() => handleReminded(suggestion.id)}
+            onresponded={(response) => handleResponded(suggestion.id, response)}
           />
         {/each}
       </div>
