@@ -11,10 +11,38 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-    for (const client of clientList) {
-      if ('focus' in client) return client.focus();
+  const data = event.notification?.data || {};
+  const url = data.url || '/';
+  const token = data.click_tracking_token;
+  const action = event.action || 'default';
+
+  event.waitUntil((async () => {
+    if (token) {
+      try {
+        await fetch('/api/notifications/track-click', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token,
+            action,
+          }),
+        });
+      } catch (_) {
+        // Best-effort tracking.
+      }
     }
-    if (clients.openWindow) return clients.openWindow('/');
-  }));
+
+    const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clientList) {
+      if ('focus' in client) {
+        if ('navigate' in client && client.url !== url) {
+          await client.navigate(url);
+        }
+        return client.focus();
+      }
+    }
+    if (clients.openWindow) return clients.openWindow(url);
+  })());
 });
