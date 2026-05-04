@@ -13,7 +13,7 @@
     "@sveltejs/kit": "^2.55.0",
     "svelte": "^5.55.5",
     "chart.js": "^4.4.0",
-    "maplibre-gl": "^4.0.0",
+    "maplibre-gl": "^5.24.0",
     "svelte-i18n": "^4.0.0"
   },
   "devDependencies": {
