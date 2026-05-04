@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.18.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.17.0...webapp-v0.18.0) (2026-05-04)
+
+### Features
+
+* add Accept/Reject commitments ([97c0d59](https://github.com/celine-eu/celine-frontend/commit/97c0d5930532b23bcd3c2f8a19b6387e33ac133f))
+* added tracking on notification interaction ([e3ae365](https://github.com/celine-eu/celine-frontend/commit/e3ae36547711261498c014602d8f1ca75421d777))
+* **roi:** add PDF download, use params in url ([f5eac7b](https://github.com/celine-eu/celine-frontend/commit/f5eac7b176798adee37e80eac9889657fd425811))
+* update smartphone map selector ([ceda7c0](https://github.com/celine-eu/celine-frontend/commit/ceda7c0815bfe5ff633e8803eb8266ae46694d10))
+
 ## [0.17.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.16.0...webapp-v0.17.0) (2026-04-29)
 
 ### Bug Fixes
