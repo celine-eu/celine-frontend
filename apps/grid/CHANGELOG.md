@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.12.0...grid-v0.13.0) (2026-05-04)
+
+### Features
+
+* add Accept/Reject commitments ([97c0d59](https://github.com/celine-eu/celine-frontend/commit/97c0d5930532b23bcd3c2f8a19b6387e33ac133f))
+* added tracking on notification interaction ([e3ae365](https://github.com/celine-eu/celine-frontend/commit/e3ae36547711261498c014602d8f1ca75421d777))
+
 ## [0.12.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.11.0...grid-v0.12.0) (2026-04-29)
 
 ### Features
