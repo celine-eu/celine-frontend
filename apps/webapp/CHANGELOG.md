@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.19.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.18.0...webapp-v0.19.0) (2026-05-08)
+
+### Bug Fixes
+
+* grid rule setting ([eb8d51d](https://github.com/celine-eu/celine-frontend/commit/eb8d51dd33966a153bdd20222df40d7b3c484d20))
+
 ## [0.18.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.17.0...webapp-v0.18.0) (2026-05-04)
 
 ### Features
