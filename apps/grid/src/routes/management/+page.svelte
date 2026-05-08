@@ -18,9 +18,16 @@
   let rules = $state<AlertRule[]>([]);
   let editingId = $state<string | null>(null);
   let saving = $state<string | null>(null);
+  let addingRule = $state(false);
+  let addRuleError = $state<string | null>(null);
+  let addRuleStatus = $state<string | null>(null);
 
   // Draft edits — keyed by rule id
   let drafts = $state<Record<string, Partial<AlertRule>>>({});
+
+  let newRiskType = $state<'wind' | 'heat'>('wind');
+  let newThreshold = $state<'ALERT' | 'WARNING'>('ALERT');
+  let newRecipients = $state('');
 
   onMount(async () => {
     rules = await getAlertRules();
@@ -36,14 +43,25 @@
   }
 
   async function addRule() {
-    const created = await createAlertRule({
-      risk_types: ['wind'],
-      threshold: 'ALERT',
-      recipients: '',
-      active: true,
-    });
-    rules = [...rules, created];
-    startEdit(created.id);
+    addingRule = true;
+    addRuleError = null;
+    addRuleStatus = null;
+    try {
+      const recipients = newRecipients.trim() || notifEmail.trim();
+      const created = await createAlertRule({
+        risk_types: [newRiskType],
+        threshold: newThreshold,
+        recipients,
+        active: true,
+      });
+      rules = [...rules, created];
+      startEdit(created.id);
+      addRuleStatus = 'Regola aggiunta';
+    } catch (err) {
+      addRuleError = err instanceof Error ? err.message : 'Errore durante la creazione della regola';
+    } finally {
+      addingRule = false;
+    }
   }
 
   async function saveRule(id: string) {
@@ -116,8 +134,42 @@
   <section class="section">
     <div class="section-header">
       <h2>{$_('management.rules')}</h2>
-      <button class="btn-primary" onclick={addRule}>{$_('management.add_rule')}</button>
     </div>
+
+    <div class="new-rule-form">
+      <div class="form-group compact">
+        <label for="new-risk-type">Risk Type</label>
+        <select id="new-risk-type" bind:value={newRiskType}>
+          <option value="wind">Wind</option>
+          <option value="heat">Heat</option>
+        </select>
+      </div>
+      <div class="form-group compact">
+        <label for="new-threshold">Threshold</label>
+        <select id="new-threshold" bind:value={newThreshold}>
+          <option value="ALERT">ALERT</option>
+          <option value="WARNING">WARNING</option>
+        </select>
+      </div>
+      <div class="form-group recipients-group">
+        <label for="new-recipients">Recipients</label>
+        <input
+          id="new-recipients"
+          type="text"
+          bind:value={newRecipients}
+          placeholder={notifEmail || 'alerts@example.com, ops@example.com'}
+        />
+      </div>
+      <button class="btn-primary add-rule-btn" disabled={addingRule} onclick={addRule}>
+        {addingRule ? 'Invio...' : $_('management.add_rule')}
+      </button>
+    </div>
+
+    {#if addRuleError}
+      <p class="form-message error">{addRuleError}</p>
+    {:else if addRuleStatus}
+      <p class="form-message success">{addRuleStatus}</p>
+    {/if}
 
     <div class="rules-table-wrap">
       <table class="rules-table">
@@ -262,6 +314,56 @@
     overflow-x: auto;
     border: 1px solid var(--celine-border, #e2e8f0);
     border-radius: 8px;
+  }
+
+  .new-rule-form {
+    display: grid;
+    grid-template-columns: minmax(120px, 160px) minmax(120px, 160px) minmax(240px, 1fr) auto;
+    gap: 0.75rem;
+    align-items: end;
+    padding: 1rem;
+    margin-bottom: 0.875rem;
+    border: 1px solid var(--celine-border, #e2e8f0);
+    border-radius: 8px;
+    background: var(--celine-bg-elevated, #fff);
+  }
+
+  .new-rule-form select,
+  .new-rule-form input {
+    width: 100%;
+    border: 1px solid var(--celine-border, #e2e8f0);
+    border-radius: 6px;
+    padding: 0.4375rem 0.625rem;
+    font-size: 0.875rem;
+    background: var(--celine-bg, #f8fafc);
+    color: var(--celine-text, #1e293b);
+  }
+
+  .new-rule-form .compact {
+    min-width: 0;
+  }
+
+  .recipients-group {
+    min-width: 0;
+  }
+
+  .add-rule-btn {
+    min-height: 2.1875rem;
+    white-space: nowrap;
+  }
+
+  .form-message {
+    margin: -0.25rem 0 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+
+  .form-message.error {
+    color: #b91c1c;
+  }
+
+  .form-message.success {
+    color: #047857;
   }
 
   .rules-table {
@@ -434,5 +536,19 @@
     font-size: 0.875rem;
     background: var(--celine-bg, #f8fafc);
     color: var(--celine-text, #1e293b);
+  }
+
+  @media (max-width: 900px) {
+    .new-rule-form {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .recipients-group {
+      grid-column: span 2;
+    }
+
+    .add-rule-btn {
+      grid-column: span 2;
+    }
   }
 </style>
