@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.16.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.15.0...grid-v0.16.0) (2026-05-12)
+
+### Bug Fixes
+
+* pnpm versions ([e4a8554](https://github.com/celine-eu/celine-frontend/commit/e4a85542f947169077e8f82a4b98fa6b26c70e98))
+
 ## [0.15.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.14.0...grid-v0.15.0) (2026-05-12)
 
 ### Features
