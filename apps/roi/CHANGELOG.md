@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.20.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.19.0...roi-v0.20.0) (2026-05-12)
+
+### Bug Fixes
+
+* lidar computation ([4f3a25a](https://github.com/celine-eu/celine-frontend/commit/4f3a25acfe8f8f1bac9bd017453724b0801ab15d))
+
 ## [0.19.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.18.0...roi-v0.19.0) (2026-05-12)
 
 ### Bug Fixes
