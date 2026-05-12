@@ -28,6 +28,8 @@
   let editingPolygon = $state(false); // polygon drawn and editable
   let vertexCount = $state(0);
   let drawnLocation: PickedLocation | null = $state(null);
+  let polygonAreaM2 = $state(0);
+  let sideLengthsM: number[] = $state([]);
 
   // ── Non-reactive Leaflet state ──────────────────────────────────────────────
   let L: typeof import('leaflet') | null = null;
@@ -43,6 +45,7 @@
   let polygon: import('leaflet').Polygon | null = null;
   let vertexMarkers: import('leaflet').Marker[] = [];
   let midpointMarkers: import('leaflet').Marker[] = [];
+  let edgeLabelMarkers: import('leaflet').Marker[] = [];
   let vertexIcon: import('leaflet').DivIcon;
   let midpointIcon: import('leaflet').DivIcon;
 
@@ -255,6 +258,8 @@
         vertices[idx] = (e.target as import('leaflet').Marker).getLatLng();
         polygon?.setLatLngs([vertices]);
         slideMidpoints();
+        computePolygonMetrics();
+        slideEdgeLabels();
         emitLocation();
       });
 
@@ -272,6 +277,8 @@
     });
 
     rebuildMidpoints();
+    computePolygonMetrics();
+    rebuildEdgeLabels();
     editingPolygon = true;
     vertexCount = vertices.length;
     emitLocation();
@@ -322,6 +329,78 @@
     vertexMarkers = [];
     midpointMarkers.forEach(m => map!.removeLayer(m));
     midpointMarkers = [];
+    edgeLabelMarkers.forEach(m => map!.removeLayer(m));
+    edgeLabelMarkers = [];
+  }
+
+  function computePolygonMetrics() {
+    if (vertices.length < 3) {
+      polygonAreaM2 = 0;
+      sideLengthsM = [];
+      return;
+    }
+    const avgLat = vertices.reduce((s, v) => s + v.lat, 0) / vertices.length;
+    const mPerDegLat = 111320;
+    const mPerDegLng = 111320 * Math.cos(avgLat * Math.PI / 180);
+    const n = vertices.length;
+    let area = 0;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      const xi = vertices[i].lng * mPerDegLng;
+      const yi = vertices[i].lat * mPerDegLat;
+      const xj = vertices[j].lng * mPerDegLng;
+      const yj = vertices[j].lat * mPerDegLat;
+      area += xi * yj - xj * yi;
+    }
+    polygonAreaM2 = Math.abs(area) / 2;
+    sideLengthsM = vertices.map((v, i) => {
+      const w = vertices[(i + 1) % n];
+      const dx = (w.lng - v.lng) * mPerDegLng;
+      const dy = (w.lat - v.lat) * mPerDegLat;
+      return Math.sqrt(dx * dx + dy * dy);
+    });
+  }
+
+  function rebuildEdgeLabels() {
+    if (!L || !map) return;
+    edgeLabelMarkers.forEach(m => map!.removeLayer(m));
+    edgeLabelMarkers = [];
+    if (sideLengthsM.length === 0) return;
+    const n = vertices.length;
+    for (let i = 0; i < n; i++) {
+      const v1 = vertices[i];
+      const v2 = vertices[(i + 1) % n];
+      const mid = L.latLng((v1.lat + v2.lat) / 2, (v1.lng + v2.lng) / 2);
+      const len = sideLengthsM[i];
+      const label = len >= 1000 ? `${(len / 1000).toFixed(1)} km` : `${len.toFixed(1)} m`;
+      const icon = L.divIcon({
+        className: '',
+        html: `<div class="roi-edge-label">${label}</div>`,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0],
+      });
+      const marker = L.marker([mid.lat, mid.lng], {
+        icon,
+        interactive: false,
+        zIndexOffset: 800,
+      }).addTo(map);
+      edgeLabelMarkers.push(marker);
+    }
+  }
+
+  function slideEdgeLabels() {
+    if (!L) return;
+    const n = vertices.length;
+    edgeLabelMarkers.forEach((m, i) => {
+      if (i >= n) return;
+      const v1 = vertices[i];
+      const v2 = vertices[(i + 1) % n];
+      m.setLatLng(L!.latLng((v1.lat + v2.lat) / 2, (v1.lng + v2.lng) / 2));
+      const len = sideLengthsM[i];
+      const label = len >= 1000 ? `${(len / 1000).toFixed(1)} km` : `${len.toFixed(1)} m`;
+      const el = m.getElement()?.querySelector('.roi-edge-label');
+      if (el) el.textContent = label;
+    });
   }
 
   function emitLocation() {
@@ -329,7 +408,7 @@
     const bounds = L.latLngBounds(vertices);
     const center = bounds.getCenter();
     const wkt = verticesToWkt(vertices);
-    drawnLocation = { lat: center.lat, lng: center.lng, wkt, name: address };
+    drawnLocation = { lat: center.lat, lng: center.lng, wkt, name: address, area_m2: polygonAreaM2 };
     onLocationChange?.(drawnLocation);
   }
 
@@ -350,6 +429,8 @@
     vertices = [];
     editingPolygon = false;
     vertexCount = 0;
+    polygonAreaM2 = 0;
+    sideLengthsM = [];
     drawingMode = false;
     drawnLocation = null;
     onLocationChange?.(null);
@@ -422,6 +503,9 @@
       {#if editingPolygon}
         <div class="map-bar">
           <span class="bar-badge">{$t('map.vertices', { values: { count: vertexCount } })}</span>
+          {#if polygonAreaM2 > 0}
+            <span class="bar-badge bar-badge-area">{Math.round(polygonAreaM2)} m²</span>
+          {/if}
           <button class="btn-bar" onclick={startDrawing}>{$t('map.redraw')}</button>
           <button class="btn-bar btn-bar-danger" onclick={clearAll}>{$t('map.clear')}</button>
         </div>
@@ -453,6 +537,9 @@
     <p class="location-details">
       {drawnLocation.lat.toFixed(5)}, {drawnLocation.lng.toFixed(5)}
       &nbsp;·&nbsp; {$t('map.polygon', { values: { count: vertexCount } })}
+      {#if polygonAreaM2 > 0}
+        &nbsp;·&nbsp; <strong>{Math.round(polygonAreaM2)} m²</strong>
+      {/if}
     </p>
   {/if}
 </div>
@@ -546,6 +633,11 @@
     color: var(--celine-primary);
     padding-right: 0.375rem;
     border-right: 1px solid var(--celine-border);
+  }
+
+  .bar-badge-area {
+    color: var(--celine-text);
+    font-weight: 600;
   }
 
   .btn-bar {
@@ -701,5 +793,20 @@
   :global(.roi-mh:hover) {
     opacity: 1;
     transform: scale(1.3);
+  }
+
+  :global(.roi-edge-label) {
+    background: rgba(255, 255, 255, 0.92);
+    color: #1e293b;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    line-height: 1.4;
   }
 </style>

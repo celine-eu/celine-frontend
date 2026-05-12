@@ -46,6 +46,7 @@ export interface PickedLocation {
   lng: number;
   wkt: string;
   name: string;
+  area_m2?: number;
 }
 
 export interface ScenarioSummary {

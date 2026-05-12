@@ -102,6 +102,18 @@
 
   const hasLoan = $derived(equityFraction < 1.0);
 
+  const kwpPreviewFromArea = $derived.by(() => {
+    if (!kwpAuto || useCapexEstimator) return null;
+    const area = location?.area_m2 ?? 0;
+    if (area <= 0) return null;
+    const panelAreaM2 = 2.2;
+    const panelKwp = 0.41;
+    const usableFraction = 0.65;
+    const panels = Math.floor(area * usableFraction / panelAreaM2);
+    if (panels <= 0) return null;
+    return { panels, kwp: +(panels * panelKwp).toFixed(1), area: Math.round(area) };
+  });
+
   // UI state
   let loading = $state(false);
   let error = $state('');
@@ -275,6 +287,7 @@
   }
 
   function computeRooftopArea(): number {
+    if (location?.area_m2 && location.area_m2 > 0) return location.area_m2;
     if (!location?.wkt) return 0;
     const coords = location.wkt.match(/[\d.]+\s+[\d.]+/g) ?? [];
     if (coords.length < 4) return 0;
@@ -367,6 +380,99 @@
         </div>
       </header>
 
+      <!-- Power estimation -->
+      <div class="estimation-box">
+        <label class="checkbox-row">
+          <input type="checkbox" bind:checked={kwpAuto} />
+          <span>
+            {$t('fields.autoEstimateKwp')}
+            <span class="badge">Trentino LIDAR</span>
+          </span>
+        </label>
+        <p class="field-hint" style="margin-left: 1.5rem">
+          {$t('fields.lidarHint')}
+        </p>
+        {#if kwpAuto && useCapexEstimator}
+          <p class="field-hint kwp-preview" style="margin-left: 1.5rem">
+            {$t('fields.kwpPreviewBothHint')}
+          </p>
+        {:else if kwpAuto && kwpPreviewFromArea}
+          <p class="field-hint kwp-preview" style="margin-left: 1.5rem">
+            {$t('fields.kwpPreview', { values: { kwp: kwpPreviewFromArea.kwp, panels: kwpPreviewFromArea.panels, area: kwpPreviewFromArea.area } })}
+            <br /><small>{$t('fields.kwpPreviewHint')}</small>
+          </p>
+        {:else if !kwpAuto}
+          <label class="field" style="margin-top: 0.75rem; max-width: 220px">
+            <span class="field-label">
+              {$t('fields.systemSize')}
+              <span class="field-unit">{$t('fields.kwp')}</span>
+              <span class="req">*</span>
+            </span>
+            <input
+              type="number"
+              class="field-input"
+              bind:value={kwp}
+              min="0.5"
+              max="5000"
+              step="0.5"
+              placeholder="10"
+            />
+            <span class="field-hint">{$t('fields.systemSizeHint')}</span>
+          </label>
+        {/if}
+      </div>
+
+      <!-- Cost estimation -->
+      {#if location?.wkt}
+        <div class="estimation-box">
+          <label class="checkbox-row">
+            <input type="checkbox" bind:checked={useCapexEstimator} onchange={onCapexEstimatorToggle} />
+            <span>
+              {$t('fields.estimateCostFromPanels')}
+              <span class="badge">Power Law</span>
+            </span>
+          </label>
+          {#if useCapexEstimator}
+            <div style="display: flex; gap: 0.75rem; align-items: flex-end; margin-top: 0.5rem; flex-wrap: wrap">
+              <label class="field" style="max-width: 200px">
+                <span class="field-label">
+                  {$t('fields.numberOfPanels')}
+                  {#if capexEstimate}
+                    <span class="field-unit">
+                      {$t('fields.panelRange', { values: { min: capexEstimate.min_panels, max: capexEstimate.max_panels, area: Math.round(rooftopAreaM2) } })}
+                    </span>
+                  {/if}
+                </span>
+                <input
+                  type="number"
+                  class="field-input"
+                  bind:value={numPanels}
+                  min={capexEstimate?.min_panels ?? 1}
+                  max={capexEstimate?.max_panels ?? 999}
+                  step="1"
+                  oninput={fetchCapexEstimate}
+                />
+              </label>
+              {#if capexEstimateError}
+                <span class="field-error">{capexEstimateError}</span>
+              {:else if capexEstimate?.capex_eur != null}
+                <span class="field-hint" style="font-size: 0.8125rem">
+                  <strong>{capexEstimate.kwp?.toFixed(1)} kWp</strong> ·
+                  {Math.round(capexEstimate.capex_eur).toLocaleString('it-IT')} € ·
+                  {Math.round(capexEstimate.eur_per_kwp ?? 0).toLocaleString('it-IT')} €/kWp ·
+                  {$t('fields.rooftopUsed', { values: { pct: capexEstimate.rooftop_utilization_pct } })}
+                </span>
+              {/if}
+            </div>
+            {#if capexEstimate}
+              <span class="field-hint">
+                {$t('fields.panelInfo', { values: { wattPeak: capexEstimate.panel.watt_peak, area: capexEstimate.panel.area_m2, efficiency: capexEstimate.panel.efficiency_pct } })}
+              </span>
+            {/if}
+          {/if}
+        </div>
+      {/if}
+
       <div class="form-grid">
         <!-- CAPEX -->
         <label class="field">
@@ -417,57 +523,6 @@
               {/if}
             </span>
           </label>
-        {/if}
-
-        <!-- Panel-based CAPEX estimator -->
-        {#if location?.wkt}
-          <div class="field" style="grid-column: 1 / -1">
-            <label class="checkbox-row">
-              <input type="checkbox" bind:checked={useCapexEstimator} onchange={onCapexEstimatorToggle} />
-              <span>
-                {$t('fields.estimateCostFromPanels')}
-                <span class="badge">Power Law</span>
-              </span>
-            </label>
-            {#if useCapexEstimator}
-              <div style="display: flex; gap: 0.75rem; align-items: flex-end; margin-top: 0.5rem; flex-wrap: wrap">
-                <label class="field" style="max-width: 200px">
-                  <span class="field-label">
-                    {$t('fields.numberOfPanels')}
-                    {#if capexEstimate}
-                      <span class="field-unit">
-                        {$t('fields.panelRange', { values: { min: capexEstimate.min_panels, max: capexEstimate.max_panels, area: Math.round(rooftopAreaM2) } })}
-                      </span>
-                    {/if}
-                  </span>
-                  <input
-                    type="number"
-                    class="field-input"
-                    bind:value={numPanels}
-                    min={capexEstimate?.min_panels ?? 1}
-                    max={capexEstimate?.max_panels ?? 999}
-                    step="1"
-                    oninput={fetchCapexEstimate}
-                  />
-                </label>
-                {#if capexEstimateError}
-                  <span class="field-error">{capexEstimateError}</span>
-                {:else if capexEstimate?.capex_eur != null}
-                  <span class="field-hint" style="font-size: 0.8125rem">
-                    <strong>{capexEstimate.kwp?.toFixed(1)} kWp</strong> ·
-                    {Math.round(capexEstimate.capex_eur).toLocaleString('it-IT')} € ·
-                    {Math.round(capexEstimate.eur_per_kwp ?? 0).toLocaleString('it-IT')} €/kWp ·
-                    {$t('fields.rooftopUsed', { values: { pct: capexEstimate.rooftop_utilization_pct } })}
-                  </span>
-                {/if}
-              </div>
-              {#if capexEstimate}
-                <span class="field-hint">
-                  {$t('fields.panelInfo', { values: { wattPeak: capexEstimate.panel.watt_peak, area: capexEstimate.panel.area_m2, efficiency: capexEstimate.panel.efficiency_pct } })}
-                </span>
-              {/if}
-            {/if}
-          </div>
         {/if}
 
         <!-- Consumption -->
@@ -641,39 +696,6 @@
               {$t('fields.primaryResidenceHint')}
             </span>
           </div>
-        {/if}
-      </div>
-
-      <!-- kWp / LIDAR -->
-      <div class="kwp-box">
-        <label class="checkbox-row">
-          <input type="checkbox" bind:checked={kwpAuto} />
-          <span>
-            {$t('fields.autoEstimateKwp')}
-            <span class="badge">Trentino LIDAR</span>
-          </span>
-        </label>
-        <p class="field-hint" style="margin-left: 1.5rem">
-          {$t('fields.lidarHint')}
-        </p>
-        {#if !kwpAuto}
-          <label class="field" style="margin-top: 0.75rem; max-width: 220px">
-            <span class="field-label">
-              {$t('fields.systemSize')}
-              <span class="field-unit">{$t('fields.kwp')}</span>
-              <span class="req">*</span>
-            </span>
-            <input
-              type="number"
-              class="field-input"
-              bind:value={kwp}
-              min="0.5"
-              max="5000"
-              step="0.5"
-              placeholder="10"
-            />
-            <span class="field-hint">{$t('fields.systemSizeHint')}</span>
-          </label>
         {/if}
       </div>
 
@@ -1027,8 +1049,8 @@
     line-height: 1.4;
   }
 
-  /* ── kWp box ── */
-  .kwp-box {
+  /* ── Estimation boxes ── */
+  .estimation-box {
     padding: 0.875rem 1rem;
     background: var(--celine-bg-sunken);
     border: 1px solid var(--celine-border);
@@ -1036,6 +1058,12 @@
     display: flex;
     flex-direction: column;
     gap: 0.375rem;
+  }
+
+  .kwp-preview {
+    color: var(--celine-primary);
+    font-weight: 500;
+    font-size: 0.8125rem;
   }
 
   .checkbox-row {
