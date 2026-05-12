@@ -202,12 +202,10 @@
     result = null;
 
     try {
-      // Only send WKT for LIDAR auto-estimation (kwp=0).
-      // When user specifies panels/kWp, skip LIDAR so production uses their kWp.
       const hasWkt = !!location.wkt;
-      const useLidar = kwpAuto && !useCapexEstimator && hasWkt;
+      const useLidarAutoKwp = kwpAuto && !useCapexEstimator && hasWkt;
       const system = {
-        kwp: useLidar ? 0 : kwp,
+        kwp: useLidarAutoKwp ? 0 : kwp,
         latitude: location.lat,
         longitude: location.lng,
         tilt,
@@ -319,7 +317,6 @@
         capex = Math.round(capexEstimate.capex_eur);
         if (capexEstimate.kwp != null) {
           kwp = capexEstimate.kwp;
-          kwpAuto = false;
         }
       }
     } catch (e) {
