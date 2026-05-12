@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.20.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.19.0...webapp-v0.20.0) (2026-05-12)
+
+### Features
+
+* update Node to 22.22.2 ([6885fee](https://github.com/celine-eu/celine-frontend/commit/6885fee67881b375bbaa8a4775cd3dee306eed53))
+
 ## [0.19.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.18.0...webapp-v0.19.0) (2026-05-08)
 
 ### Bug Fixes
