@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.15.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.14.0...grid-v0.15.0) (2026-05-12)
+
+### Features
+
+* update Node to 22.22.2 ([6885fee](https://github.com/celine-eu/celine-frontend/commit/6885fee67881b375bbaa8a4775cd3dee306eed53))
+
 ## [0.14.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.13.0...grid-v0.14.0) (2026-05-08)
 
 ### Bug Fixes
