@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.18.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.17.0...assistant-v0.18.0) (2026-05-12)
+
+### Features
+
+* update Node to 22.22.2 ([6885fee](https://github.com/celine-eu/celine-frontend/commit/6885fee67881b375bbaa8a4775cd3dee306eed53))
+
 ## [0.17.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.16.0...assistant-v0.17.0) (2026-05-08)
 
 ### Bug Fixes
