@@ -273,6 +273,85 @@
     "body_2": "Please contact your energy community administrator to link your smart meter to your account.",
     "back": "Back to overview"
   },
+  "onboarding": {
+    "actions": {
+      "step": "Step {current} of {total}",
+      "back": "Back",
+      "next": "Next",
+      "done": "Done",
+      "skip": "Skip"
+    },
+    "common": {
+      "brand_title": "Your energy community",
+      "brand_body": "Use this name to return to the community overview and confirm which REC you are viewing.",
+      "overview_title": "Overview",
+      "overview_body": "This opens the main dashboard with your energy data, community totals, progress and forecasts.",
+      "suggestions_title": "Opportunities",
+      "suggestions_body": "Here you find moments when shifting consumption can use more community solar energy and earn points.",
+      "assistant_title": "Assistant",
+      "assistant_body": "Ask the assistant to explain values, compare trends or help interpret what you see in the app.",
+      "notifications_title": "Notifications",
+      "notifications_body": "Read alerts, reminders and community updates. The badge shows how many unread items you have.",
+      "profile_title": "Profile menu",
+      "profile_body": "Open this menu for your profile, settings and sign out.",
+      "ask_ai_title": "Ask the assistant",
+      "ask_ai_body": "Use this button to send the current section context to the assistant and get a focused explanation."
+    },
+    "overview": {
+      "intro_title": "First page",
+      "intro_body": "This is the webapp home page: it gives you a quick summary of your energy, the community and recommended actions.",
+      "progress_title": "Progress and points",
+      "progress_body": "This panel summarizes your level, points and badges from flexibility actions.",
+      "period_title": "Choose the period",
+      "period_body": "Switch between 7 and 30 days to change the data shown in the dashboard.",
+      "contribution_title": "Read energy values",
+      "contribution_body": "Consumption is the energy used, production is generated energy, and self-consumption is locally used renewable energy.",
+      "trends_title": "Compare trends",
+      "trends_body": "Use the tabs and chart to compare your behavior with the wider community over time."
+    },
+    "suggestions": {
+      "opportunities_title": "Available opportunities",
+      "opportunities_body": "These cards suggest when to move consumption to better match solar availability.",
+      "forecast_title": "48 hour outlook",
+      "forecast_body": "Use the forecast to understand when solar surplus or demand peaks are expected.",
+      "history_title": "Flexibility history",
+      "history_body": "This list shows accepted, declined, cancelled and settled actions with their point impact."
+    },
+    "assistant": {
+      "toolbar_title": "Conversation tools",
+      "toolbar_body": "Open previous conversations, manage files or start a new chat when needed.",
+      "chat_title": "Chat with context",
+      "chat_body": "Type a question here. When you arrive from another section, the assistant receives that context."
+    },
+    "notifications": {
+      "intro_title": "Notifications page",
+      "intro_body": "This is where you find alerts, reminders and energy community updates. Use it to see what needs attention.",
+      "push_title": "Push notifications",
+      "push_body": "Enable push notifications to receive useful consumption reminders outside the app.",
+      "filters_title": "Filter notifications",
+      "filters_body": "Switch between all notifications and unread items, then mark items as read when handled.",
+      "list_title": "Notification list",
+      "list_body": "Each item includes the message, date, severity and read status."
+    },
+    "profile": {
+      "identity_title": "Account identity",
+      "identity_body": "This card shows your account, community and active participant status."
+    },
+    "settings": {
+      "language_title": "Language",
+      "language_body": "Choose the language used by the interface.",
+      "appearance_title": "Appearance",
+      "appearance_body": "Switch between light and dark theme.",
+      "accessibility_title": "Accessibility",
+      "accessibility_body": "Adjust simplified mode and text size to make the app easier to read.",
+      "notifications_title": "Notification preferences",
+      "notifications_body": "Configure push, email and the types of notifications you want to receive."
+    },
+    "empty_state": {
+      "title": "Limited access",
+      "body": "This page explains why some features are not available yet and what to do next."
+    }
+  },
   "profile": {
     "title": "Profile",
     "subtitle": "Your account details",

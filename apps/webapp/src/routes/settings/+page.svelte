@@ -129,7 +129,7 @@
         </div>
     {:else if settings}
         <!-- Language Section -->
-        <div class="settings-card">
+        <div class="settings-card" data-tour="settings-language">
             <h2 class="section-title">
                 <Icon name="info" size={20} />
                 {$t('settings.language')}
@@ -148,7 +148,7 @@
         </div>
 
         <!-- Appearance Section -->
-        <div class="settings-card">
+        <div class="settings-card" data-tour="settings-appearance">
             <h2 class="section-title">
                 <Icon name="sun" size={20} />
                 {$t('settings.appearance')}
@@ -163,7 +163,7 @@
         </div>
 
         <!-- Accessibility Section -->
-        <div class="settings-card">
+        <div class="settings-card" data-tour="settings-accessibility">
             <h2 class="section-title">
                 <Icon name="eye" size={20} />
                 {$t('settings.accessibility')}
@@ -200,7 +200,7 @@
         </div>
 
         <!-- Notifications Section -->
-        <div class="settings-card">
+        <div class="settings-card" data-tour="settings-notifications">
             <h2 class="section-title">
                 <Icon name="bell" size={20} />
                 {$t('settings.notifications_section')}

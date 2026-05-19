@@ -10,6 +10,8 @@ export type Me = {
   font_scale: number;
   notification_permission: 'default' | 'granted' | 'denied';
   webpush_configured: boolean;
+  onboarding_seen: boolean;
+  onboarding_seen_pages: string[];
   locale?: string;
 };
 
@@ -305,6 +307,8 @@ export const api = {
   notificationMarkAllRead: () =>
     j<{ ok: true }>('/api/notifications/read-all', { method: 'POST' }),
   acceptTerms: () => j<{ ok: true }>('/api/terms/accept', { method: 'POST', body: JSON.stringify({ accept: true }) }),
+  markOnboardingSeen: (page_key: string) =>
+    j<{ ok: true }>('/api/onboarding/seen', { method: 'POST', body: JSON.stringify({ page_key }) }),
   settingsGet: (lang?: string) => j<Settings>(lang ? `/api/settings?lang=${encodeURIComponent(lang)}` : '/api/settings'),
   settingsPut: (s: Settings) => j<Settings>('/api/settings', { method: 'PUT', body: JSON.stringify(s) }),
   vapidPublicKey: () => j<{ public_key: string }>('/api/notifications/webpush/vapid-public-key'),

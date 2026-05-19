@@ -14,7 +14,7 @@
   </header>
 
   <!-- Identity card -->
-  <div class="section-card">
+  <div class="section-card" data-tour="profile-identity">
     <div class="avatar-row">
       <div class="avatar">
         {#if me?.user?.name}

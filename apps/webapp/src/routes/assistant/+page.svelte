@@ -168,7 +168,7 @@
       <p class="page-subtitle">Ask questions about your energy community</p>
     </div>
 
-    <div class="toolbar">
+    <div class="toolbar" data-tour="assistant-toolbar">
       <div class="tab-group">
         <button
           class="tab"
@@ -205,7 +205,7 @@
     </div>
   </header>
 
-  <div class="chat-container">
+  <div class="chat-container" data-tour="assistant-chat">
     {#if contextReady}
       <ChatCore
         bind:this={chatCore}

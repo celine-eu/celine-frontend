@@ -2,6 +2,7 @@
   import { page } from "$app/stores";
   import type { Me, CommunityMeta } from "$lib/api";
   import { api } from "$lib/api";
+  import OnboardingTour from "$lib/components/OnboardingTour.svelte";
   import { collectFeedbackDiagnostics } from "$lib/feedback";
   import { meStore } from "$lib/stores";
   import { FeedbackWidget, Icon } from "@celine-eu/ui";
@@ -37,12 +38,13 @@
     href: string;
     icon: 'home' | 'zap' | 'bot' | 'bell' | 'settings';
     labelKey: string;
+    tour: string;
   };
 
   const navIcons: NavIcon[] = [
-    { href: '/',            icon: 'home',  labelKey: 'nav.overview'   },
-    { href: '/suggestions', icon: 'zap',   labelKey: 'nav.suggestions' },
-    { href: '/assistant',   icon: 'bot',   labelKey: 'nav.assistant'  },
+    { href: '/',            icon: 'home',  labelKey: 'nav.overview',    tour: 'nav-overview' },
+    { href: '/suggestions', icon: 'zap',   labelKey: 'nav.suggestions', tour: 'nav-suggestions' },
+    { href: '/assistant',   icon: 'bot',   labelKey: 'nav.assistant',   tour: 'nav-assistant' },
   ];
 
   function isActive(href: string, pathname: string): boolean {
@@ -98,7 +100,7 @@
   <header class="top-header">
     <div class="top-header__content">
       <!-- Brand -->
-      <div class="top-header__brand">
+      <div class="top-header__brand" data-tour="brand">
         <Icon name="leaf" size={22} class="brand-icon" />
         <a href="/" class="brand-link">{data.community?.name ?? 'REC'}</a>
       </div>
@@ -113,6 +115,7 @@
             class:header-icon-btn--active={active}
             aria-label={$t(item.labelKey)}
             title={$t(item.labelKey)}
+            data-tour={item.tour}
           >
             <Icon name={item.icon} size={20} />
           </a>
@@ -125,6 +128,7 @@
           class:header-icon-btn--active={isActive('/notifications', $page.url.pathname)}
           aria-label={$t('layout.open_notifications')}
           title={$t('layout.open_notifications')}
+          data-tour="nav-notifications"
         >
           <Icon name="bell" size={20} />
           {#if data.unread_count > 0}
@@ -135,7 +139,7 @@
         </a>
 
         <!-- Profile dropdown -->
-        <details class="profile-dropdown" bind:this={profileDropdownEl}>
+        <details class="profile-dropdown" bind:this={profileDropdownEl} data-tour="profile-menu">
           <summary class="profile-avatar" aria-label={$t('layout.profile')} title={$t('layout.profile')}>
             {userInitials}
           </summary>
@@ -231,6 +235,12 @@
     </footer>
   {/if}
 </div>
+
+<OnboardingTour
+  enabled={!!data.me && !data.auth_error}
+  completedPages={data.me?.onboarding_seen_pages ?? []}
+  onComplete={api.markOnboardingSeen}
+/>
 
 <FeedbackWidget
   buttonLabel={$t('layout.feedback_button')}

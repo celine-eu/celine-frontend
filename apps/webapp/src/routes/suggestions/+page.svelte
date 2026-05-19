@@ -128,19 +128,21 @@
   </header>
 
   <!-- Suggestions (anchored for flex banner link) -->
-  <section class="section-card" id="opportunities">
+  <section class="section-card" id="opportunities" data-tour="suggestions-opportunities">
     <header class="section-header">
       <Icon name="zap" size={22} class="section-icon" />
       <div>
         <h2 class="section-title">{$t('suggestions.opportunities_title')}</h2>
         <p class="section-period">{$t('suggestions.opportunities_period')}</p>
       </div>
+      <span data-tour="ask-ai">
       <AskAssistantButton
         iconOnly
         context={{ page: 'suggestions', section: 'opportunities', data: { suggestions } }}
         prompt={assistantPrompt('opportunities')}
         href={buildAssistantHref(assistantPrompt('opportunities'), 'opportunities')}
       />
+      </span>
     </header>
 
     {#if suggestionsLoading}
@@ -167,7 +169,7 @@
   </section>
 
   <!-- 48h energy outlook -->
-  <section class="section-card">
+  <section class="section-card" data-tour="suggestions-forecast">
     <header class="section-header">
       <Icon name="activity" size={22} class="section-icon" />
       <div>
@@ -185,7 +187,7 @@
   </section>
 
   <!-- Flexibility History -->
-  <section class="section-card">
+  <section class="section-card" data-tour="suggestions-history">
     <header class="section-header">
       <Icon name="clock" size={22} class="section-icon" />
       <div>

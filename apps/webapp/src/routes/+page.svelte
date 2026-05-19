@@ -208,7 +208,7 @@
   {/if}
 
   <!-- Your Progress (first data block) -->
-  <section class="section-card">
+  <section class="section-card" data-tour="overview-progress">
     <header class="section-header">
       <Icon name="trophy" size={22} class="section-icon" />
       <div>
@@ -220,7 +220,7 @@
   </section>
 
   <!-- Period toggle -->
-  <div class="period-toggle">
+  <div class="period-toggle" data-tour="period-toggle">
     <button
       class="period-btn"
       class:active={selectedDays === 7}
@@ -260,13 +260,14 @@
   {:else if overview}
 
     <!-- Combined User + REC contribution section -->
-    <section class="section-card">
+    <section class="section-card" data-tour="overview-contribution">
       <header class="section-header">
         <Icon name="zap" size={22} class="section-icon" />
         <div>
           <h2 class="section-title">{$t('overview.your_contribution')}</h2>
           <p class="section-period">{periodLabel}</p>
         </div>
+        <span data-tour="ask-ai">
         <AskAssistantButton
           iconOnly
           context={{
@@ -280,6 +281,7 @@
             "user-contribution",
           )}
         />
+        </span>
       </header>
 
       <div class="contribution-grid">
@@ -369,7 +371,7 @@
     </section>
 
     <!-- Trends (tabbed: Yours / Community) -->
-    <section class="section-card">
+    <section class="section-card" data-tour="overview-trends">
       <header class="section-header">
         <Icon name="trending-up" size={22} class="section-icon" />
         <div>

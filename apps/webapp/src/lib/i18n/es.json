@@ -263,6 +263,85 @@
     "body_2": "Contacta con el administrador de tu comunidad energética para vincular tu contador inteligente a tu cuenta.",
     "back": "Volver al resumen"
   },
+  "onboarding": {
+    "actions": {
+      "step": "Paso {current} de {total}",
+      "back": "Atrás",
+      "next": "Siguiente",
+      "done": "Listo",
+      "skip": "Omitir"
+    },
+    "common": {
+      "brand_title": "Tu comunidad energética",
+      "brand_body": "Usa este nombre para volver al resumen y confirmar qué CER estás consultando.",
+      "overview_title": "Resumen",
+      "overview_body": "Abre el panel principal con tus datos energéticos, totales de comunidad, progreso y previsiones.",
+      "suggestions_title": "Oportunidades",
+      "suggestions_body": "Aquí encuentras momentos en los que desplazar consumo puede usar más energía solar comunitaria y ganar puntos.",
+      "assistant_title": "Asistente",
+      "assistant_body": "Pide al asistente que explique valores, compare tendencias o te ayude a interpretar lo que ves.",
+      "notifications_title": "Notificaciones",
+      "notifications_body": "Lee alertas, recordatorios y actualizaciones de la comunidad. La insignia muestra los elementos no leídos.",
+      "profile_title": "Menú de perfil",
+      "profile_body": "Abre este menú para ver tu perfil, ajustes y cerrar sesión.",
+      "ask_ai_title": "Pregunta al asistente",
+      "ask_ai_body": "Usa este botón para enviar el contexto de la sección al asistente y obtener una explicación enfocada."
+    },
+    "overview": {
+      "intro_title": "Primera página",
+      "intro_body": "Esta es la página inicial de la webapp: resume tu energía, la comunidad y las acciones recomendadas.",
+      "progress_title": "Progreso y puntos",
+      "progress_body": "Este panel resume tu nivel, puntos e insignias obtenidas con acciones de flexibilidad.",
+      "period_title": "Elige el periodo",
+      "period_body": "Cambia entre 7 y 30 días para modificar los datos mostrados en el panel.",
+      "contribution_title": "Leer valores energéticos",
+      "contribution_body": "El consumo es la energía usada, la producción es la energía generada y el autoconsumo es energía renovable usada localmente.",
+      "trends_title": "Comparar tendencias",
+      "trends_body": "Usa las pestañas y el gráfico para comparar tu comportamiento con la comunidad a lo largo del tiempo."
+    },
+    "suggestions": {
+      "opportunities_title": "Oportunidades disponibles",
+      "opportunities_body": "Estas tarjetas sugieren cuándo mover consumo para alinearlo mejor con la disponibilidad solar.",
+      "forecast_title": "Previsión 48 horas",
+      "forecast_body": "Usa la previsión para entender cuándo se esperan excedentes solares o picos de demanda.",
+      "history_title": "Historial de flexibilidad",
+      "history_body": "Esta lista muestra acciones aceptadas, rechazadas, canceladas y liquidadas con su impacto en puntos."
+    },
+    "assistant": {
+      "toolbar_title": "Herramientas de conversación",
+      "toolbar_body": "Abre conversaciones anteriores, gestiona archivos o inicia una nueva conversación cuando lo necesites.",
+      "chat_title": "Chat con contexto",
+      "chat_body": "Escribe aquí una pregunta. Cuando llegas desde otra sección, el asistente recibe ese contexto."
+    },
+    "notifications": {
+      "intro_title": "Página de notificaciones",
+      "intro_body": "Aquí encuentras alertas, recordatorios y actualizaciones de la comunidad energética. Úsala para ver qué requiere atención.",
+      "push_title": "Notificaciones push",
+      "push_body": "Activa las notificaciones push para recibir recordatorios útiles de consumo fuera de la app.",
+      "filters_title": "Filtrar notificaciones",
+      "filters_body": "Cambia entre todas las notificaciones y las no leídas, y marca elementos como leídos cuando estén gestionados.",
+      "list_title": "Lista de notificaciones",
+      "list_body": "Cada elemento incluye mensaje, fecha, severidad y estado de lectura."
+    },
+    "profile": {
+      "identity_title": "Identidad de cuenta",
+      "identity_body": "Esta tarjeta muestra tu cuenta, comunidad y estado de participante activo."
+    },
+    "settings": {
+      "language_title": "Idioma",
+      "language_body": "Elige el idioma usado por la interfaz.",
+      "appearance_title": "Apariencia",
+      "appearance_body": "Cambia entre tema claro y oscuro.",
+      "accessibility_title": "Accesibilidad",
+      "accessibility_body": "Ajusta modo simple y tamaño de texto para que la app sea más fácil de leer.",
+      "notifications_title": "Preferencias de notificación",
+      "notifications_body": "Configura push, correo y los tipos de notificaciones que quieres recibir."
+    },
+    "empty_state": {
+      "title": "Acceso limitado",
+      "body": "Esta página explica por qué algunas funciones aún no están disponibles y qué hacer después."
+    }
+  },
   "not_a_participant": {
     "title": "Aún no participante",
     "body_1": "Tu cuenta aún no está registrada en la comunidad de energía renovable.",

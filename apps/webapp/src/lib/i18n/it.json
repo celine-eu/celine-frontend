@@ -273,6 +273,85 @@
     "body_2": "Contatta l'amministratore della tua comunità energetica per collegare il contatore intelligente al tuo account.",
     "back": "Torna alla panoramica"
   },
+  "onboarding": {
+    "actions": {
+      "step": "Passo {current} di {total}",
+      "back": "Indietro",
+      "next": "Avanti",
+      "done": "Fine",
+      "skip": "Salta"
+    },
+    "common": {
+      "brand_title": "La tua comunità energetica",
+      "brand_body": "Usa questo nome per tornare alla panoramica e verificare quale CER stai consultando.",
+      "overview_title": "Panoramica",
+      "overview_body": "Apre la dashboard principale con i tuoi dati energetici, i totali della comunità, i progressi e le previsioni.",
+      "suggestions_title": "Opportunità",
+      "suggestions_body": "Qui trovi i momenti in cui spostare i consumi può usare più energia solare della comunità e farti guadagnare punti.",
+      "assistant_title": "Assistente",
+      "assistant_body": "Chiedi all'assistente di spiegare valori, confrontare andamenti o aiutarti a interpretare quello che vedi.",
+      "notifications_title": "Notifiche",
+      "notifications_body": "Leggi avvisi, promemoria e aggiornamenti della comunità. Il badge indica gli elementi non letti.",
+      "profile_title": "Menu profilo",
+      "profile_body": "Apri questo menu per profilo, impostazioni e uscita.",
+      "ask_ai_title": "Chiedi all'assistente",
+      "ask_ai_body": "Usa questo pulsante per inviare il contesto della sezione all'assistente e ricevere una spiegazione mirata."
+    },
+    "overview": {
+      "intro_title": "Prima pagina",
+      "intro_body": "Questa è la pagina iniziale della webapp: qui trovi una sintesi rapida della tua energia, della comunità e delle azioni consigliate.",
+      "progress_title": "Progressi e punti",
+      "progress_body": "Questo pannello riassume livello, punti e badge ottenuti con le azioni di flessibilità.",
+      "period_title": "Scegli il periodo",
+      "period_body": "Passa da 7 a 30 giorni per cambiare i dati mostrati nella dashboard.",
+      "contribution_title": "Leggere i valori energetici",
+      "contribution_body": "Il consumo è l'energia usata, la produzione è l'energia generata e l'autoconsumo è energia rinnovabile usata localmente.",
+      "trends_title": "Confrontare gli andamenti",
+      "trends_body": "Usa tab e grafico per confrontare nel tempo il tuo comportamento con quello della comunità."
+    },
+    "suggestions": {
+      "opportunities_title": "Opportunità disponibili",
+      "opportunities_body": "Queste schede suggeriscono quando spostare i consumi per allinearli meglio alla disponibilità solare.",
+      "forecast_title": "Previsione 48 ore",
+      "forecast_body": "Usa la previsione per capire quando sono attesi surplus solare o picchi di domanda.",
+      "history_title": "Storico flessibilità",
+      "history_body": "Questa lista mostra azioni accettate, rifiutate, annullate e liquidate con il relativo impatto sui punti."
+    },
+    "assistant": {
+      "toolbar_title": "Strumenti della conversazione",
+      "toolbar_body": "Apri conversazioni precedenti, gestisci file o avvia una nuova chat quando serve.",
+      "chat_title": "Chat con contesto",
+      "chat_body": "Scrivi qui una domanda. Quando arrivi da un'altra sezione, l'assistente riceve quel contesto."
+    },
+    "notifications": {
+      "intro_title": "Pagina notifiche",
+      "intro_body": "Qui trovi avvisi, promemoria e aggiornamenti della comunità energetica. Usala per capire cosa richiede attenzione.",
+      "push_title": "Notifiche push",
+      "push_body": "Abilita le notifiche push per ricevere promemoria utili sui consumi anche fuori dall'app.",
+      "filters_title": "Filtrare le notifiche",
+      "filters_body": "Passa tra tutte le notifiche e quelle non lette, poi segna come letti gli elementi gestiti.",
+      "list_title": "Lista notifiche",
+      "list_body": "Ogni elemento include messaggio, data, severità e stato di lettura."
+    },
+    "profile": {
+      "identity_title": "Identità account",
+      "identity_body": "Questa scheda mostra account, comunità e stato di partecipante attivo."
+    },
+    "settings": {
+      "language_title": "Lingua",
+      "language_body": "Scegli la lingua usata dall'interfaccia.",
+      "appearance_title": "Aspetto",
+      "appearance_body": "Passa tra tema chiaro e tema scuro.",
+      "accessibility_title": "Accessibilità",
+      "accessibility_body": "Regola modalità semplice e dimensione del testo per rendere l'app più leggibile.",
+      "notifications_title": "Preferenze notifiche",
+      "notifications_body": "Configura push, email e i tipi di notifica che vuoi ricevere."
+    },
+    "empty_state": {
+      "title": "Accesso limitato",
+      "body": "Questa pagina spiega perché alcune funzionalità non sono ancora disponibili e cosa fare dopo."
+    }
+  },
   "profile": {
     "title": "Profilo",
     "subtitle": "I dettagli del tuo account",

@@ -89,7 +89,7 @@
     <!-- Push notification banners -->
     {#if typeof Notification !== "undefined"}
         {#if pushPermission === "denied"}
-            <div class="push-banner push-banner--warning">
+            <div class="push-banner push-banner--warning" data-tour="notifications-push">
                 <Icon name="alert-triangle" size={20} />
                 <div class="push-banner__content">
                     <strong>{$t('notifications.push_blocked_title')}</strong>
@@ -97,7 +97,7 @@
                 </div>
             </div>
         {:else if pushPermission !== "granted"}
-            <div class="push-banner push-banner--info">
+            <div class="push-banner push-banner--info" data-tour="notifications-push">
                 <Icon name="bell" size={20} />
                 <div class="push-banner__content">
                     <strong>{$t('notifications.push_enable_title')}</strong>
@@ -122,7 +122,7 @@
         </div>
     {/if}
 
-    <div class="toolbar">
+    <div class="toolbar" data-tour="notifications-toolbar">
         <div class="filter-tabs">
             <button
                 class="tab"
@@ -164,7 +164,7 @@
             <span>{err}</span>
         </div>
     {:else if filteredItems.length === 0}
-        <div class="empty-state">
+        <div class="empty-state" data-tour="notifications-list">
             <Icon name="bell" size={48} />
             <p class="empty-title">
                 {filter === "unread"
@@ -174,7 +174,7 @@
             <p class="empty-text">{$t('notifications.empty_body')}</p>
         </div>
     {:else}
-        <ul class="notification-list">
+        <ul class="notification-list" data-tour="notifications-list">
             {#each filteredItems as n (n.id)}
                 <li class="notification-item" class:unread={!n.read_at}>
                     <div class="notification-header">
