@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.21.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.20.0...roi-v0.21.0) (2026-05-19)
+
+### Features
+
+* in-app onboarding ([f5a1c18](https://github.com/celine-eu/celine-frontend/commit/f5a1c183faef976cc09f6449a3cf8b608981e68c))
+
 ## [0.20.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.19.0...roi-v0.20.0) (2026-05-12)
 
 ### Bug Fixes
