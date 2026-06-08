@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@celine-eu/ui": "workspace:*",
-    "dompurify": "^3.4.1",
+    "dompurify": "^3.4.8",
     "marked": "^18.0.2"
   },
   "devDependencies": {
