@@ -24,7 +24,7 @@ jobs:
       roi: ${{ steps.filter.outputs.roi }}
       grid: ${{ steps.filter.outputs.grid }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
         id: filter
         with:
@@ -53,7 +53,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.vars.outputs.tag }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -119,7 +119,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.vars.outputs.tag }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -185,7 +185,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.vars.outputs.tag }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -251,7 +251,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.vars.outputs.tag }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
