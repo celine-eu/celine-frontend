@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.21.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.20.0...assistant-v0.21.0) (2026-07-02)
+
+### Features
+
+* improve assistant handling ([f702ff5](https://github.com/celine-eu/celine-frontend/commit/f702ff5af569ddbeacc1a3dada82fe25df89ea35))
+
 ## [0.20.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.19.0...assistant-v0.20.0) (2026-05-19)
 
 ### Features
