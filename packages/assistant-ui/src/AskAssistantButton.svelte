@@ -1,10 +1,8 @@
 <script lang="ts">
   import { getContext } from 'svelte';
   import { Icon } from '@celine-eu/ui';
-  import type { AssistantContext } from './types.js';
 
   interface Props {
-    context?: AssistantContext;
     prompt?: string | null;
     label?: string;
     iconOnly?: boolean;
@@ -13,7 +11,6 @@
   }
 
   let {
-    context = {},
     prompt = null,
     label = 'Ask Assistant',
     iconOnly = false,
@@ -21,8 +18,7 @@
     href = null
   }: Props = $props();
 
-  // Get the widget controller from context (provided by AssistantProvider)
-  const widgetController = getContext<{ open: (opts: { context?: AssistantContext; prompt?: string }) => void } | null>('assistant-widget');
+  const widgetController = getContext<{ open: (opts: { prompt?: string }) => void } | null>('assistant-widget');
 
   function handleClick() {
     if (href) {
@@ -31,21 +27,19 @@
     }
 
     if (widgetController) {
-      widgetController.open({ 
-        context, 
-        prompt: prompt ?? undefined 
+      widgetController.open({
+        prompt: prompt ?? undefined
       });
     } else {
-      // Fallback: dispatch custom event that can be caught by the widget
-      window.dispatchEvent(new CustomEvent('assistant:open', { 
-        detail: { context, prompt } 
+      window.dispatchEvent(new CustomEvent('assistant:open', {
+        detail: { prompt }
       }));
     }
   }
 </script>
 
-<button 
-  class="ask-btn ask-btn--{size}" 
+<button
+  class="ask-btn ask-btn--{size}"
   class:icon-only={iconOnly}
   onclick={handleClick}
   title={label}

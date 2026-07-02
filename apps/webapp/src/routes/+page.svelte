@@ -270,11 +270,6 @@
         <span data-tour="ask-ai">
         <AskAssistantButton
           iconOnly
-          context={{
-            page: "overview",
-            section: "user-contribution",
-            data: { user: overview.user, rec: overview.rec },
-          }}
           prompt={assistantPrompt("user-contribution")}
           href={buildAssistantHref(
             assistantPrompt("user-contribution"),
@@ -380,7 +375,6 @@
         </div>
         <AskAssistantButton
           iconOnly
-          context={{ page: "overview", section: "community-trend", data: { trend: overview.trend } }}
           prompt={assistantPrompt("community-trend")}
           href={buildAssistantHref(assistantPrompt("community-trend"), "community-trend")}
         />
@@ -444,7 +438,6 @@
         </div>
         <AskAssistantButton
           iconOnly
-          context={{ page: "overview", section: "weather" }}
           prompt={assistantPrompt("weather")}
           href={buildAssistantHref(
             assistantPrompt("weather"),
@@ -468,7 +461,6 @@
           </div>
           <AskAssistantButton
             iconOnly
-            context={{ page: "overview", section: "co2", data: { co2_kg: co2Kg, trees } }}
             prompt={assistantPrompt("co2")}
             href={buildAssistantHref(
               assistantPrompt("co2"),

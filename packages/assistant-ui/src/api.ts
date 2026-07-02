@@ -50,7 +50,6 @@ export function createAssistantApi(baseUrl: string = '/api') {
         top_k: payload.top_k ?? 5,
         conversation_id: payload.conversation_id ?? null,
         attachment_ids: payload.attachment_ids ?? [],
-        context: payload.context ?? null,
       }),
       credentials: 'include',
     });

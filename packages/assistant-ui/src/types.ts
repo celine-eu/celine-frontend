@@ -81,14 +81,6 @@ export interface ChatRequest {
   top_k?: number;
   conversation_id?: string | null;
   attachment_ids?: string[];
-  context?: AssistantContext;
-}
-
-export interface AssistantContext {
-  page?: string;
-  section?: string;
-  data?: Record<string, unknown>;
-  hint?: string;
 }
 
 export interface ChatCoreProps {
@@ -101,7 +93,6 @@ export interface ChatCoreProps {
   enableUpload?: boolean;
   enableCitations?: boolean;
   conversationId?: string | null;
-  initialContext?: AssistantContext | null;
   initialPrompt?: string;
   onConversationChange?: (id: string | null) => void;
   onError?: (error: Error) => void;

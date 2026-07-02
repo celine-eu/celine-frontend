@@ -138,7 +138,6 @@
       <span data-tour="ask-ai">
       <AskAssistantButton
         iconOnly
-        context={{ page: 'suggestions', section: 'opportunities', data: { suggestions } }}
         prompt={assistantPrompt('opportunities')}
         href={buildAssistantHref(assistantPrompt('opportunities'), 'opportunities')}
       />
@@ -178,7 +177,6 @@
       </div>
       <AskAssistantButton
         iconOnly
-        context={{ page: 'suggestions', section: 'forecast', data: { forecast: forecastData } }}
         prompt={assistantPrompt('forecast')}
         href={buildAssistantHref(assistantPrompt('forecast'), 'forecast')}
       />
@@ -196,7 +194,6 @@
       </div>
       <AskAssistantButton
         iconOnly
-        context={{ page: 'suggestions', section: 'history', data: { history } }}
         prompt={assistantPrompt('history')}
         href={buildAssistantHref(assistantPrompt('history'), 'history')}
       />

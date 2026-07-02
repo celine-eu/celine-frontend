@@ -15,6 +15,6 @@ export type { AssistantApi } from './api.js';
 
 // Types
 export type {
-  AssistantContext, Attachment, AttachmentItem, ChatCoreProps, ChatRequest, ChatStreamEvent, Conversation, Message, SourceChunk, Suggestion, SuggestionsResponse, ToolExecution, UserInfo
+  Attachment, AttachmentItem, ChatCoreProps, ChatRequest, ChatStreamEvent, Conversation, Message, SourceChunk, Suggestion, SuggestionsResponse, ToolExecution, UserInfo
 } from './types.js';
 

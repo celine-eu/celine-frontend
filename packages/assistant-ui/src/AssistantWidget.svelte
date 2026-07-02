@@ -1,33 +1,25 @@
 <script lang="ts">
-  import { untrack } from "svelte";
   import { Icon } from "@celine-eu/ui";
   import ChatCore from "./ChatCore.svelte";
-  import type { AssistantContext } from "./types.js";
 
   interface Props {
     apiBaseUrl?: string;
     position?: "bottom-right" | "bottom-left";
-    context?: AssistantContext | null;
   }
 
   let {
     apiBaseUrl = "/api",
     position = "bottom-right",
-    context = null,
   }: Props = $props();
 
   let open = $state(false);
   let minimized = $state(false);
   let chatCore: ChatCore | null = $state(null);
-  let currentContext = $state<AssistantContext | null>(untrack(() => context));
   let initialPrompt = $state("");
 
   export function openWith(
-    opts: { context?: AssistantContext; prompt?: string } = {},
+    opts: { prompt?: string } = {},
   ) {
-    if (opts.context) {
-      currentContext = opts.context;
-    }
     if (opts.prompt) {
       initialPrompt = opts.prompt;
     }
@@ -39,13 +31,6 @@
     open = false;
     initialPrompt = "";
   }
-
-  $effect(() => {
-    currentContext = context;
-    if (chatCore && context) {
-      chatCore.setContext(context);
-    }
-  });
 </script>
 
 <!-- Floating Action Button -->
@@ -95,7 +80,6 @@
           showHeader={false}
           enableHistory={true}
           enableAttachments={true}
-          initialContext={currentContext}
           {initialPrompt}
         />
       </div>

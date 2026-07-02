@@ -1,133 +1,15 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
   import { page } from "$app/state";
-  import {
-    api,
-    type Co2LocaleSettings,
-    type CommitmentHistoryResponse,
-    type ForecastResponse,
-    type Overview,
-    type SuggestionItem,
-    type WeatherResponse,
-  } from "$lib/api";
   import { ChatCore } from "@celine-eu/assistant-ui";
   import { Icon } from "@celine-eu/ui";
-  import { onMount } from "svelte";
 
   let showHistory = $state(false);
   let showAttachments = $state(false);
   let chatCore: ChatCore | null = $state(null);
   let hasConversation = $state(false);
-  let contextReady = $state(false);
-  let resolvedInitialContext = $state<Record<string, unknown> | null>(null);
   const conversationId = $derived(page.url.searchParams.get("conversation_id"));
   const initialPrompt = $derived(page.url.searchParams.get("prompt") ?? "");
-  const urlContext = $derived.by(() => {
-    const pageName = page.url.searchParams.get("page");
-    const section = page.url.searchParams.get("section");
-    if (!pageName && !section) return null;
-    return {
-      page: pageName ?? undefined,
-      section: section ?? undefined,
-    };
-  });
-
-  function buildOverviewContextData(
-    overview: Overview,
-    weather: WeatherResponse | null,
-    co2Settings: Co2LocaleSettings | null,
-  ) {
-    const data: Record<string, unknown> = {
-      overview,
-    };
-
-    if (weather) {
-      data.weather = weather;
-    }
-
-    if (
-      co2Settings &&
-      overview.rec.production_kwh != null &&
-      overview.rec.production_kwh > 0
-    ) {
-      const co2Kg = overview.rec.production_kwh * co2Settings.kg_per_kwh;
-      const trees =
-        Math.round((co2Kg / 1000) * co2Settings.trees_per_ton * 10) / 10;
-      data.co2 = {
-        kg: co2Kg,
-        trees,
-        settings: co2Settings,
-      };
-    }
-
-    return data;
-  }
-
-  function buildSuggestionsContextData(
-    forecast: ForecastResponse | null,
-    suggestions: SuggestionItem[] | null,
-    history: CommitmentHistoryResponse | null,
-  ) {
-    const data: Record<string, unknown> = {};
-
-    if (forecast) {
-      data.forecast = forecast;
-    }
-
-    if (suggestions) {
-      data.suggestions = suggestions;
-    }
-
-    if (history) {
-      data.history = history;
-    }
-
-    return data;
-  }
-
-  onMount(async () => {
-    if (!urlContext?.page) {
-      resolvedInitialContext = urlContext;
-      contextReady = true;
-      return;
-    }
-
-    try {
-      if (urlContext.page === "overview") {
-        const [overview, weather, co2Settings] = await Promise.all([
-          api.overview(),
-          api.weather().catch(() => null),
-          api.co2Settings().then((res) => res.current).catch(() => null),
-        ]);
-
-        resolvedInitialContext = {
-          ...urlContext,
-          data: buildOverviewContextData(overview, weather, co2Settings),
-        };
-        return;
-      }
-
-      if (urlContext.page === "suggestions") {
-        const [forecast, suggestions, history] = await Promise.all([
-          api.forecast().catch(() => null),
-          api.suggestions().catch(() => null),
-          api.gamificationHistory().catch(() => null),
-        ]);
-
-        resolvedInitialContext = {
-          ...urlContext,
-          data: buildSuggestionsContextData(forecast, suggestions, history),
-        };
-        return;
-      }
-
-      resolvedInitialContext = urlContext;
-    } catch {
-      resolvedInitialContext = urlContext;
-    } finally {
-      contextReady = true;
-    }
-  });
 
   function closePanels() {
     showHistory = false;
@@ -207,25 +89,22 @@
   </header>
 
   <div class="chat-container" data-tour="assistant-chat">
-    {#if contextReady}
-      <ChatCore
-        bind:this={chatCore}
-        apiBaseUrl="/api/assistant"
-        mode="full"
-        showHeader={false}
-        enableHistory={true}
-        enableAttachments={true}
-        enableUpload={true}
-        {conversationId}
-        {initialPrompt}
-        initialContext={resolvedInitialContext}
-        onConversationChange={handleConversationChange}
-        onPanelsClose={() => {
-          showHistory = false;
-          showAttachments = false;
-        }}
-      />
-    {/if}
+    <ChatCore
+      bind:this={chatCore}
+      apiBaseUrl="/api/assistant"
+      mode="full"
+      showHeader={false}
+      enableHistory={true}
+      enableAttachments={true}
+      enableUpload={true}
+      {conversationId}
+      {initialPrompt}
+      onConversationChange={handleConversationChange}
+      onPanelsClose={() => {
+        showHistory = false;
+        showAttachments = false;
+      }}
+    />
   </div>
 </section>
 

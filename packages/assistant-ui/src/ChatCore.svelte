@@ -3,7 +3,6 @@
   import { locale } from "svelte-i18n";
   import { createAssistantApi, type AssistantApi } from "./api.js";
   import type {
-    AssistantContext,
     Attachment,
     ChatCoreProps,
     Message,
@@ -29,7 +28,6 @@
     enableUpload = true,
     enableCitations = true,
     conversationId: initialConversationId = null,
-    initialContext = null,
     initialPrompt = "",
     onConversationChange,
     onError,
@@ -48,7 +46,6 @@
   let errorBanner = $state<string | null>(null);
   let includeCitations = $state(untrack(() => enableCitations));
   let isAdmin = $state(false);
-  let context = $state<AssistantContext | null>(untrack(() => initialContext));
 
   // Tool executions
   let activeTools = $state<ToolExecution[]>([]);
@@ -217,7 +214,6 @@
         top_k: 5,
         conversation_id: conversationId,
         attachment_ids: attachmentIds,
-        context: context ?? undefined,
       })) {
         if (evt.type === "token") {
           const t =
@@ -354,7 +350,6 @@
   export function startNewConversation() {
     conversationId = null;
     messages = [];
-    context = null;
     onConversationChange?.(null);
     historyPanelOpen = false;
   }
@@ -394,11 +389,6 @@
     dragDepth = 0;
     dragging = false;
     addFiles(e.dataTransfer?.files ?? null);
-  }
-
-  // Public methods for external control
-  export function setContext(ctx: AssistantContext | null) {
-    context = ctx;
   }
 
   export function setPrompt(prompt: string) {
