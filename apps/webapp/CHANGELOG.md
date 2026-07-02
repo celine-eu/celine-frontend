@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.25.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.24.0...webapp-v0.25.0) (2026-07-02)
+
+### Features
+
+* use skills for local context answers ([8bb3d1d](https://github.com/celine-eu/celine-frontend/commit/8bb3d1d9cc6efdcc1903175c3f44a5859ea19632))
+
 ## [0.24.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.23.0...webapp-v0.24.0) (2026-07-02)
 
 ### Features
