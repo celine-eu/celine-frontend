@@ -32,6 +32,9 @@
     "delete_attachment": "Eliminare questo allegato?",
     "open": "Apri",
     "delete": "Elimina",
-    "source": "{count, plural, one {# fonte} other {# fonti}}"
+    "source": "{count, plural, one {# fonte} other {# fonti}}",
+    "tool_running": "Esecuzione {tool}...",
+    "tool_done": "{tool} completato",
+    "tool_error": "{tool} fallito"
   }
 }

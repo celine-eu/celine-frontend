@@ -1,11 +1,14 @@
 <script lang="ts">
   import { onMount, tick, untrack } from "svelte";
+  import { locale } from "svelte-i18n";
   import { createAssistantApi, type AssistantApi } from "./api.js";
   import type {
     AssistantContext,
     Attachment,
     ChatCoreProps,
     Message,
+    Suggestion,
+    ToolExecution,
   } from "./types.js";
 
   import AttachmentsPanel from "./internal/AttachmentsPanel.svelte";
@@ -14,6 +17,7 @@
   import DropOverlay from "./internal/DropOverlay.svelte";
   import HistoryPanel from "./internal/HistoryPanel.svelte";
   import MessageList from "./internal/MessageList.svelte";
+  import ToolProgress from "./internal/ToolProgress.svelte";
 
   let {
     apiBaseUrl = "/api",
@@ -46,6 +50,13 @@
   let isAdmin = $state(false);
   let context = $state<AssistantContext | null>(untrack(() => initialContext));
 
+  // Tool executions
+  let activeTools = $state<ToolExecution[]>([]);
+  let toolLabels = $state<Record<string, string>>({});
+
+  // Suggestions
+  let suggestions = $state<Suggestion[]>([]);
+
   // Attachments
   let attachments = $state<Attachment[]>([]);
   const attachmentFiles = new Map<string, File>();
@@ -76,6 +87,16 @@
           content: m.content,
         }));
         await messageList?.scrollToBottom(true);
+      }
+
+      // Fetch suggestions and tool labels
+      const lang = ($locale ?? 'en').split('-')[0];
+      try {
+        const sugData = await api.getSuggestions(lang);
+        suggestions = sugData.suggestions ?? [];
+        toolLabels = sugData.tool_labels ?? {};
+      } catch {
+        // non-critical
       }
 
       // Auto-send if initial prompt provided
@@ -188,6 +209,7 @@
 
       let acc = "";
       let pendingSources: any[] | undefined;
+      activeTools = [];
 
       for await (const evt of api.chatStream({
         message: localText,
@@ -228,6 +250,50 @@
           continue;
         }
 
+        if (evt.type === "tool_start") {
+          const { tool } = evt.data;
+          activeTools = [...activeTools, { name: tool, status: 'running', messages: [], error: null }];
+          await messageList?.scrollToBottom();
+          continue;
+        }
+
+        if (evt.type === "tool_progress") {
+          const { tool, message } = evt.data;
+          activeTools = activeTools.map((t) =>
+            t.name === tool && t.status === 'running'
+              ? { ...t, messages: [...t.messages, message] }
+              : t
+          );
+          await messageList?.scrollToBottom();
+          continue;
+        }
+
+        if (evt.type === "tool_result") {
+          const { tool } = evt.data;
+          activeTools = activeTools.map((t) =>
+            t.name === tool && t.status === 'running'
+              ? { ...t, status: 'done' as const }
+              : t
+          );
+          await messageList?.scrollToBottom();
+          continue;
+        }
+
+        if (evt.type === "tool_error") {
+          const { tool, error: toolError } = evt.data;
+          activeTools = activeTools.map((t) =>
+            t.name === tool && t.status === 'running'
+              ? { ...t, status: 'error' as const, error: toolError }
+              : t
+          );
+          await messageList?.scrollToBottom();
+          continue;
+        }
+
+        if (evt.type === "done") {
+          continue;
+        }
+
         if (evt.type === "error") {
           const msg =
             (evt as any).data?.message ??
@@ -245,10 +311,12 @@
         attachments: uploaded.length ? uploaded : undefined,
       };
       messages = messages;
+      activeTools = [];
       await messageList?.scrollToBottom(true);
     } catch (e) {
       handleError(e);
       messages = messages.filter((_, idx) => idx !== assistantIdx);
+      activeTools = [];
       await messageList?.scrollToBottom(true);
     } finally {
       for (const a of localAttachments) {
@@ -401,9 +469,26 @@
   <MessageList
     bind:this={messageList}
     {messages}
+    {suggestions}
+    onSuggestionClick={(text) => { input = text; send(); }}
     showSources={includeCitations}
     assistantLoading={busy}
-  />
+  >
+    {#snippet toolIndicators()}
+      {#if activeTools.length > 0}
+        <div class="active-tools">
+          {#each activeTools as tool (tool.name)}
+            <ToolProgress
+              toolName={toolLabels[tool.name] ?? tool.name}
+              status={tool.status}
+              progressMessages={tool.messages}
+              error={tool.error}
+            />
+          {/each}
+        </div>
+      {/if}
+    {/snippet}
+  </MessageList>
 
   <Composer
     bind:this={composer}
@@ -487,5 +572,12 @@
 
   .error-dismiss:hover {
     opacity: 1;
+  }
+
+  .active-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: var(--celine-space-xs);
   }
 </style>

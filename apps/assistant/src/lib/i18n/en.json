@@ -32,6 +32,9 @@
     "delete_attachment": "Delete this attachment?",
     "open": "Open",
     "delete": "Delete",
-    "source": "{count, plural, one {# source} other {# sources}}"
+    "source": "{count, plural, one {# source} other {# sources}}",
+    "tool_running": "Running {tool}...",
+    "tool_done": "{tool} completed",
+    "tool_error": "{tool} failed"
   }
 }

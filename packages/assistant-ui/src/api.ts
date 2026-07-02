@@ -1,13 +1,14 @@
 // @celine-eu/assistant-ui API client
 // Configurable base URL for use in different contexts
 
-import type { 
-  ChatRequest, 
-  ChatStreamEvent, 
-  UserInfo, 
-  Conversation, 
+import type {
+  ChatRequest,
+  ChatStreamEvent,
+  UserInfo,
+  Conversation,
   AttachmentItem,
-  Message 
+  Message,
+  SuggestionsResponse
 } from './types.js';
 
 function redirectToLogin(): never {
@@ -74,10 +75,30 @@ export function createAssistantApi(baseUrl: string = '/api') {
         const chunk = buf.slice(0, idx);
         buf = buf.slice(idx + 2);
 
-        const line = chunk.split('\n').find((l) => l.startsWith('data: '));
-        if (!line) continue;
-        const jsonStr = line.slice('data: '.length);
-        yield JSON.parse(jsonStr);
+        const lines = chunk.split('\n');
+
+        // Standard SSE: look for event: and data: lines
+        let eventType: string | null = null;
+        let dataStr: string | null = null;
+
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            eventType = line.slice('event: '.length).trim();
+          } else if (line.startsWith('data: ')) {
+            dataStr = line.slice('data: '.length);
+          }
+        }
+
+        if (dataStr == null) continue;
+
+        if (eventType) {
+          // New standard SSE format: event type from the event: line
+          const data = JSON.parse(dataStr);
+          yield { type: eventType, data } as ChatStreamEvent;
+        } else {
+          // Legacy format: data: {"type": "...", "data": ...}
+          yield JSON.parse(dataStr) as ChatStreamEvent;
+        }
       }
     }
   }
@@ -134,6 +155,15 @@ export function createAssistantApi(baseUrl: string = '/api') {
     if (!res.ok) throw new Error(await res.text());
   }
 
+  async function getSuggestions(lang: string = 'en'): Promise<SuggestionsResponse> {
+    const res = await fetch(`${base}/suggestions?lang=${encodeURIComponent(lang)}`, {
+      credentials: 'include',
+    });
+    if (res.status === 401) redirectToLogin();
+    if (!res.ok) return { suggestions: [], tool_labels: {} };
+    return res.json();
+  }
+
   // Admin functions
   async function reindex(): Promise<void> {
     const res = await fetch(`${base}/admin/ingest`, { method: 'POST', credentials: 'include' });
@@ -157,6 +187,7 @@ export function createAssistantApi(baseUrl: string = '/api') {
     listAttachments,
     attachmentRawUrl,
     deleteAttachment,
+    getSuggestions,
     reindex,
     reload,
   };

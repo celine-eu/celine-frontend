@@ -378,6 +378,9 @@
     "delete_attachment": "¿Eliminar este adjunto?",
     "open": "Abrir",
     "delete": "Eliminar",
-    "source": "{count, plural, one {# fuente} other {# fuentes}}"
+    "source": "{count, plural, one {# fuente} other {# fuentes}}",
+    "tool_running": "Ejecutando {tool}...",
+    "tool_done": "{tool} completado",
+    "tool_error": "{tool} fallido"
   }
 }

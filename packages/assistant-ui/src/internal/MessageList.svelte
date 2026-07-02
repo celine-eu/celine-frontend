@@ -2,16 +2,20 @@
   import { tick } from 'svelte';
   import { Icon } from '@celine-eu/ui';
   import Markdown from './Markdown.svelte';
-  import type { Message } from '../types.js';
+  import type { Snippet } from 'svelte';
+  import type { Message, Suggestion } from '../types.js';
   import { t } from 'svelte-i18n';
 
   interface Props {
     messages: Message[];
+    suggestions?: Suggestion[];
+    onSuggestionClick?: (text: string) => void;
     showSources?: boolean;
     assistantLoading?: boolean;
+    toolIndicators?: Snippet;
   }
 
-  let { messages = [], showSources = true, assistantLoading = false }: Props = $props();
+  let { messages = [], suggestions = [], onSuggestionClick, showSources = true, assistantLoading = false, toolIndicators }: Props = $props();
 
   let scroller: HTMLDivElement | null = $state(null);
 
@@ -34,6 +38,20 @@
         <Icon name="message-circle" size={48} strokeWidth={1.5} />
       </div>
       <p>{$t('assistant_ui.start_conversation')}</p>
+
+      {#if suggestions.length > 0}
+        <div class="suggestions">
+          {#each suggestions as s (s.text)}
+            <button
+              class="suggestion-chip"
+              onclick={() => onSuggestionClick?.(s.text)}
+            >
+              <Icon name={s.icon as any} size={16} />
+              <span>{s.text}</span>
+            </button>
+          {/each}
+        </div>
+      {/if}
     </div>
   {:else}
     {#each messages as m, idx (idx)}
@@ -49,6 +67,10 @@
             <Markdown text={m.content} />
           {:else}
             <div class="content">{m.content}</div>
+          {/if}
+
+          {#if m.role === 'assistant' && assistantLoading && idx === messages.length - 1 && toolIndicators}
+            {@render toolIndicators()}
           {/if}
 
           {#if m.attachments && m.attachments.length}
@@ -122,6 +144,36 @@
   .empty-state p {
     margin: 0;
     font-size: 1rem;
+  }
+
+  .suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--celine-space-sm);
+    margin-top: var(--celine-space-lg);
+    justify-content: center;
+    max-width: 600px;
+  }
+
+  .suggestion-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--celine-space-xs);
+    padding: var(--celine-space-sm) var(--celine-space-md);
+    border: 1px solid var(--celine-border);
+    border-radius: var(--celine-radius-full);
+    background: var(--celine-bg-elevated);
+    color: var(--celine-text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all var(--celine-transition-fast);
+    text-align: left;
+  }
+
+  .suggestion-chip:hover {
+    border-color: var(--celine-primary);
+    color: var(--celine-primary);
+    background: var(--celine-primary-light);
   }
 
   .message {

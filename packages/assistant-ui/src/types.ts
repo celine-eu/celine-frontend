@@ -47,9 +47,32 @@ export interface UserInfo {
   is_admin?: boolean;
 }
 
-export interface ChatStreamEvent {
-  type: 'meta' | 'token' | 'sources' | 'error';
-  data: any;
+export type ChatStreamEvent =
+  | { type: 'meta'; data: { conversation_id: string } }
+  | { type: 'token'; data: string }
+  | { type: 'sources'; data: any[] }
+  | { type: 'done'; data: null }
+  | { type: 'error'; data: { message: string } }
+  | { type: 'tool_start'; data: { tool: string; args: Record<string, any> } }
+  | { type: 'tool_progress'; data: { tool: string; message: string } }
+  | { type: 'tool_result'; data: { tool: string } }
+  | { type: 'tool_error'; data: { tool: string; error: string } };
+
+export interface ToolExecution {
+  name: string;
+  status: 'running' | 'done' | 'error';
+  messages: string[];
+  error: string | null;
+}
+
+export interface Suggestion {
+  text: string;
+  icon: string;
+}
+
+export interface SuggestionsResponse {
+  suggestions: Suggestion[];
+  tool_labels: Record<string, string>;
 }
 
 export interface ChatRequest {
