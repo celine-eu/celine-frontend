@@ -57,6 +57,9 @@
     | "users"
     | "trophy"
     | "shield-check"
+    // Weather
+    | "cloud-sun"
+    | "thermometer"
     // Chat
     | "message-circle"
     | "message-square"
@@ -149,6 +152,12 @@
       "M6 9H4.5a2.5 2.5 0 0 1 0-5H6 M18 9h1.5a2.5 2.5 0 0 0 0-5H18 M4 22h16 M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 19.75 7 21.37 7 23 M14 14.66V17c0 .55.47.98.97 1.21C16.15 19.75 17 21.37 17 23 M18 2H6v7a6 6 0 0 0 12 0V2Z",
     "shield-check":
       "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M9 12l2 2 4-4",
+
+    // Weather
+    "cloud-sun":
+      "M12 2v2 M4.93 4.93l1.41 1.41 M20 12h2 M6.34 17.66l-1.41 1.41 M2 12h2 M12 9a4 4 0 0 0-2 7.5 M20 17.58A5 5 0 0 0 12.55 13 4 4 0 1 0 6 17h11a3 3 0 0 0 3-.42",
+    thermometer:
+      "M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z",
 
     // Chat
     "message-circle":

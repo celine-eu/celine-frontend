@@ -4,6 +4,7 @@
   import { page } from '$app/stores';
   import type { LayoutData } from './$types';
   import { meStore, themeOverride } from '$lib/stores';
+  import { startSessionGuard } from '@celine-eu/ui/session';
   import { _ } from 'svelte-i18n';
 
   const { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props();
@@ -67,7 +68,11 @@
 
   onMount(() => {
     document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
+    const stopSessionGuard = startSessionGuard({ pingUrl: '/api/ping' });
+    return () => {
+      document.removeEventListener('keydown', handleKeydown);
+      stopSessionGuard();
+    };
   });
 </script>
 

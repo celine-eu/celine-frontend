@@ -6,6 +6,7 @@
   import { collectFeedbackDiagnostics } from "$lib/feedback";
   import { meStore } from "$lib/stores";
   import { FeedbackWidget, Icon } from "@celine-eu/ui";
+  import { startSessionGuard } from "@celine-eu/ui/session";
   import "@celine-eu/ui/theme.css";
   import type { Snippet } from "svelte";
   import { onMount } from "svelte";
@@ -85,9 +86,12 @@
     };
     document.addEventListener('click', onDocClick, true);
 
+    const stopSessionGuard = startSessionGuard({ pingUrl: '/api/ping' });
+
     return () => {
       mq.removeEventListener('change', onSystemThemeChange);
       document.removeEventListener('click', onDocClick, true);
+      stopSessionGuard();
     };
   });
 </script>

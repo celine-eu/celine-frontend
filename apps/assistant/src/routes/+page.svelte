@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { replaceState } from '$app/navigation';
   import { page } from '$app/stores';
   import { ChatCore } from '@celine-eu/assistant-ui';
   import { t } from 'svelte-i18n';
@@ -29,7 +30,7 @@
       } else {
         url.searchParams.delete('conversation_id');
       }
-      window.history.replaceState({}, '', url);
+      replaceState(url, {});
     }}
   />
 </main>

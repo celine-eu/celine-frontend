@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { replaceState } from '$app/navigation';
   import { onMount } from 'svelte';
   import { _ } from 'svelte-i18n';
   import maplibregl from 'maplibre-gl';
@@ -117,7 +118,7 @@
       params.set('lng', c.lng.toFixed(5));
       params.set('zoom', map.getZoom().toFixed(2));
     }
-    history.replaceState(null, '', '?' + params.toString());
+    replaceState('?' + params.toString(), {});
   }
 
   function readUrlFilters() {

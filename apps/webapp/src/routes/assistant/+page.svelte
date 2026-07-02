@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { replaceState } from "$app/navigation";
   import { page } from "$app/state";
   import {
     api,
@@ -153,7 +154,7 @@
     } else {
       url.searchParams.delete("conversation_id");
     }
-    window.history.replaceState({}, "", url);
+    replaceState(url, {});
   }
 </script>
 
