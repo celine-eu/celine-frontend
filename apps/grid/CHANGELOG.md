@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.19.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.18.0...grid-v0.19.0) (2026-07-02)
+
+### Features
+
+* add ping endpoint, fix ui suggestions ([a7b9f51](https://github.com/celine-eu/celine-frontend/commit/a7b9f510fab50573ffbf694f3420a034b48760f8))
+
 ## [0.18.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.17.0...grid-v0.18.0) (2026-07-02)
 
 ### Features
