@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.18.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.17.0...grid-v0.18.0) (2026-07-02)
+
+### Features
+
+* improve assistant handling ([f702ff5](https://github.com/celine-eu/celine-frontend/commit/f702ff5af569ddbeacc1a3dada82fe25df89ea35))
+
 ## [0.17.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.16.0...grid-v0.17.0) (2026-05-19)
 
 ### Features
