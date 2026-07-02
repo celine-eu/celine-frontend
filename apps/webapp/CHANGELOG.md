@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.24.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.23.0...webapp-v0.24.0) (2026-07-02)
+
+### Features
+
+* add ping endpoint, fix ui suggestions ([a7b9f51](https://github.com/celine-eu/celine-frontend/commit/a7b9f510fab50573ffbf694f3420a034b48760f8))
+
 ## [0.23.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.22.0...webapp-v0.23.0) (2026-07-02)
 
 ### Features
