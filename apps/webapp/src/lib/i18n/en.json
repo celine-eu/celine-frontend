@@ -54,12 +54,12 @@
     "trends_tab_yours": "Yours",
     "trends_tab_community": "Community",
     "community_totals": "Community Totals",
-    "consumption": "Consumption",
-    "production": "Production",
-    "self_consumption": "Self-consumption",
-    "self_consumed": "Self-consumed",
-    "sc_rate": "SC Rate",
-    "pct_of_consumption": "{pct} of consumption",
+    "consumption": "Grid import",
+    "production": "Grid export",
+    "self_consumption": "Shared energy",
+    "self_consumed": "Shared energy",
+    "sc_rate": "Sharing rate",
+    "pct_of_consumption": "{pct} of import",
     "view_detailed_data": "View detailed data",
     "date_col": "Date",
     "self_cons_col": "Self-cons.",
@@ -254,9 +254,9 @@
     "irradiance_gap_note": "Some hours may have incomplete solar data"
   },
   "chart": {
-    "production": "Production",
-    "consumption": "Consumption",
-    "self_consumption": "Self-consumption",
+    "production": "Grid export",
+    "consumption": "Grid import",
+    "self_consumption": "Shared energy",
     "community_potential": "Community potential"
   },
   "accept_terms": {

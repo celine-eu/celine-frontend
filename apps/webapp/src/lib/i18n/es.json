@@ -50,12 +50,12 @@
     "vs_community": "vs Comunidad",
     "community_trend": "Tendencia de la comunidad",
     "community_totals": "Totales de la comunidad",
-    "consumption": "Consumo",
-    "production": "Producción",
-    "self_consumption": "Autoconsumo",
-    "self_consumed": "Autoconsumido",
-    "sc_rate": "Tasa SC",
-    "pct_of_consumption": "{pct} del consumo",
+    "consumption": "Importación de red",
+    "production": "Exportación a red",
+    "self_consumption": "Energía compartida",
+    "self_consumed": "Energía compartida",
+    "sc_rate": "Tasa de compartición",
+    "pct_of_consumption": "{pct} de la importación",
     "view_detailed_data": "Ver datos detallados",
     "date_col": "Fecha",
     "self_cons_col": "Autocons.",
@@ -245,9 +245,9 @@
     "irradiance_gap_note": "Algunas horas pueden tener datos solares incompletos"
   },
   "chart": {
-    "production": "Producción",
-    "consumption": "Consumo",
-    "self_consumption": "Autoconsumo"
+    "production": "Exportación a red",
+    "consumption": "Importación de red",
+    "self_consumption": "Energía compartida"
   },
   "accept_terms": {
     "title": "Antes de continuar",

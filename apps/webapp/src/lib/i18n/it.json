@@ -54,12 +54,12 @@
     "trends_tab_yours": "I tuoi",
     "trends_tab_community": "Comunità",
     "community_totals": "Totali della comunità",
-    "consumption": "Consumo",
-    "production": "Produzione",
-    "self_consumption": "Autoconsumo",
-    "self_consumed": "Autoconsumato",
-    "sc_rate": "Tasso SC",
-    "pct_of_consumption": "{pct} del consumo",
+    "consumption": "Prelievo da rete",
+    "production": "Immissione in rete",
+    "self_consumption": "Energia condivisa",
+    "self_consumed": "Energia condivisa",
+    "sc_rate": "Tasso di condivisione",
+    "pct_of_consumption": "{pct} del prelievo",
     "view_detailed_data": "Visualizza dati dettagliati",
     "date_col": "Data",
     "self_cons_col": "Autocons.",
@@ -254,9 +254,9 @@
     "irradiance_gap_note": "Alcune ore potrebbero avere dati solari incompleti"
   },
   "chart": {
-    "production": "Produzione",
-    "consumption": "Consumo",
-    "self_consumption": "Autoconsumo",
+    "production": "Immissione in rete",
+    "consumption": "Prelievo da rete",
+    "self_consumption": "Energia condivisa",
     "community_potential": "Potenziale comunità"
   },
   "accept_terms": {
