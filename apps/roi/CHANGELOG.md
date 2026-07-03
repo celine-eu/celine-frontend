@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.24.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.23.0...roi-v0.24.0) (2026-07-03)
+
+### Features
+
+* use skills for local context answers ([8bb3d1d](https://github.com/celine-eu/celine-frontend/commit/8bb3d1d9cc6efdcc1903175c3f44a5859ea19632))
+* **webapp:** relabel energy stats as grid import/export and shared energy ([b7d114b](https://github.com/celine-eu/celine-frontend/commit/b7d114ba477f03a8a428e7ce5061b7b0de683510))
+* **webapp:** render community opportunities with optional personal impact ([ae7687e](https://github.com/celine-eu/celine-frontend/commit/ae7687ed2991b2bf0a22b6bba7603a4696ece497))
+
 ## [0.23.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.22.0...roi-v0.23.0) (2026-07-02)
 
 ### Features
