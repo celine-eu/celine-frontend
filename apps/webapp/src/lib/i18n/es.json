@@ -161,7 +161,8 @@
       "night": "noche"
     },
     "window_label": "Excedente solar {range}",
-    "description_today": "Usa los electrodomésticos durante {target_period} ({time}) cuando la comunidad tiene excedente solar ({range})"
+    "description_today": "Usa los electrodomésticos durante {target_period} ({time}) cuando la comunidad tiene excedente solar ({range})",
+    "community_impact": "{kwh} kWh de excedente comunitario"
   },
   "settings": {
     "title": "Ajustes",

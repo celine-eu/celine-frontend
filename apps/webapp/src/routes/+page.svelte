@@ -185,7 +185,7 @@
 
   <!-- Flexibility opportunities teaser (with anchor link to /suggestions#opportunities) -->
   {#if !suggestionsLoading && suggestions.length > 0}
-    {@const maxPoints = suggestions.reduce((s, i) => s + i.reward_points, 0)}
+    {@const maxPoints = suggestions.reduce((s, i) => (i.reward_points ?? 0), 0)}
     <div class="flex-teaser">
       <Icon name="zap" size={18} />
       <div class="flex-teaser-body">

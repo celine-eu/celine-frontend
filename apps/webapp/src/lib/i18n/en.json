@@ -165,7 +165,8 @@
       "night": "night"
     },
     "window_label": "Solar surplus {range}",
-    "description_today": "Run appliances during {target_period} ({time}) when the community has solar surplus ({range})"
+    "description_today": "Run appliances during {target_period} ({time}) when the community has solar surplus ({range})",
+    "community_impact": "{kwh} kWh community surplus"
   },
   "settings": {
     "title": "Settings",

@@ -35,7 +35,7 @@
       await api.suggestionRespond(
         suggestion.id,
         'accepted',
-        suggestion.reward_points,
+        suggestion.reward_points ?? undefined,
         suggestion.period_start,
         suggestion.period_end,
       );
@@ -53,7 +53,7 @@
       await api.suggestionRespond(
         suggestion.id,
         'declined',
-        suggestion.reward_points,
+        suggestion.reward_points ?? undefined,
         suggestion.period_start,
         suggestion.period_end,
       );
@@ -70,7 +70,7 @@
   {#if cardState === 'accepted'}
     <div class="commitment commitment--accepted">
       <Icon name="check-circle" size={20} class="check-icon" />
-      <span>{$t('suggestion_card.done', { values: { points: suggestion.reward_points } })}</span>
+      <span>{$t('suggestion_card.done', { values: { points: suggestion.reward_points ?? 10 } })}</span>
     </div>
   {:else if cardState === 'rejected'}
     <div class="commitment commitment--rejected">
@@ -93,7 +93,9 @@
           <span class="from-label">{$t('suggestion_card.window_label', { values: { range: suggestion.clock_range } })}</span>
         {/if}
       </div>
-      <div class="reward-badge">+{suggestion.reward_points} pts</div>
+      {#if suggestion.reward_points != null}
+        <div class="reward-badge">+{suggestion.reward_points} pts</div>
+      {/if}
     </div>
 
     <p class="description">{suggestion.from_period ? $t('suggestion_card.description', { values: { period: $t(`suggestion_card.period.${suggestion.from_period}`), range: suggestion.clock_range, target_period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } }) : $t('suggestion_card.description_today', { values: { range: suggestion.clock_range, target_period: $t(`suggestion_card.period.${suggestion.to_period}`), time: suggestion.to_time } })}</p>
@@ -101,7 +103,12 @@
 
     <div class="meta-row">
       <span class="impact-chip">
-        <Icon name="zap" size={12} /> {suggestion.impact_kwh_estimated.toFixed(1)} kWh
+        <Icon name="zap" size={12} />
+        {#if suggestion.impact_kwh_estimated != null}
+          {suggestion.impact_kwh_estimated.toFixed(1)} kWh
+        {:else}
+          {$t('suggestion_card.community_impact', { values: { kwh: suggestion.community_kwh.toFixed(0) } })}
+        {/if}
       </span>
       <div class="confidence-wrap" title="Confidence: {(suggestion.confidence * 100).toFixed(0)}%">
         <div class="confidence-bar" style="width: {(suggestion.confidence * 100).toFixed(0)}%"></div>

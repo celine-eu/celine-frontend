@@ -165,7 +165,8 @@
       "night": "notte"
     },
     "window_label": "Surplus solare {range}",
-    "description_today": "Usa gli elettrodomestici durante {target_period} ({time}) quando la comunità ha surplus solare ({range})"
+    "description_today": "Usa gli elettrodomestici durante {target_period} ({time}) quando la comunità ha surplus solare ({range})",
+    "community_impact": "{kwh} kWh di surplus della comunità"
   },
   "settings": {
     "title": "Impostazioni",

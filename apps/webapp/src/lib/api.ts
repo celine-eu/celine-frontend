@@ -190,8 +190,9 @@ export type SuggestionItem = {
   to_is_tomorrow: boolean;
   to_period: string;
   to_time: string;
-  impact_kwh_estimated: number;
-  reward_points: number;
+  impact_kwh_estimated: number | null;
+  reward_points: number | null;
+  community_kwh: number;
   confidence: number;
 };
 
