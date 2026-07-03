@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.26.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.25.0...webapp-v0.26.0) (2026-07-03)
+
+### Features
+
+* **webapp:** render community opportunities with optional personal impact ([ae7687e](https://github.com/celine-eu/celine-frontend/commit/ae7687ed2991b2bf0a22b6bba7603a4696ece497))
+
 ## [0.25.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.24.0...webapp-v0.25.0) (2026-07-02)
 
 ### Features
