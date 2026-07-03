@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.27.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.26.0...webapp-v0.27.0) (2026-07-03)
+
+### Features
+
+* **webapp:** relabel energy stats as grid import/export and shared energy ([b7d114b](https://github.com/celine-eu/celine-frontend/commit/b7d114ba477f03a8a428e7ce5061b7b0de683510))
+
 ## [0.26.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.25.0...webapp-v0.26.0) (2026-07-03)
 
 ### Features
