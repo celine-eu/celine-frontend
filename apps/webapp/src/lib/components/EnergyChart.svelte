@@ -10,12 +10,13 @@
     production_kwh: number | null;
     consumption_kwh: number | null;
     self_consumption_kwh: number | null;
+    surplus_kwh?: number | null;
   };
 
   interface Props {
     data: TrendItem[];
     height?: string;
-    datasetLabels?: { production?: string; consumption?: string; self_consumption?: string };
+    datasetLabels?: { production?: string; consumption?: string; self_consumption?: string; surplus?: string };
   }
 
   let { data = [], height = "280px", datasetLabels }: Props = $props();
@@ -75,38 +76,54 @@
     const loc = get(locale) ?? undefined;
     const labels = data.map((d) => formatDateShort(d.date, loc));
     const isMobile = window.innerWidth < 640;
+    const hasSurplus = data.some((d) => d.surplus_kwh != null);
 
     // Double-check canvas is still available and no chart exists
     if (!canvasEl || chart) return;
 
+    const datasets: any[] = [
+      {
+        label: datasetLabels?.production ?? get(t)('chart.production'),
+        data: data.map((d) => d.production_kwh),
+        backgroundColor: productionColor,
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+      {
+        label: datasetLabels?.consumption ?? get(t)('chart.consumption'),
+        data: data.map((d) => d.consumption_kwh),
+        backgroundColor: consumptionColor,
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+      {
+        label: datasetLabels?.self_consumption ?? get(t)('chart.self_consumption'),
+        data: data.map((d) => d.self_consumption_kwh),
+        backgroundColor: selfConsumptionColor,
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+    ];
+
+    if (hasSurplus) {
+      datasets.push({
+        label: datasetLabels?.surplus ?? get(t)('chart.surplus'),
+        data: data.map((d) => d.surplus_kwh ?? null),
+        type: "line",
+        borderColor: productionColor,
+        backgroundColor: productionColor + "33",
+        borderWidth: 2,
+        borderDash: [6, 3],
+        pointRadius: 3,
+        pointBackgroundColor: productionColor,
+        fill: true,
+        tension: 0.3,
+      });
+    }
+
     chart = new Chart(canvasEl, {
       type: "bar",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: datasetLabels?.production ?? get(t)('chart.production'),
-            data: data.map((d) => d.production_kwh),
-            backgroundColor: productionColor,
-            borderRadius: 4,
-            borderSkipped: false,
-          },
-          {
-            label: datasetLabels?.consumption ?? get(t)('chart.consumption'),
-            data: data.map((d) => d.consumption_kwh),
-            backgroundColor: consumptionColor,
-            borderRadius: 4,
-            borderSkipped: false,
-          },
-          {
-            label: datasetLabels?.self_consumption ?? get(t)('chart.self_consumption'),
-            data: data.map((d) => d.self_consumption_kwh),
-            backgroundColor: selfConsumptionColor,
-            borderRadius: 4,
-            borderSkipped: false,
-          },
-        ],
-      },
+      data: { labels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,

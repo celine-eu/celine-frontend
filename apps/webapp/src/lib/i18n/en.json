@@ -257,7 +257,8 @@
     "production": "Grid export",
     "consumption": "Grid import",
     "self_consumption": "Shared energy",
-    "community_potential": "Community potential"
+    "community_potential": "Community potential",
+    "surplus": "Self-consumption potential"
   },
   "accept_terms": {
     "title": "Before you continue",

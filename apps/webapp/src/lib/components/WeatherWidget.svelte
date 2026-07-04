@@ -171,10 +171,10 @@
         </div>
       {/if}
 
-      <!-- 7-day daily strip -->
+      <!-- 4-day daily strip (today + 3) -->
       {#if data.daily && data.daily.length > 0}
         <div class="daily-strip">
-          {#each data.daily as day, i}
+          {#each data.daily.slice(0, 4) as day, i}
             <div class="day-card" class:day-card--today={i === 0}>
               <span class="day-label">{i === 0 ? $t('weather.today') : shortDay(day.date)}</span>
               <span class="weather-emoji-md" aria-label={day.weather_main}>{weatherEmoji(day.weather_main)}</span>

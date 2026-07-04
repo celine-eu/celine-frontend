@@ -257,7 +257,8 @@
     "production": "Immissione in rete",
     "consumption": "Prelievo da rete",
     "self_consumption": "Energia condivisa",
-    "community_potential": "Potenziale comunità"
+    "community_potential": "Potenziale comunità",
+    "surplus": "Potenziale autoconsumo"
   },
   "accept_terms": {
     "title": "Prima di continuare",

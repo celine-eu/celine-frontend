@@ -133,41 +133,6 @@
 
   const periodLabel = $derived(selectedDays === 7 ? $t('overview.last_7_days') : $t('overview.last_30_days'));
 
-  /**
-   * User trend augmented with community production potential.
-   * Community production is normalized so it never exceeds 115% of the user's
-   * highest value — prevents the community scale from dwarfing personal data.
-   */
-  const userTrendWithPotential = $derived.by(() => {
-    const ut = overview?.user_trend;
-    const ct = overview?.trend;
-    if (!ut || ut.length === 0) return ut ?? [];
-
-    // Max of user's own values (consumption + self-consumption)
-    const maxUser = Math.max(
-      0,
-      ...ut.map(d => Math.max(d.consumption_kwh ?? 0, d.self_consumption_kwh ?? 0))
-    );
-
-    const commByDate = new Map((ct ?? []).map(d => [d.date, d]));
-
-    // Only normalize if community production exceeds the ceiling
-    const ceiling = maxUser * 1.15;
-    const maxComm = Math.max(
-      0,
-      ...(ct ?? []).map(d => d.production_kwh ?? 0)
-    );
-    const scale = maxComm > ceiling && ceiling > 0 ? ceiling / maxComm : 1;
-
-    return ut.map(d => ({
-      ...d,
-      production_kwh: (() => {
-        const comm = commByDate.get(d.date);
-        if (!comm || comm.production_kwh == null) return null;
-        return comm.production_kwh * scale;
-      })(),
-    }));
-  });
 </script>
 
 <section class="overview">
@@ -395,14 +360,10 @@
       </div>
 
       {#if trendTab === 'yours'}
-        <!-- Per-device trend: user consumption + self-consumption + normalized community potential -->
-        {#if userTrendWithPotential && userTrendWithPotential.some(d => d.consumption_kwh !== null)}
+        <!-- Per-device trend: user grid import + export + shared energy -->
+        {#if overview.user_trend && overview.user_trend.some(d => d.consumption_kwh !== null || d.production_kwh !== null)}
           <div class="chart-container">
-            <EnergyChart
-              data={userTrendWithPotential}
-              height="280px"
-              datasetLabels={{ production: $t('chart.community_potential') }}
-            />
+            <EnergyChart data={overview.user_trend} height="280px" />
           </div>
         {:else}
           <div class="empty-state">
@@ -428,62 +389,65 @@
       {/if}
     </section>
 
-    <!-- Weather section (moved from /suggestions, appears later in page) -->
-    <section class="section-card">
-      <header class="section-header">
-        <Icon name="sun" size={22} class="section-icon" />
-        <div>
-          <h2 class="section-title">{$t('overview.weather_section_title')}</h2>
-          <p class="section-period">{$t('overview.weather_section_period')}</p>
-        </div>
-        <AskAssistantButton
-          iconOnly
-          prompt={assistantPrompt("weather")}
-          href={buildAssistantHref(
-            assistantPrompt("weather"),
-            "weather",
-          )}
-        />
-      </header>
-      <WeatherWidget data={weatherData} loading={weatherLoading} />
-    </section>
-
-    <!-- CO2 Impact section -->
-    {#if co2Settings && overview.rec.production_kwh != null && overview.rec.production_kwh > 0}
-      {@const co2Kg = calcCo2Kg(overview.rec.production_kwh, co2Settings.kg_per_kwh)}
-      {@const trees = calcTrees(co2Kg, co2Settings.trees_per_ton)}
-      <section class="section-card co2-card">
+    <!-- Weather + CO2 Impact row -->
+    <div class="weather-impact-row">
+      <!-- Weather section -->
+      <section class="section-card weather-impact-col">
         <header class="section-header">
-          <Icon name="leaf" size={22} class="section-icon" />
+          <Icon name="sun" size={22} class="section-icon" />
           <div>
-            <h2 class="section-title">{$t('overview.co2_section_title')}</h2>
-            <p class="section-period">{periodLabel}</p>
+            <h2 class="section-title">{$t('overview.weather_section_title')}</h2>
+            <p class="section-period">{$t('overview.weather_section_period')}</p>
           </div>
           <AskAssistantButton
             iconOnly
-            prompt={assistantPrompt("co2")}
+            prompt={assistantPrompt("weather")}
             href={buildAssistantHref(
-              assistantPrompt("co2"),
-              "co2",
+              assistantPrompt("weather"),
+              "weather",
             )}
           />
         </header>
-        <div class="co2-stats">
-          <div class="co2-stat">
-            <span class="co2-value">{co2Kg < 1000 ? co2Kg.toFixed(1) : (co2Kg / 1000).toFixed(2) + ' t'}</span>
-            <span class="co2-unit">{co2Kg < 1000 ? 'kg' : ''} CO₂</span>
-            <span class="co2-label">{$t('overview.co2_saved', { values: { kg: '' } }).replace('{kg} ', '')}</span>
-          </div>
-          <div class="co2-sep">≈</div>
-          <div class="co2-stat co2-stat--trees">
-            <span class="co2-value">{trees < 1 ? '<1' : trees.toFixed(trees < 10 ? 1 : 0)}</span>
-            <span class="co2-unit">🌳</span>
-            <span class="co2-label">{$t('overview.co2_trees', { values: { trees: '' } }).replace('{trees} ', '')}</span>
-          </div>
-        </div>
-        <p class="co2-context">{$t('overview.co2_context')}</p>
+        <WeatherWidget data={weatherData} loading={weatherLoading} />
       </section>
-    {/if}
+
+      <!-- CO2 Impact section -->
+      {#if co2Settings && overview.rec.production_kwh != null && overview.rec.production_kwh > 0}
+        {@const co2Kg = calcCo2Kg(overview.rec.production_kwh, co2Settings.kg_per_kwh)}
+        {@const trees = calcTrees(co2Kg, co2Settings.trees_per_ton)}
+        <section class="section-card co2-card weather-impact-col">
+          <header class="section-header">
+            <Icon name="leaf" size={22} class="section-icon" />
+            <div>
+              <h2 class="section-title">{$t('overview.co2_section_title')}</h2>
+              <p class="section-period">{periodLabel}</p>
+            </div>
+            <AskAssistantButton
+              iconOnly
+              prompt={assistantPrompt("co2")}
+              href={buildAssistantHref(
+                assistantPrompt("co2"),
+                "co2",
+              )}
+            />
+          </header>
+          <div class="co2-stats">
+            <div class="co2-stat">
+              <span class="co2-value">{co2Kg < 1000 ? co2Kg.toFixed(1) : (co2Kg / 1000).toFixed(2) + ' t'}</span>
+              <span class="co2-unit">{co2Kg < 1000 ? 'kg' : ''} CO₂</span>
+              <span class="co2-label">{$t('overview.co2_saved', { values: { kg: '' } }).replace('{kg} ', '')}</span>
+            </div>
+            <div class="co2-sep">≈</div>
+            <div class="co2-stat co2-stat--trees">
+              <span class="co2-value">{trees < 1 ? '<1' : trees.toFixed(trees < 10 ? 1 : 0)}</span>
+              <span class="co2-unit">🌳</span>
+              <span class="co2-label">{$t('overview.co2_trees', { values: { trees: '' } }).replace('{trees} ', '')}</span>
+            </div>
+          </div>
+          <p class="co2-context">{$t('overview.co2_context')}</p>
+        </section>
+      {/if}
+    </div>
 
   {/if}
 </section>
@@ -721,6 +685,18 @@
     text-align: center;
   }
 
+  /* Weather + Impact row */
+  .weather-impact-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--celine-space-lg);
+  }
+
+  .weather-impact-col {
+    flex: 1;
+    min-width: 0;
+  }
+
   /* Chart */
   .chart-container { margin-top: var(--celine-space-sm); }
 
@@ -770,6 +746,11 @@
   @media (min-width: 768px) {
     .section-card { padding: var(--celine-space-xl); }
     .section-title { font-size: 1.125rem; }
+
+    .weather-impact-row {
+      flex-direction: row;
+      align-items: stretch;
+    }
 
     /* Side-by-side contribution layout only at 768px+ where there's enough room */
     .contribution-grid {

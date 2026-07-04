@@ -247,7 +247,8 @@
   "chart": {
     "production": "Exportación a red",
     "consumption": "Importación de red",
-    "self_consumption": "Energía compartida"
+    "self_consumption": "Energía compartida",
+    "surplus": "Potencial de autoconsumo"
   },
   "accept_terms": {
     "title": "Antes de continuar",

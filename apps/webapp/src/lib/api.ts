@@ -41,6 +41,7 @@ export type TrendItem = {
   production_kwh: number | null;
   consumption_kwh: number | null;
   self_consumption_kwh: number | null;
+  surplus_kwh?: number | null;
 };
 
 export type Overview = {
