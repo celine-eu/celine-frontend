@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.28.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.27.0...webapp-v0.28.0) (2026-07-05)
+
+### Bug Fixes
+
+* align weather+environ blocks, review trends graphs to show flex window and user import/export/self ([312f2a4](https://github.com/celine-eu/celine-frontend/commit/312f2a46ba4f8d523b4699a939d7430399dd6667))
+* review  forecast component ([784fd1b](https://github.com/celine-eu/celine-frontend/commit/784fd1ba5cd5d869b11730acec8889f84ff224e7))
+
 ## [0.27.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.26.0...webapp-v0.27.0) (2026-07-03)
 
 ### Features
