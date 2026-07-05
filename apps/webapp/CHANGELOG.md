@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.29.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.28.0...webapp-v0.29.0) (2026-07-05)
+
+### Bug Fixes
+
+* improve weapp forecast view ([99095b4](https://github.com/celine-eu/celine-frontend/commit/99095b4af7aa7f786f9b83dc3b698d9244c3c38b))
+
 ## [0.28.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.27.0...webapp-v0.28.0) (2026-07-05)
 
 ### Bug Fixes
