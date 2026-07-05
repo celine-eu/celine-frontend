@@ -68,8 +68,8 @@
     return parseLocalDate(dateStr).toLocaleDateString($locale ?? undefined, { weekday: 'short' });
   }
 
-  function safeTemp(temp: number): string {
-    if (temp < -50 || temp > 60) return '—';
+  function safeTemp(temp: number | null | undefined): string {
+    if (temp == null || temp < -50 || temp > 60) return '—';
     return temp.toFixed(0);
   }
 
@@ -77,6 +77,18 @@
     if (!dateStr) return $t('weather.today');
     return parseLocalDate(dateStr).toLocaleDateString($locale ?? undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
+
+  const todayDaily = $derived(data?.daily?.[0] ?? null);
+  const forecastDays = $derived(data?.daily?.slice(1, 6) ?? []);
+
+  /** Resolved current temperature: prefer live current, fall back to daily */
+  const currentTemp = $derived.by(() => {
+    if (data?.current?.temp != null) return data.current.temp;
+    if (todayDaily?.temp_day != null) return todayDaily.temp_day;
+    if (todayDaily?.temp_min != null && todayDaily?.temp_max != null)
+      return (todayDaily.temp_min + todayDaily.temp_max) / 2;
+    return null;
+  });
 
   let alertsExpanded = $state<Record<number, boolean>>({});
 
@@ -98,11 +110,12 @@
   <div class="weather-compact">
     {#if loading}
       <Skeleton variant="text" width="120px" />
-    {:else if data?.current}
-      <span class="weather-emoji-sm" aria-label={data.current.weather_main}>{weatherEmoji(data.current.weather_main)}</span>
-      <span class="compact-temp">{safeTemp(data.current.temp)}°C</span>
-      <span class="compact-desc">{data.current.weather_description}</span>
-      {#if data.alerts && data.alerts.length > 0}
+    {:else if data?.current || todayDaily}
+      {@const main = data?.current?.weather_main ?? todayDaily?.weather_main ?? ''}
+      <span class="weather-emoji-sm" aria-label={main}>{weatherEmoji(main)}</span>
+      {#if currentTemp != null}<span class="compact-temp">{safeTemp(currentTemp)}°C</span>{/if}
+      <span class="compact-desc">{data?.current?.weather_description ?? todayDaily?.weather_description ?? ''}</span>
+      {#if data?.alerts && data.alerts.length > 0}
         <span class="alert-badge" title={data.alerts[0].event}>
           <Icon name="alert-triangle" size={14} />
         </span>
@@ -156,32 +169,46 @@
         </div>
       {/if}
 
-      <!-- Current conditions -->
-      {#if data.current}
+      <!-- Today -->
+      {#if data.current || todayDaily}
+        {@const weather_main = data.current?.weather_main ?? todayDaily?.weather_main ?? ''}
+        {@const weather_desc = data.current?.weather_description ?? todayDaily?.weather_description ?? ''}
         <div class="current-row">
           <div class="current-main">
-            <span class="weather-emoji-lg" aria-label={data.current.weather_main}>{weatherEmoji(data.current.weather_main)}</span>
+            <span class="weather-emoji-lg" aria-label={weather_main}>{weatherEmoji(weather_main)}</span>
             <div>
-              <span class="current-temp">{safeTemp(data.current.temp)}°C</span>
-              <span class="current-desc">{data.current.weather_description}</span>
+              {#if currentTemp != null}
+                <span class="current-temp">{safeTemp(currentTemp)}°C</span>
+              {/if}
+              <span class="current-desc">{weather_desc}</span>
+              {#if todayDaily?.temp_min != null && todayDaily?.temp_max != null}
+                <span class="current-range">{safeTemp(todayDaily.temp_min)}° / {safeTemp(todayDaily.temp_max)}°</span>
+              {/if}
             </div>
           </div>
           <div class="current-chips">
-            {#if data.current.humidity}<span class="chip">💧 {data.current.humidity}%</span>{/if}
-            {#if data.current.uvi}<span class="chip">☀️ {$t('weather.uv')} {data.current.uvi.toFixed(1)}</span>{/if}
-            {#if data.current.wind_speed_ms != null}<span class="chip">💨 {data.current.wind_speed_ms.toFixed(1)} m/s</span>
-            {:else if data.current.wind_deg}<span class="chip">💨 {data.current.wind_deg}°</span>{/if}
-            {#if data.current.clouds}<span class="chip">☁️ {data.current.clouds}%</span>{/if}
+            {#if data.current?.humidity}<span class="chip">💧 {data.current.humidity}%</span>{/if}
+            {#if data.current?.uvi ?? todayDaily?.uvi}
+              <span class="chip">☀️ {$t('weather.uv')} {(data.current?.uvi ?? todayDaily?.uvi ?? 0).toFixed(1)}</span>
+            {/if}
+            {#if data.current?.wind_speed_ms != null}<span class="chip">💨 {data.current.wind_speed_ms.toFixed(1)} m/s</span>
+            {:else if data.current?.wind_deg}<span class="chip">💨 {data.current.wind_deg}°</span>{/if}
+            {#if data.current?.clouds ?? todayDaily?.clouds}
+              <span class="chip">☁️ {data.current?.clouds ?? todayDaily?.clouds}%</span>
+            {/if}
+            {#if (todayDaily?.pop ?? 0) > 0}
+              <span class="chip">🌧️ {((todayDaily?.pop ?? 0) * 100).toFixed(0)}%</span>
+            {/if}
           </div>
         </div>
       {/if}
 
-      <!-- 4-day daily strip (today + 3) -->
-      {#if data.daily && data.daily.length > 0}
+      <!-- Forecast strip (next days, up to 5) -->
+      {#if forecastDays.length > 0}
         <div class="daily-strip">
-          {#each data.daily.slice(0, 4) as day, i}
-            <div class="day-card" class:day-card--today={i === 0}>
-              <span class="day-label">{i === 0 ? $t('weather.today') : shortDay(day.date)}</span>
+          {#each forecastDays as day}
+            <div class="day-card">
+              <span class="day-label">{shortDay(day.date)}</span>
               <span class="weather-emoji-md" aria-label={day.weather_main}>{weatherEmoji(day.weather_main)}</span>
               <span class="day-range">
                 <span class="temp-max">{safeTemp(day.temp_max)}°</span>
@@ -301,6 +328,7 @@
   .current-main { display: flex; align-items: center; gap: var(--celine-space-md); }
   .current-temp { font-size: 2.5rem; font-weight: 700; color: var(--celine-text); display: block; }
   .current-desc { font-size: 0.875rem; color: var(--celine-text-secondary); display: block; }
+  .current-range { font-size: 0.8125rem; color: var(--celine-text-tertiary); display: block; }
   .current-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
   .chip {
     display: flex;
@@ -340,11 +368,6 @@
     flex: 0 0 auto;
     min-width: 52px;
   }
-  .day-card--today {
-    border-color: var(--celine-primary);
-    background: var(--celine-primary-bg, rgba(99,102,241,0.08));
-  }
-  .day-card--today .day-label { color: var(--celine-primary); }
   .day-label { font-size: 0.6875rem; color: var(--celine-text-secondary); font-weight: 600; text-transform: uppercase; }
   .day-range { display: flex; flex-direction: column; align-items: center; gap: 1px; }
   .temp-max { font-size: 0.8125rem; font-weight: 600; color: var(--celine-text); }

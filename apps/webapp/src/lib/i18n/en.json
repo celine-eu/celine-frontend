@@ -240,6 +240,7 @@
     "chart_solar_axis": "kWh surplus (+) / import (−)",
     "chart_consumption_axis": "kWh consumed",
     "now": "Now",
+    "day_today": "Today",
     "tab_hint": "Tip: switch tabs to compare solar surplus with your consumption"
   },
   "weather": {

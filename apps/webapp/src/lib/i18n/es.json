@@ -231,6 +231,7 @@
     "chart_solar_axis": "kWh excedente (+) / importación (−)",
     "chart_consumption_axis": "kWh consumidos",
     "now": "Ahora",
+    "day_today": "Hoy",
     "tab_hint": "Consejo: cambia de pestaña para comparar el excedente solar con tu consumo"
   },
   "weather": {

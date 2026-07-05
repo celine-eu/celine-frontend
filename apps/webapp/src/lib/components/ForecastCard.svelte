@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { ForecastResponse, ForecastHourItem } from '$lib/api';
   import { Icon, Skeleton } from '@celine-eu/ui';
-  import { t } from 'svelte-i18n';
+  import { t, locale } from 'svelte-i18n';
   import { get } from 'svelte/store';
 
   interface Props {
@@ -13,21 +13,47 @@
 
   type Tab = 'user' | 'rec';
   let activeTab = $state<Tab>('user');
+  let dayOffset = $state<0 | 1>(0);
 
   let canvasEl = $state<HTMLCanvasElement | null>(null);
   let chartInstance: any = null;
 
-  function activeItems(): ForecastHourItem[] {
-    if (!data) return [];
-    return activeTab === 'user' ? data.user_forecast : data.rec_forecast;
+  /** Available day offsets based on data span */
+  const availableDays = $derived.by(() => {
+    if (!data) return [0] as const;
+    const all = [...data.user_forecast, ...data.rec_forecast];
+    if (!all.length) return [0] as const;
+    const dates = new Set(all.map(i => i.ts.slice(0, 10)));
+    return dates.size > 1 ? [0, 1] as const : [0] as const;
+  });
+
+  function dayLabel(offset: 0 | 1): string {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    if (offset === 0) return get(t)('forecast.day_today');
+    return d.toLocaleDateString(get(locale) ?? undefined, { weekday: 'short', day: 'numeric', month: 'short' });
   }
 
-  /** Compute shared Y-axis bounds across both tabs for visual comparability */
+  /** Filter items to the selected day */
+  function filterByDay(items: ForecastHourItem[]): ForecastHourItem[] {
+    if (!items.length) return items;
+    const dates = [...new Set(items.map(i => i.ts.slice(0, 10)))].sort();
+    const targetDate = dates[dayOffset] ?? dates[0];
+    return items.filter(i => i.ts.startsWith(targetDate));
+  }
+
+  function activeItems(): ForecastHourItem[] {
+    if (!data) return [];
+    const raw = activeTab === 'user' ? data.user_forecast : data.rec_forecast;
+    return filterByDay(raw);
+  }
+
+  /** Compute shared Y-axis bounds across both tabs for visual comparability (within selected day) */
   function globalYRange(): { min: number; max: number } {
     if (!data) return { min: 0, max: 1 };
     const allValues = [
-      ...data.user_forecast.flatMap(i => [i.value, i.lower ?? i.value, i.upper ?? i.value]),
-      ...data.rec_forecast.flatMap(i => [i.value, i.lower ?? i.value, i.upper ?? i.value]),
+      ...filterByDay(data.user_forecast).flatMap(i => [i.value, i.lower ?? i.value, i.upper ?? i.value]),
+      ...filterByDay(data.rec_forecast).flatMap(i => [i.value, i.lower ?? i.value, i.upper ?? i.value]),
     ].filter(v => !isNaN(v));
     if (!allValues.length) return { min: 0, max: 1 };
     return {
@@ -47,7 +73,7 @@
     } else {
       // On REC tab, look up surplus kWh from user_forecast by matching hour label
       const byHour = new Map(
-        data.user_forecast.filter(i => i.value > 0).map(i => [fmtHour(i.ts), i.value])
+        filterByDay(data.user_forecast).filter(i => i.value > 0).map(i => [fmtHour(i.ts), i.value])
       );
       items.forEach((item, i) => {
         const kwh = byHour.get(fmtHour(item.ts));
@@ -211,6 +237,7 @@
 
   $effect(() => {
     activeTab;
+    dayOffset;
     if (!loading && data && canvasEl) {
       renderChart();
     }
@@ -234,6 +261,20 @@
       {$t('forecast.tab_consumption')}
     </button>
   </div>
+
+  {#if availableDays.length > 1}
+    <div class="day-bar">
+      {#each availableDays as d}
+        <button
+          class="day-btn"
+          class:active={dayOffset === d}
+          onclick={() => dayOffset = d}
+        >
+          {dayLabel(d)}
+        </button>
+      {/each}
+    </div>
+  {/if}
 
   {#if data}
     <div class="surplus-legend">
@@ -291,6 +332,34 @@
   }
 
   .tab-btn.active {
+    background: var(--celine-primary-bg, rgba(99,102,241,0.1));
+    color: var(--celine-primary);
+    border-color: var(--celine-primary);
+  }
+
+  .day-bar {
+    display: flex;
+    gap: 0.375rem;
+  }
+
+  .day-btn {
+    padding: 0.25rem 0.625rem;
+    border: 1px solid var(--celine-border);
+    border-radius: var(--celine-radius-sm);
+    background: none;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--celine-text-secondary);
+    cursor: pointer;
+    transition: all var(--celine-transition-fast);
+  }
+
+  .day-btn:hover {
+    background: var(--celine-bg);
+    color: var(--celine-text);
+  }
+
+  .day-btn.active {
     background: var(--celine-primary-bg, rgba(99,102,241,0.1));
     color: var(--celine-primary);
     border-color: var(--celine-primary);

@@ -119,7 +119,7 @@ export type CommunityMeta = {
 };
 
 export type WeatherCurrent = {
-  temp: number;
+  temp: number | null;
   humidity: number;
   uvi?: number;
   clouds?: number;
@@ -134,9 +134,9 @@ export type WeatherCurrent = {
 
 export type WeatherDayItem = {
   date: string;
-  temp_min: number;
-  temp_max: number;
-  temp_day: number;
+  temp_min: number | null;
+  temp_max: number | null;
+  temp_day: number | null;
   pop?: number;
   rain: number | null;
   clouds?: number;
@@ -326,7 +326,7 @@ export const api = {
   enableNotifications: () => j<{ ok: true }>('/api/notifications/enable', { method: 'POST', body: JSON.stringify({ enable: true }) }),
   community: () => j<CommunityMeta>('/api/community'),
   weather: () => j<WeatherResponse>('/api/weather'),
-  forecast: () => j<ForecastResponse>('/api/forecast'),
+  forecast: (days: number = 2) => j<ForecastResponse>(`/api/forecast?days=${days}`),
   suggestions: () => j<SuggestionItem[]>('/api/suggestions'),
   suggestionRespond: (id: string, response: 'accepted' | 'declined', reward_points?: number, period_start?: string, period_end?: string) =>
     j<GamificationResponse>(`/api/suggestions/${id}/respond`, {
