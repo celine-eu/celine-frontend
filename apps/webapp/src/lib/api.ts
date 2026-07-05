@@ -121,13 +121,15 @@ export type CommunityMeta = {
 export type WeatherCurrent = {
   temp: number;
   humidity: number;
-  uvi: number;
-  clouds: number;
+  uvi?: number;
+  clouds?: number;
   wind_deg: number;
+  wind_speed_ms?: number | null;
+  wind_gust_ms?: number | null;
   weather_main: string;
   weather_description: string;
-  sunrise: string;
-  sunset: string;
+  sunrise?: string;
+  sunset?: string;
 };
 
 export type WeatherDayItem = {
@@ -135,10 +137,10 @@ export type WeatherDayItem = {
   temp_min: number;
   temp_max: number;
   temp_day: number;
-  pop: number;
+  pop?: number;
   rain: number | null;
-  clouds: number;
-  uvi: number;
+  clouds?: number;
+  uvi?: number;
   weather_main: string;
   weather_description: string;
   summary: string | null;
@@ -146,10 +148,13 @@ export type WeatherDayItem = {
 
 export type WeatherAlertItem = {
   event: string;
-  sender_name: string;
+  sender_name?: string;
   start_ts: string;
-  end_ts: string;
-  description: string;
+  end_ts?: string;
+  description?: string;
+  severity?: string | null;
+  urgency?: string | null;
+  headline?: string | null;
 };
 
 export type WeatherIrradianceItem = {

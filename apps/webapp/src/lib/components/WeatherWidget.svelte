@@ -11,25 +11,8 @@
 
   let { data, loading = false, compact = false }: Props = $props();
 
-  const WEATHER_ICONS: Record<string, string> = {
-    Clear: 'sun',
-    Clouds: 'cloud',
-    Rain: 'cloud-rain',
-    Drizzle: 'cloud-drizzle',
-    Thunderstorm: 'cloud-lightning',
-    Snow: 'cloud-snow',
-    Mist: 'wind',
-    Fog: 'wind',
-    Haze: 'wind',
-    Smoke: 'wind',
-    Dust: 'wind',
-    Sand: 'wind',
-    Ash: 'wind',
-    Squall: 'wind',
-    Tornado: 'wind',
-  };
-
   const WEATHER_EMOJI: Record<string, string> = {
+    // OWM codes (legacy / other providers)
     Clear: '☀️',
     Clouds: '☁️',
     Rain: '🌧️',
@@ -45,11 +28,32 @@
     Ash: '🌋',
     Squall: '💨',
     Tornado: '🌪️',
+    // MeteoTrentino name_eng values
+    'Clear sky': '☀️',
+    'Sunny': '🌤️',
+    'Partly cloudy': '⛅',
+    'Mostly cloudy': '🌥️',
+    'Cloudy': '☁️',
+    'Showers': '🌦️',
+    'Heavy showers': '🌧️',
+    'Moderate rainfall': '🌧️',
+    'Heavy rainfall': '🌧️',
+    'Light rainfall': '🌦️',
+    'Light showers': '🌦️',
+    'Light snow and sun': '🌨️',
+    'Snow and sun': '🌨️',
+    'Light snow': '🌨️',
+    'Moderate snow': '❄️',
+    'Heavy snow': '❄️',
+    'Wet snow and sun': '🌨️',
+    'Wet snow': '🌨️',
+    'Mountain haze': '🌫️',
+    'Unstable': '🌦️',
+    'Unstable with wet snow': '🌨️',
+    'Wet snow thunderstorm': '⛈️',
+    'Unstable with snow thunderstorm': '⛈️',
+    'Snow thunderstorm': '⛈️',
   };
-
-  function weatherIcon(main: string): string {
-    return WEATHER_ICONS[main] ?? 'cloud';
-  }
 
   function weatherEmoji(main: string): string {
     return WEATHER_EMOJI[main] ?? '🌡️';
@@ -144,7 +148,7 @@
               {#if alertsExpanded[i]}
                 <p class="alert-description">{alert.description}</p>
                 <p class="alert-meta">
-                  {alert.sender_name} · {$t('weather.until')} {new Date(alert.end_ts).toLocaleString($locale ?? undefined)}
+                  {alert.sender_name ?? ''}{#if alert.end_ts} · {$t('weather.until')} {new Date(alert.end_ts).toLocaleString($locale ?? undefined)}{/if}
                 </p>
               {/if}
             </div>
@@ -163,10 +167,11 @@
             </div>
           </div>
           <div class="current-chips">
-            <span class="chip">💧 {data.current.humidity}%</span>
-            <span class="chip">☀️ UV {data.current.uvi.toFixed(1)}</span>
-            <span class="chip">💨 {data.current.wind_deg}°</span>
-            <span class="chip">☁️ {data.current.clouds}%</span>
+            {#if data.current.humidity}<span class="chip">💧 {data.current.humidity}%</span>{/if}
+            {#if data.current.uvi}<span class="chip">☀️ {$t('weather.uv')} {data.current.uvi.toFixed(1)}</span>{/if}
+            {#if data.current.wind_speed_ms != null}<span class="chip">💨 {data.current.wind_speed_ms.toFixed(1)} m/s</span>
+            {:else if data.current.wind_deg}<span class="chip">💨 {data.current.wind_deg}°</span>{/if}
+            {#if data.current.clouds}<span class="chip">☁️ {data.current.clouds}%</span>{/if}
           </div>
         </div>
       {/if}
@@ -182,9 +187,9 @@
                 <span class="temp-max">{safeTemp(day.temp_max)}°</span>
                 <span class="temp-min">{safeTemp(day.temp_min)}°</span>
               </span>
-              {#if day.pop > 0}
-                <div class="rain-bar-wrap" title="{(day.pop * 100).toFixed(0)}% rain">
-                  <div class="rain-bar" style="width: {(day.pop * 100).toFixed(0)}%"></div>
+              {#if (day.pop ?? 0) > 0}
+                <div class="rain-bar-wrap" title="{((day.pop ?? 0) * 100).toFixed(0)}% rain">
+                  <div class="rain-bar" style="width: {((day.pop ?? 0) * 100).toFixed(0)}%"></div>
                 </div>
               {/if}
             </div>
