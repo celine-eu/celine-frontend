@@ -317,7 +317,11 @@ export const api = {
   markOnboardingSeen: (page_key: string) =>
     j<{ ok: true }>('/api/onboarding/seen', { method: 'POST', body: JSON.stringify({ page_key }) }),
   settingsGet: (lang?: string) => j<Settings>(lang ? `/api/settings?lang=${encodeURIComponent(lang)}` : '/api/settings'),
-  settingsPut: (s: Settings) => j<Settings>('/api/settings', { method: 'PUT', body: JSON.stringify(s) }),
+  settingsPut: (s: Settings, lang?: string) =>
+    j<Settings>(lang ? `/api/settings?lang=${encodeURIComponent(lang)}` : '/api/settings', {
+      method: 'PUT',
+      body: JSON.stringify(s)
+    }),
   vapidPublicKey: () => j<{ public_key: string }>('/api/notifications/webpush/vapid-public-key'),
   subscribeWebPush: (subscription: PushSubscriptionJSON) =>
     j<{ ok: true }>('/api/notifications/webpush/subscribe', { method: 'POST', body: JSON.stringify(subscription) }),

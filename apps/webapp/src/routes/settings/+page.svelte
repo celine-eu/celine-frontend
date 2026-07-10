@@ -1,6 +1,10 @@
 <script lang="ts">
     import { api, type Settings } from "$lib/api";
-    import { requestAndSubscribeWebPush, unsubscribeWebPush } from "$lib/push";
+    import {
+        requestAndSubscribeWebPush,
+        unsubscribeWebPush,
+        type WebPushFailureReason,
+    } from "$lib/push";
     import { Button, Icon, ThemeToggle } from "@celine-eu/ui";
     import { onMount } from "svelte";
     import { t, locale } from "svelte-i18n";
@@ -20,6 +24,12 @@
 
     function isValidEmail(value: string): boolean {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    }
+
+    function pushFailureMessage(reason: WebPushFailureReason) {
+        if (reason === "unsupported") return $t("notifications.push_unsupported_message");
+        if (reason === "denied") return $t("notifications.push_denied_message");
+        return $t("notifications.push_dismissed_message");
     }
 
     $effect(() => {
@@ -63,7 +73,7 @@
             settings.notifications.email = email;
         }
         try {
-            settings = await api.settingsPut(settings);
+            settings = await api.settingsPut(settings, $locale || "en");
             saved = $t('settings.settings_saved');
             if (settings.notifications.email_enabled) {
                 emailSaved = $t('settings.email_saved');
@@ -88,7 +98,7 @@
             const res = await requestAndSubscribeWebPush();
             pushMsg = res.subscribed
                 ? $t('settings.web_push_enabled')
-                : (res.message ?? $t('settings.web_push_enabled'));
+                : pushFailureMessage(res.reason);
         } catch (e) {
             pushMsg = e instanceof Error ? e.message : String(e);
         } finally {

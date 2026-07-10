@@ -1,6 +1,6 @@
 <script lang="ts">
     import { api, type NotificationItem } from "$lib/api";
-    import { requestAndSubscribeWebPush } from "$lib/push";
+    import { requestAndSubscribeWebPush, type WebPushFailureReason } from "$lib/push";
     import { Button, Icon, Skeleton } from "@celine-eu/ui";
     import { onMount } from "svelte";
     import { t, locale } from "svelte-i18n";
@@ -14,6 +14,12 @@
     let pushPermission = $state<NotificationPermission>("default");
     let pushBanner = $state("");
     let pushLoading = $state(false);
+
+    function pushFailureMessage(reason: WebPushFailureReason) {
+        if (reason === "unsupported") return $t("notifications.push_unsupported_message");
+        if (reason === "denied") return $t("notifications.push_denied_message");
+        return $t("notifications.push_dismissed_message");
+    }
 
     async function loadAll() {
         loading = true;
@@ -39,9 +45,15 @@
                 pushPermission = "granted";
                 pushBanner = "";
             } else {
-                pushBanner = res.message ?? $t('settings.web_push_enabled');
+                if (typeof Notification !== "undefined") {
+                    pushPermission = Notification.permission;
+                }
+                pushBanner = pushFailureMessage(res.reason);
             }
         } catch (e) {
+            if (typeof Notification !== "undefined") {
+                pushPermission = Notification.permission;
+            }
             pushBanner = e instanceof Error ? e.message : String(e);
         } finally {
             pushLoading = false;
@@ -95,6 +107,14 @@
                     <strong>{$t('notifications.push_blocked_title')}</strong>
                     <p>{$t('notifications.push_blocked_body')}</p>
                 </div>
+                <Button
+                    variant="primary"
+                    size="sm"
+                    onclick={enablePush}
+                    disabled={pushLoading}
+                >
+                    {pushLoading ? $t('notifications.enabling') : $t('notifications.enable')}
+                </Button>
             </div>
         {:else if pushPermission !== "granted"}
             <div class="push-banner push-banner--info" data-tour="notifications-push">

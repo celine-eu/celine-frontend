@@ -1,5 +1,10 @@
 import { api } from '$lib/api';
 
+export type WebPushFailureReason = 'unsupported' | 'denied' | 'dismissed';
+export type WebPushResult =
+  | { subscribed: true }
+  | { subscribed: false; reason: WebPushFailureReason };
+
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -24,11 +29,12 @@ export async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> 
   return reg;
 }
 
-export async function requestAndSubscribeWebPush(): Promise<{ subscribed: boolean; message?: string }> {
-  if (!('Notification' in window)) return { subscribed: false, message: 'Notifications not supported.' };
+export async function requestAndSubscribeWebPush(): Promise<WebPushResult> {
+  if (!('Notification' in window)) return { subscribed: false, reason: 'unsupported' };
 
   const permission = await Notification.requestPermission();
-  if (permission !== 'granted') return { subscribed: false, message: 'Permission not granted.' };
+  if (permission === 'denied') return { subscribed: false, reason: 'denied' };
+  if (permission !== 'granted') return { subscribed: false, reason: 'dismissed' };
 
   const reg = await ensureServiceWorker();
   const { public_key } = await api.vapidPublicKey();
