@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.24.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.23.0...assistant-v0.24.0) (2026-07-10)
+
+### Bug Fixes
+
+* align weather+environ blocks, review trends graphs to show flex window and user import/export/self ([312f2a4](https://github.com/celine-eu/celine-frontend/commit/312f2a46ba4f8d523b4699a939d7430399dd6667))
+* improve weapp forecast view ([99095b4](https://github.com/celine-eu/celine-frontend/commit/99095b4af7aa7f786f9b83dc3b698d9244c3c38b))
+* notification languages and notification enabling ([6c5bb39](https://github.com/celine-eu/celine-frontend/commit/6c5bb39a558bf79edad55387672ea9c6e433ae5b))
+* review  forecast component ([784fd1b](https://github.com/celine-eu/celine-frontend/commit/784fd1ba5cd5d869b11730acec8889f84ff224e7))
+
 ## [0.23.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.22.0...assistant-v0.23.0) (2026-07-03)
 
 ### Features
