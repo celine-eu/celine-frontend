@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.26.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.25.0...roi-v0.26.0) (2026-07-10)
+
 ## [0.25.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.24.0...roi-v0.25.0) (2026-07-10)
 
 ### Bug Fixes
