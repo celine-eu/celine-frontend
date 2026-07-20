@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.23.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.22.0...grid-v0.23.0) (2026-07-20)
+
+### Features
+
+* **grid:** tree-strike exposure layer and wind-risk escalation badge ([81cfc43](https://github.com/celine-eu/celine-frontend/commit/81cfc4338fb8d0f6f7645fb31b99bf932e4af3d3))
+
 ## [0.22.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.21.0...grid-v0.22.0) (2026-07-20)
 
 ### Bug Fixes
