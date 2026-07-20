@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.32.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.31.0...webapp-v0.32.0) (2026-07-20)
+
+### Bug Fixes
+
+* notification language, add info button ([a1bd53e](https://github.com/celine-eu/celine-frontend/commit/a1bd53e0f8b4a736aa026a648c8ee5e87b89a312))
+
 ## [0.31.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.30.0...webapp-v0.31.0) (2026-07-10)
 
 ## [0.30.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.29.0...webapp-v0.30.0) (2026-07-10)

@@ -53,7 +53,16 @@
     "trends_title": "Andamenti",
     "trends_tab_yours": "I tuoi",
     "trends_tab_community": "Comunità",
-    "community_totals": "Totali della comunità",
+    "community_totals": "Totale degli utenti",
+    "contribution_info_label": "Informazioni sui campi",
+    "contribution_info": {
+      "title": "Come leggere questi valori",
+      "consumption": "Energia prelevata dalla rete nel periodo selezionato.",
+      "production": "Energia immessa in rete nel periodo selezionato.",
+      "self_consumption": "Energia condivisa o consumata localmente dagli utenti monitorati.",
+      "sc_rate": "Quota di energia condivisa rispetto al prelievo.",
+      "sensors_note": "Il totale degli utenti aggrega i sensori o contatori disponibili: non rappresenta necessariamente la comunità reale completa."
+    },
     "consumption": "Prelievo da rete",
     "production": "Immissione in rete",
     "self_consumption": "Energia condivisa",
@@ -80,7 +89,7 @@
     "weather_section_title": "Meteo e Previsione Solare",
     "weather_section_period": "Condizioni attuali e potenziale solare",
     "ask_ai": {
-      "user-contribution": "Spiegami i valori del mio contributo nella panoramica e confrontali con i totali della comunità.",
+      "user-contribution": "Spiegami i valori del mio contributo nella panoramica e confrontali con il totale degli utenti.",
       "community-trend": "Analizza l'andamento della comunità mostrato nella panoramica e spiegami i cambiamenti principali di questo periodo.",
       "weather": "Spiegami le condizioni meteo e il potenziale solare mostrati nella panoramica e come possono influenzare la mia produzione energetica.",
       "co2": "Spiegami i valori di impatto ambientale mostrati nella panoramica, inclusi la CO2 risparmiata e l'equivalente in alberi."
@@ -291,7 +300,7 @@
       "brand_title": "La tua comunità energetica",
       "brand_body": "Usa questo nome per tornare alla panoramica e verificare quale CER stai consultando.",
       "overview_title": "Panoramica",
-      "overview_body": "Apre la dashboard principale con i tuoi dati energetici, i totali della comunità, i progressi e le previsioni.",
+      "overview_body": "Apre la dashboard principale con i tuoi dati energetici, il totale degli utenti, i progressi e le previsioni.",
       "suggestions_title": "Opportunità",
       "suggestions_body": "Qui trovi i momenti in cui spostare i consumi può usare più energia solare della comunità e farti guadagnare punti.",
       "assistant_title": "Assistente",

@@ -53,7 +53,16 @@
     "trends_title": "Trends",
     "trends_tab_yours": "Yours",
     "trends_tab_community": "Community",
-    "community_totals": "Community Totals",
+    "community_totals": "Users' Total",
+    "contribution_info_label": "Field information",
+    "contribution_info": {
+      "title": "How to read these values",
+      "consumption": "Energy imported from the grid during the selected period.",
+      "production": "Energy exported to the grid during the selected period.",
+      "self_consumption": "Energy shared or used locally by the monitored users.",
+      "sc_rate": "Shared energy as a share of grid import.",
+      "sensors_note": "The users' total aggregates the available sensors or meters: it does not necessarily represent the complete real community."
+    },
     "consumption": "Grid import",
     "production": "Grid export",
     "self_consumption": "Shared energy",
@@ -80,7 +89,7 @@
     "weather_section_title": "Weather & Solar Forecast",
     "weather_section_period": "Current conditions and solar potential",
     "ask_ai": {
-      "user-contribution": "Explain the values in my contribution section and compare them with the community totals.",
+      "user-contribution": "Explain the values in my contribution section and compare them with the users' total.",
       "community-trend": "Analyze the community trend shown in Overview and explain the main changes over this period.",
       "weather": "Explain the weather and solar conditions shown in Overview and how they can affect my energy production.",
       "co2": "Explain the environmental impact values shown in Overview, including CO2 saved and tree equivalent."
@@ -291,7 +300,7 @@
       "brand_title": "Your energy community",
       "brand_body": "Use this name to return to the community overview and confirm which REC you are viewing.",
       "overview_title": "Overview",
-      "overview_body": "This opens the main dashboard with your energy data, community totals, progress and forecasts.",
+      "overview_body": "This opens the main dashboard with your energy data, the users' total, progress and forecasts.",
       "suggestions_title": "Opportunities",
       "suggestions_body": "Here you find moments when shifting consumption can use more community solar energy and earn points.",
       "assistant_title": "Assistant",

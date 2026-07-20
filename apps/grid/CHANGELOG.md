@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.22.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.21.0...grid-v0.22.0) (2026-07-20)
+
+### Bug Fixes
+
+* notification language, add info button ([a1bd53e](https://github.com/celine-eu/celine-frontend/commit/a1bd53e0f8b4a736aa026a648c8ee5e87b89a312))
+
 ## [0.21.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.20.0...grid-v0.21.0) (2026-07-10)
 
 ### Bug Fixes
