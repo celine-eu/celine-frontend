@@ -11,6 +11,7 @@
   const WIND_FIELDS = [
     'line_name', 'conductor_type', 'substation_name', 'operational_unit',
     'municipality', 'risk_level', 'date', 'gust_excess', 'wind_speed_max', 'wind_gusts_max',
+    'strike_tree_tier', 'strike_tree_multiplier', 'strike_density_per_km',
   ] as const;
 
   const HEAT_FIELDS = [
@@ -39,7 +40,15 @@
     if (key === 'conductor_type' && typeof v === 'string') {
       return $_(`conductor.${v}`, { default: v });
     }
+    if (key === 'strike_tree_tier' && typeof v === 'string') {
+      return $_(`tree_tier.${v}`, { default: v });
+    }
     return fmt(v);
+  }
+
+  function isEscalatedByTreeStrike(f: Record<string, unknown>): boolean {
+    const v = f['escalated_by_tree_strike'];
+    return v === true || v === 'true';
   }
 </script>
 
@@ -69,6 +78,10 @@
         {/if}
       {/each}
     </dl>
+
+    {#if isEscalatedByTreeStrike(feature)}
+      <div class="tree-strike-alert">⚠ {$_('panel.escalated_by_tree_strike')}</div>
+    {/if}
   </aside>
 {/if}
 
@@ -147,5 +160,16 @@
     font-weight: 500;
     color: var(--celine-text, #1e293b);
     word-break: break-word;
+  }
+
+  .tree-strike-alert {
+    margin: 0 1rem 0.75rem;
+    background: #fef2f2;
+    border: 1px solid #D00000;
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: #D00000;
   }
 </style>

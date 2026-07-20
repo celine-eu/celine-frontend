@@ -183,6 +183,9 @@ export interface GridShapeProperties {
   feeder_id?: string;
   length_m?: number;
   is_vegetated_zone?: boolean;
+  strike_tree_tier?: 'low' | 'mid' | 'high';
+  strike_tree_multiplier?: number;
+  strike_density_per_km?: number;
   voltage_class?: string;
   label?: string;
   label_id?: string;

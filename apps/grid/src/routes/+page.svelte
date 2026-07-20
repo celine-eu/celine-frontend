@@ -45,6 +45,7 @@
   let showOverheadInsulated = $state(true);
   let showUndergroundCable = $state(true);
   let showCabine = $state(true);
+  let showTreeStrike = $state(false);
 
   let loading = $state(false);
   let loadError = $state<string | null>(null);
@@ -82,6 +83,38 @@
     { sourceId: 'overhead-insulated', layerId: 'lines-overhead-insulated', dash: [2, 4] },
     { sourceId: 'underground-cable',  layerId: 'lines-underground-cable',  dash: [8, 4] },
   ] as const;
+
+  const TREE_TIER_COLORS: Record<string, string> = {
+    low: '#fed7aa',
+    mid: '#f97316',
+    high: '#9a3412',
+  };
+
+  const TREE_STRIKE_LAYER_DEFS = [
+    { sourceId: 'overhead-bare',      layerId: 'tree-strike-overhead-bare' },
+    { sourceId: 'overhead-insulated', layerId: 'tree-strike-overhead-insulated' },
+  ] as const;
+
+  function addTreeStrikeLayer(sourceId: string, layerId: string, visible: boolean) {
+    if (!map || map.getLayer(layerId)) return;
+    map.addLayer({
+      id: layerId,
+      type: 'line',
+      source: sourceId,
+      filter: ['has', 'strike_tree_tier'],
+      paint: {
+        'line-color': ['match', ['get', 'strike_tree_tier'],
+          'high', TREE_TIER_COLORS.high,
+          'mid',  TREE_TIER_COLORS.mid,
+          'low',  TREE_TIER_COLORS.low,
+          'rgba(0,0,0,0)',
+        ],
+        'line-width': 7,
+        'line-opacity': 0.55,
+      },
+      layout: { 'line-cap': 'round', 'line-join': 'round', visibility: visible ? 'visible' : 'none' },
+    });
+  }
 
   function emptyFC(): FeatureCollection { return { type: 'FeatureCollection', features: [] }; }
 
@@ -422,6 +455,13 @@
       html += popupRow($_('panel.gust_excess'), props.gust_excess);
       html += popupRow($_('panel.wind_speed_max'), props.wind_speed_max);
       html += popupRow($_('panel.wind_gusts_max'), props.wind_gusts_max);
+      if (props.strike_tree_tier) {
+        html += popupRow($_('panel.strike_tree_tier'), $_(`tree_tier.${props.strike_tree_tier}`, { default: String(props.strike_tree_tier) }));
+        html += popupRow($_('panel.strike_density_per_km'), props.strike_density_per_km);
+      }
+      if (props.escalated_by_tree_strike === true || props.escalated_by_tree_strike === 'true') {
+        html += `<div style="margin-top:6px;background:#fef2f2;border:1px solid #D00000;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;color:#D00000">${$_('panel.escalated_by_tree_strike')}</div>`;
+      }
     }
 
     currentPopup = new maplibregl.Popup({ closeOnClick: true, maxWidth: '280px' })
@@ -471,10 +511,12 @@
     if (!map) return;
     if (overheadBareData.features.length) {
       upsertGeoJsonSource('overhead-bare', overheadBareData);
+      addTreeStrikeLayer('overhead-bare', 'tree-strike-overhead-bare', showTreeStrike);
       addLineLayer('overhead-bare', 'lines-overhead-bare', showOverheadBare);
     }
     if (overheadInsulatedData.features.length) {
       upsertGeoJsonSource('overhead-insulated', overheadInsulatedData);
+      addTreeStrikeLayer('overhead-insulated', 'tree-strike-overhead-insulated', showTreeStrike);
       addLineLayer('overhead-insulated', 'lines-overhead-insulated', showOverheadInsulated, [2, 4]);
     }
     if (undergroundCableData.features.length) {
@@ -657,8 +699,10 @@
 
     // Set up empty sources + layers once
     upsertGeoJsonSource('overhead-bare', emptyFC());
+    addTreeStrikeLayer('overhead-bare', 'tree-strike-overhead-bare', showTreeStrike);
     addLineLayer('overhead-bare', 'lines-overhead-bare', showOverheadBare);
     upsertGeoJsonSource('overhead-insulated', emptyFC());
+    addTreeStrikeLayer('overhead-insulated', 'tree-strike-overhead-insulated', showTreeStrike);
     addLineLayer('overhead-insulated', 'lines-overhead-insulated', showOverheadInsulated, [2, 4]);
     upsertGeoJsonSource('underground-cable', emptyFC());
     addLineLayer('underground-cable', 'lines-underground-cable', showUndergroundCable, [8, 4]);
@@ -806,6 +850,20 @@
       }
     }
 
+    // Tree-strike underlay filter — same topology/risk conditions as the conductor
+    // layers above, always ANDed with the base `has strike_tree_tier` filter so the
+    // underlay never loses its own scoping when the active filters are cleared
+    // (lineFilter alone would go to `null`, which would remove all filtering,
+    // including the has-property guard the layer's `filter` was created with).
+    const treeStrikeFilter: unknown = lineConditions.length
+      ? ['all', ['has', 'strike_tree_tier'], ...lineConditions]
+      : ['has', 'strike_tree_tier'];
+    for (const def of TREE_STRIKE_LAYER_DEFS) {
+      if (map.getLayer(def.layerId)) {
+        map.setFilter(def.layerId, treeStrikeFilter as maplibregl.FilterSpecification);
+      }
+    }
+
     // Cabine filter — same filters as lines (except risk), plus secondary name
     const cabineConditions: unknown[] = [];
     if (filterSubstations.length) {
@@ -875,6 +933,7 @@
     setLayerVisibility('cabine-points', showCabine);
     setLayerVisibility('cabine-labels', showCabine);
   });
+  $effect(() => { for (const def of TREE_STRIKE_LAYER_DEFS) setLayerVisibility(def.layerId, showTreeStrike); });
 
   $effect(() => {
     $themeOverride;
@@ -1003,6 +1062,21 @@
           <span class="swatch swatch-dot" style:background="#1E88E5"></span>
           {$_('layer.cabine')}
         </label>
+        <label class="layer-toggle">
+          <input type="checkbox" bind:checked={showTreeStrike} />
+          <span class="swatch swatch-line-solid" style:background="#9a3412"></span>
+          {$_('layer.tree_strike')}
+        </label>
+        {#if showTreeStrike}
+          <div class="tree-strike-legend">
+            {#each ['low', 'mid', 'high'] as tier}
+              <span class="legend-item">
+                <span class="swatch swatch-dot" style:background={TREE_TIER_COLORS[tier]}></span>
+                {$_(`tree_tier.${tier}`)}
+              </span>
+            {/each}
+          </div>
+        {/if}
       </div>
 
       <div class="map-container" bind:this={mapContainer}></div>
@@ -1207,6 +1281,18 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
+  }
+
+  .tree-strike-legend {
+    display: flex;
+    gap: 10px;
+    padding: 2px 8px 4px;
+    font-size: 11px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
   }
 
   /* MapLibre popup styling */
