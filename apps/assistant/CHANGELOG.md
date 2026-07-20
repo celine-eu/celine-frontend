@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.26.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.25.0...assistant-v0.26.0) (2026-07-20)
+
+### Bug Fixes
+
+* notification language, add info button ([a1bd53e](https://github.com/celine-eu/celine-frontend/commit/a1bd53e0f8b4a736aa026a648c8ee5e87b89a312))
+
 ## [0.25.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.24.0...assistant-v0.25.0) (2026-07-10)
 
 ## [0.24.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.23.0...assistant-v0.24.0) (2026-07-10)
