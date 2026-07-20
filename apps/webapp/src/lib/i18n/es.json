@@ -49,7 +49,16 @@
     "your_contribution": "Tu contribución",
     "vs_community": "vs Comunidad",
     "community_trend": "Tendencia de la comunidad",
-    "community_totals": "Totales de la comunidad",
+    "community_totals": "Total de los usuarios",
+    "contribution_info_label": "Información de los campos",
+    "contribution_info": {
+      "title": "Cómo leer estos valores",
+      "consumption": "Energía importada de la red durante el periodo seleccionado.",
+      "production": "Energía exportada a la red durante el periodo seleccionado.",
+      "self_consumption": "Energía compartida o usada localmente por los usuarios monitorizados.",
+      "sc_rate": "Energía compartida como proporción de la importación de red.",
+      "sensors_note": "El total de los usuarios agrega los sensores o contadores disponibles: no representa necesariamente la comunidad real completa."
+    },
     "consumption": "Importación de red",
     "production": "Exportación a red",
     "self_consumption": "Energía compartida",
@@ -76,7 +85,7 @@
     "weather_section_title": "Tiempo y Previsión Solar",
     "weather_section_period": "Condiciones actuales y potencial solar",
     "ask_ai": {
-      "user-contribution": "Explícame los valores de mi contribución en el resumen y compáralos con los totales de la comunidad.",
+      "user-contribution": "Explícame los valores de mi contribución en el resumen y compáralos con el total de los usuarios.",
       "community-trend": "Analiza la tendencia de la comunidad mostrada en el resumen y explícame los principales cambios de este periodo.",
       "weather": "Explícame las condiciones meteorológicas y el potencial solar que se muestran en el resumen y cómo pueden afectar a mi producción energética.",
       "co2": "Explícame los valores de impacto ambiental que se muestran en el resumen, incluido el CO2 ahorrado y el equivalente en árboles."

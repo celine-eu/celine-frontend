@@ -53,6 +53,12 @@ export type Overview = {
   devices: MeterDevice[];
 };
 
+export type OverviewRange = {
+  days?: number;
+  startDate?: string;
+  endDate?: string;
+};
+
 export type NotificationItem = {
   id: string;
   created_at: string;
@@ -307,7 +313,18 @@ export type FeedbackCreated = {
 
 export const api = {
   me: () => j<Me>('/api/me'),
-  overview: (days: number = 7) => j<Overview>(`/api/overview?days=${days}`),
+  overview: (range: number | OverviewRange = 7) => {
+    const params = new URLSearchParams();
+    if (typeof range === 'number') {
+      params.set('days', String(range));
+    } else if (range.startDate && range.endDate) {
+      params.set('start_date', range.startDate);
+      params.set('end_date', range.endDate);
+    } else {
+      params.set('days', String(range.days ?? 7));
+    }
+    return j<Overview>(`/api/overview?${params.toString()}`);
+  },
   notifications: () => j<NotificationItem[]>('/api/notifications'),
   notificationMarkRead: (id: string) =>
     j<{ ok: true }>(`/api/notifications/${id}/read`, { method: 'POST' }),

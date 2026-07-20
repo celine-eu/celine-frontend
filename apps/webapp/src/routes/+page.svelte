@@ -229,7 +229,40 @@
       <header class="section-header">
         <Icon name="zap" size={22} class="section-icon" />
         <div>
-          <h2 class="section-title">{$t('overview.your_contribution')}</h2>
+          <div class="section-title-row">
+            <h2 class="section-title">{$t('overview.your_contribution')}</h2>
+            <details class="contribution-info">
+              <summary
+                class="contribution-info-trigger"
+                aria-label={$t('overview.contribution_info_label')}
+                title={$t('overview.contribution_info_label')}
+              >
+                <Icon name="info" size={14} />
+              </summary>
+              <div class="contribution-info-panel" role="note">
+                <p class="contribution-info-title">{$t('overview.contribution_info.title')}</p>
+                <dl class="contribution-info-list">
+                  <div>
+                    <dt>{$t('overview.consumption')}</dt>
+                    <dd>{$t('overview.contribution_info.consumption')}</dd>
+                  </div>
+                  <div>
+                    <dt>{$t('overview.production')}</dt>
+                    <dd>{$t('overview.contribution_info.production')}</dd>
+                  </div>
+                  <div>
+                    <dt>{$t('overview.self_consumption')}</dt>
+                    <dd>{$t('overview.contribution_info.self_consumption')}</dd>
+                  </div>
+                  <div>
+                    <dt>{$t('overview.sc_rate')}</dt>
+                    <dd>{$t('overview.contribution_info.sc_rate')}</dd>
+                  </div>
+                </dl>
+                <p class="contribution-info-note">{$t('overview.contribution_info.sensors_note')}</p>
+              </div>
+            </details>
+          </div>
           <p class="section-period">{periodLabel}</p>
         </div>
         <span data-tour="ask-ai">
@@ -586,6 +619,106 @@
     color: var(--celine-text);
     margin: 0;
     line-height: 1.3;
+  }
+
+  .section-title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--celine-space-xs);
+    min-width: 0;
+  }
+
+  .contribution-info {
+    position: relative;
+    flex: none;
+  }
+
+  .contribution-info-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--celine-border);
+    border-radius: 50%;
+    background: var(--celine-bg-sunken);
+    color: var(--celine-text-secondary);
+    cursor: pointer;
+    transition:
+      background var(--celine-transition-fast),
+      border-color var(--celine-transition-fast),
+      color var(--celine-transition-fast);
+  }
+
+  .contribution-info-trigger::-webkit-details-marker {
+    display: none;
+  }
+
+  .contribution-info-trigger::marker {
+    content: "";
+  }
+
+  .contribution-info-trigger:hover,
+  .contribution-info[open] .contribution-info-trigger {
+    background: var(--celine-primary-bg, var(--celine-bg-elevated));
+    border-color: var(--celine-primary);
+    color: var(--celine-primary);
+  }
+
+  .contribution-info-trigger:focus-visible {
+    outline: 2px solid var(--celine-primary);
+    outline-offset: 2px;
+  }
+
+  .contribution-info-panel {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 8px);
+    left: 0;
+    width: min(82vw, 360px);
+    padding: var(--celine-space-md);
+    border: 1px solid var(--celine-border);
+    border-radius: var(--celine-radius-md);
+    background: var(--celine-bg-elevated);
+    box-shadow: var(--celine-shadow-lg);
+    color: var(--celine-text);
+  }
+
+  .contribution-info-title {
+    margin: 0 0 var(--celine-space-sm);
+    font-size: 0.875rem;
+    font-weight: 700;
+  }
+
+  .contribution-info-list {
+    display: grid;
+    gap: var(--celine-space-xs);
+    margin: 0;
+  }
+
+  .contribution-info-list div {
+    display: grid;
+    gap: 2px;
+  }
+
+  .contribution-info-list dt {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--celine-text);
+  }
+
+  .contribution-info-list dd,
+  .contribution-info-note {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--celine-text-secondary);
+  }
+
+  .contribution-info-note {
+    margin-top: var(--celine-space-sm);
+    padding-top: var(--celine-space-sm);
+    border-top: 1px solid var(--celine-border);
   }
 
   .section-period {

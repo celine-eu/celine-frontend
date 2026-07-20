@@ -42,6 +42,17 @@
     return parseLocalDate(dateStr).toLocaleDateString(loc ?? undefined, { weekday: "short" });
   }
 
+  function formatDayMonth(dateStr: string): string {
+    const date = parseLocalDate(dateStr);
+    const day = String(date.getUTCDate()).padStart(2, "0");
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    return `${day}/${month}`;
+  }
+
+  function formatAxisDate(dateStr: string, loc?: string): string {
+    return `${formatDateShort(dateStr, loc)} ${formatDayMonth(dateStr)}`;
+  }
+
   function destroyChart() {
     if (chart) {
       chart.destroy();
@@ -74,7 +85,7 @@
       styles.getPropertyValue("--celine-text-secondary").trim() || "#64748b";
 
     const loc = get(locale) ?? undefined;
-    const labels = data.map((d) => formatDateShort(d.date, loc));
+    const labels = data.map((d) => formatAxisDate(d.date, loc));
     const isMobile = window.innerWidth < 640;
     const hasSurplus = data.some((d) => d.surplus_kwh != null);
 
