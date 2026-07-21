@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.33.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.32.0...webapp-v0.33.0) (2026-07-21)
+
+### Features
+
+* **grid:** tree-strike exposure layer and wind-risk escalation badge ([81cfc43](https://github.com/celine-eu/celine-frontend/commit/81cfc4338fb8d0f6f7645fb31b99bf932e4af3d3))
+
+### Bug Fixes
+
+* update webapp assistant icon ([9aecfd7](https://github.com/celine-eu/celine-frontend/commit/9aecfd7b5df3213b0d3ec616615d55917d5706f3))
+
 ## [0.32.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.31.0...webapp-v0.32.0) (2026-07-20)
 
 ### Bug Fixes
