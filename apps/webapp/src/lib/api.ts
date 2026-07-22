@@ -205,7 +205,7 @@ export type SuggestionItem = {
   impact_kwh_estimated: number | null;
   reward_points: number | null;
   community_kwh: number;
-  confidence: number;
+  confidence: number | null;
 };
 
 export type BadgeItem = {
@@ -229,7 +229,7 @@ export type RankingInfo = {
   position: number;
   total_members: number;
   percentile: number;
-  period: 'week' | 'month';
+  period: 'day' | 'week' | 'month' | 'season';
 };
 
 export type DailyPointsItem = {
@@ -246,6 +246,10 @@ export type GamificationResponse = {
   pending_commitment?: FlexibilityCommitmentItem | null;
   ranking?: RankingInfo | null;
   daily_points?: DailyPointsItem[];
+  season_start?: string | null;        // ISO date, inclusive
+  season_end?: string | null;          // ISO date, exclusive (next season start)
+  season_base_points?: number | null;
+  season_bonus_points?: number | null;
 };
 
 export type FlexibilityHistoryItem = {

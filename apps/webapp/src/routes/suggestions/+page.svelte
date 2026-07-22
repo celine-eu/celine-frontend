@@ -1,11 +1,12 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { api, type ForecastResponse, type SuggestionItem, type CommitmentHistoryResponse } from '$lib/api';
-  import { ForecastCard, SuggestionCard } from '$lib/components';
+  import { ForecastCard, WindowStrip } from '$lib/components';
   import { AskAssistantButton } from '@celine-eu/assistant-ui';
   import { Icon, Skeleton } from '@celine-eu/ui';
   import { onMount } from 'svelte';
   import { t, locale } from 'svelte-i18n';
+  import { roundPromise } from '$lib/points';
 
   let forecastData = $state<ForecastResponse | null>(null);
   let forecastLoading = $state(true);
@@ -26,13 +27,6 @@
 
   function assistantPrompt(section: 'opportunities' | 'forecast' | 'history'): string {
     return $t(`suggestions.ask_ai.${section}`);
-  }
-
-  function handleResponded(id: string, response: 'accepted' | 'declined') {
-    suggestions = suggestions.filter(s => s.id !== id);
-    if (response === 'accepted') {
-      api.gamificationHistory().then(h => { history = h; }).catch(() => {});
-    }
   }
 
   function fmtDate(isoStr: string): string {
@@ -99,6 +93,16 @@
     }
   }
 
+  async function refreshAfterCommit() {
+    try {
+      const [s, h] = await Promise.all([api.suggestions(), api.gamificationHistory()]);
+      suggestions = s.filter((x, i, arr) => arr.findIndex((y) => y.id === x.id) === i);
+      history = h;
+    } catch {
+      // silent — the strip keeps its optimistic committed state
+    }
+  }
+
   onMount(async () => {
     const [f, s, h] = await Promise.allSettled([
       api.forecast(),
@@ -144,26 +148,17 @@
       </span>
     </header>
 
-    {#if suggestionsLoading}
+    {#if suggestionsLoading || historyLoading}
       <div class="suggestions-list">
         <Skeleton variant="card" />
         <Skeleton variant="card" />
-      </div>
-    {:else if suggestions.length > 0}
-      <div class="suggestions-list">
-        {#each suggestions as suggestion (suggestion.id)}
-          <SuggestionCard
-            {suggestion}
-            onresponded={(response) => handleResponded(suggestion.id, response)}
-          />
-        {/each}
       </div>
     {:else}
-      <div class="empty-state">
-        <Icon name="sun" size={40} class="empty-icon" />
-        <p class="empty-title">{$t('suggestions.no_opportunities_title')}</p>
-        <p class="empty-text">{$t('suggestions.no_opportunities_body')}</p>
-      </div>
+      <WindowStrip
+        {suggestions}
+        committed={history?.items ?? []}
+        oncommitted={refreshAfterCommit}
+      />
     {/if}
   </section>
 
@@ -229,7 +224,7 @@
                 {/if}
               {:else if item.status === 'committed'}
                 <span class="history-pts history-pts--pending">
-                  {$t('suggestions.history_estimated', { values: { pts: item.reward_points_estimated } })}
+                  {$t('suggestions.history_estimated', { values: { pts: roundPromise(item.reward_points_estimated) } })}
                 </span>
                 <button class="cancel-btn" onclick={() => cancelCommitment(item.id)}>
                   {$t('suggestions.history_cancel')}

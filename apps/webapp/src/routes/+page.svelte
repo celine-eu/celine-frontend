@@ -1,6 +1,7 @@
 <script lang="ts">
   import { api, type Overview, type WeatherResponse, type SuggestionItem, type Co2LocaleSettings, type GamificationResponse, type OverviewRange } from "$lib/api";
   import { EnergyChart, StatCard, WeatherWidget, GamificationPanel } from "$lib/components";
+  import { roundPromise } from '$lib/points';
   import { deviceStore } from "$lib/stores";
   import { AskAssistantButton } from "@celine-eu/assistant-ui";
   import { Icon, Skeleton } from "@celine-eu/ui";
@@ -271,7 +272,7 @@
 
   <!-- Flexibility opportunities teaser (with anchor link to /suggestions#opportunities) -->
   {#if !suggestionsLoading && suggestions.length > 0}
-    {@const maxPoints = suggestions.reduce((s, i) => (i.reward_points ?? 0), 0)}
+    {@const maxPoints = roundPromise(suggestions.reduce((s, i) => s + (i.reward_points ?? 0), 0))}
     <div class="flex-teaser">
       <Icon name="zap" size={18} />
       <div class="flex-teaser-body">
