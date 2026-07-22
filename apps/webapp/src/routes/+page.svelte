@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api, type Overview, type WeatherResponse, type SuggestionItem, type Co2LocaleSettings, type GamificationResponse } from "$lib/api";
+  import { api, type Overview, type WeatherResponse, type SuggestionItem, type Co2LocaleSettings, type GamificationResponse, type OverviewRange } from "$lib/api";
   import { EnergyChart, StatCard, WeatherWidget, GamificationPanel } from "$lib/components";
   import { deviceStore } from "$lib/stores";
   import { AskAssistantButton } from "@celine-eu/assistant-ui";
@@ -16,8 +16,23 @@
   let err = $state("");
   let loading = $state(true);
 
-  // Period toggle: 7 or 30 days
-  let selectedDays = $state(7);
+  type RangePreset = '7d' | '30d' | '6m' | '1y' | 'custom';
+
+  type AppliedRange = OverviewRange & {
+    preset: RangePreset;
+  };
+
+  const presetOptions: { key: RangePreset; labelKey: string }[] = [
+    { key: '7d', labelKey: 'overview.period_7d' },
+    { key: '30d', labelKey: 'overview.period_30d' },
+    { key: '6m', labelKey: 'overview.period_6m' },
+    { key: '1y', labelKey: 'overview.period_1y' },
+  ];
+
+  let selectedPreset = $state<RangePreset>('7d');
+  let customStartDate = $state("");
+  let customEndDate = $state("");
+  let appliedRange = $state<AppliedRange>({ preset: '7d', days: 7 });
 
   let weatherData = $state<WeatherResponse | null>(null);
   let weatherLoading = $state(true);
@@ -97,11 +112,112 @@
     return $t('overview.engaging_evening');
   }
 
-  async function loadOverview() {
+  function dateInputValue(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function todayInputValue(): string {
+    return dateInputValue(new Date());
+  }
+
+  function presetDateBounds(preset: RangePreset): { startDate: string; endDate: string } {
+    const end = new Date();
+    const start = new Date(end);
+    if (preset === '30d') {
+      start.setDate(start.getDate() - 29);
+    } else if (preset === '6m') {
+      start.setMonth(start.getMonth() - 6);
+    } else if (preset === '1y') {
+      start.setDate(start.getDate() - 364);
+    } else {
+      start.setDate(start.getDate() - 6);
+    }
+    return { startDate: dateInputValue(start), endDate: dateInputValue(end) };
+  }
+
+  function presetDateRange(preset: RangePreset): OverviewRange {
+    if (preset === '6m') {
+      return presetDateBounds(preset);
+    }
+    if (preset === '1y') {
+      return { days: 365 };
+    }
+    return { days: preset === '30d' ? 30 : 7 };
+  }
+
+  function daysBetweenInclusive(start: string, end: string): number {
+    const startTime = new Date(`${start}T00:00:00`).getTime();
+    const endTime = new Date(`${end}T00:00:00`).getTime();
+    return Math.round((endTime - startTime) / 86_400_000) + 1;
+  }
+
+  function validateCustomRange(start: string, end: string): string {
+    if (!start || !end) return $t('overview.date_filter_missing');
+    if (start > end) return $t('overview.date_filter_invalid_order');
+    if (end > todayInputValue()) return $t('overview.date_filter_future');
+    if (daysBetweenInclusive(start, end) > 366) return $t('overview.date_filter_too_long');
+    return "";
+  }
+
+  function formatDateLabel(value: string): string {
+    if (!value) return "";
+    return new Date(`${value}T00:00:00`).toLocaleDateString($locale ?? undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }
+
+  function rangeDisplayLabel(range: AppliedRange): string {
+    if (range.preset === '7d') return $t('overview.last_7_days');
+    if (range.preset === '30d') return $t('overview.last_30_days');
+    if (range.preset === '6m') return $t('overview.last_6_months');
+    if (range.preset === '1y') return $t('overview.last_1_year');
+    if (range.startDate && range.endDate) {
+      return $t('overview.custom_period', {
+        values: {
+          start: formatDateLabel(range.startDate),
+          end: formatDateLabel(range.endDate),
+        },
+      });
+    }
+    return $t('overview.last_7_days');
+  }
+
+  function selectPreset(preset: RangePreset) {
+    selectedPreset = preset;
+    const bounds = presetDateBounds(preset);
+    customStartDate = bounds.startDate;
+    customEndDate = bounds.endDate;
+    const range = presetDateRange(preset);
+    if (range.startDate && range.endDate) {
+      appliedRange = { preset, startDate: range.startDate, endDate: range.endDate };
+      return;
+    }
+    appliedRange = { preset, days: range.days ?? 7 };
+  }
+
+  function markCustomEditing() {
+    selectedPreset = 'custom';
+  }
+
+  function applyCustomRange() {
+    if (customRangeError) return;
+    appliedRange = {
+      preset: 'custom',
+      startDate: customStartDate,
+      endDate: customEndDate,
+    };
+  }
+
+  async function loadOverview(range: AppliedRange) {
     loading = true;
     err = "";
     try {
-      overview = await api.overview(selectedDays);
+      overview = await api.overview(range);
       if (overview.devices) {
         $deviceStore = overview.devices;
       }
@@ -117,10 +233,13 @@
     }
   }
 
+  customStartDate = todayInputValue();
+  customEndDate = todayInputValue();
+
   // Reload when period changes
   $effect(() => {
-    selectedDays;
-    loadOverview();
+    const range = appliedRange;
+    loadOverview(range);
   });
 
   onMount(async () => {
@@ -131,7 +250,9 @@
     api.gamification().then(g => { gamification = g; }).catch(() => {}).finally(() => { gamificationLoading = false; });
   });
 
-  const periodLabel = $derived(selectedDays === 7 ? $t('overview.last_7_days') : $t('overview.last_30_days'));
+  const maxDate = $derived(todayInputValue());
+  const customRangeError = $derived(validateCustomRange(customStartDate, customEndDate));
+  const periodLabel = $derived(rangeDisplayLabel(appliedRange));
 
 </script>
 
@@ -184,18 +305,51 @@
     <GamificationPanel data={gamification} loading={gamificationLoading} />
   </section>
 
-  <!-- Period toggle -->
-  <div class="period-toggle" data-tour="period-toggle">
-    <button
-      class="period-btn"
-      class:active={selectedDays === 7}
-      onclick={() => selectedDays = 7}
-    >{$t('overview.period_7d')}</button>
-    <button
-      class="period-btn"
-      class:active={selectedDays === 30}
-      onclick={() => selectedDays = 30}
-    >{$t('overview.period_30d')}</button>
+  <!-- Period filter -->
+  <div class="period-filter" data-tour="period-toggle">
+    <div class="period-filter-main">
+      <Icon name="calendar" size={18} class="period-filter-icon" />
+      <div class="period-toggle" aria-label={$t('overview.date_filter_presets')}>
+        {#each presetOptions as preset}
+          <button
+            class="period-btn"
+            class:active={selectedPreset === preset.key}
+            onclick={() => selectPreset(preset.key)}
+          >{$t(preset.labelKey)}</button>
+        {/each}
+      </div>
+    </div>
+    <div class="custom-date-filter">
+      <label>
+        <span>{$t('overview.date_filter_from')}</span>
+        <input
+          type="date"
+          bind:value={customStartDate}
+          max={maxDate}
+          oninput={markCustomEditing}
+        />
+      </label>
+      <label>
+        <span>{$t('overview.date_filter_to')}</span>
+        <input
+          type="date"
+          bind:value={customEndDate}
+          max={maxDate}
+          oninput={markCustomEditing}
+        />
+      </label>
+      <button
+        class="apply-date-btn"
+        disabled={!!customRangeError}
+        onclick={applyCustomRange}
+      >
+        <Icon name="check" size={14} />
+        {$t('overview.date_filter_apply')}
+      </button>
+    </div>
+    {#if selectedPreset === 'custom' && customRangeError}
+      <p class="date-filter-error">{customRangeError}</p>
+    {/if}
   </div>
 
   {#if loading}
@@ -509,21 +663,41 @@
     margin: 0;
   }
 
-  /* Period toggle */
-  .period-toggle {
+  /* Period filter */
+  .period-filter {
     display: flex;
+    flex-direction: column;
     gap: var(--celine-space-xs);
     background: var(--celine-bg-elevated);
     border: 1px solid var(--celine-border);
-    border-radius: var(--celine-radius-full, 999px);
-    padding: 3px;
-    width: fit-content;
+    border-radius: var(--celine-radius-md);
+    padding: 0.625rem var(--celine-space-sm);
+  }
+
+  .period-filter-main {
+    display: flex;
+    align-items: center;
+    gap: var(--celine-space-sm);
+    min-width: 0;
+  }
+
+  :global(.period-filter-icon) {
+    color: var(--celine-primary);
+    flex: none;
+  }
+
+  .period-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--celine-space-xs);
+    min-width: 0;
   }
 
   .period-btn {
-    padding: 0.25rem 0.875rem;
+    min-height: 32px;
+    padding: 0.1875rem 0.6875rem;
     border-radius: var(--celine-radius-full, 999px);
-    border: none;
+    border: 1px solid transparent;
     background: transparent;
     color: var(--celine-text-secondary);
     font: inherit;
@@ -535,12 +709,82 @@
 
   .period-btn.active {
     background: var(--celine-primary);
+    border-color: var(--celine-primary);
     color: #fff;
   }
 
   .period-btn:not(.active):hover {
     color: var(--celine-text);
     background: var(--celine-bg-hover);
+  }
+
+  .custom-date-filter {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--celine-space-xs);
+  }
+
+  .custom-date-filter label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .custom-date-filter span {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--celine-text-secondary);
+  }
+
+  .custom-date-filter input {
+    width: 100%;
+    min-height: 34px;
+    border: 1px solid var(--celine-border);
+    border-radius: var(--celine-radius-sm);
+    background: var(--celine-bg);
+    color: var(--celine-text);
+    font: inherit;
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .custom-date-filter input:focus {
+    outline: 2px solid var(--celine-primary);
+    outline-offset: 1px;
+  }
+
+  .apply-date-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    min-height: 34px;
+    padding: 0.25rem 0.75rem;
+    align-self: end;
+    border: 1px solid var(--celine-primary);
+    border-radius: var(--celine-radius-sm);
+    background: var(--celine-primary);
+    color: #fff;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background var(--celine-transition-fast),
+      border-color var(--celine-transition-fast),
+      opacity var(--celine-transition-fast);
+  }
+
+  .apply-date-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .date-filter-error {
+    margin: 0;
+    color: var(--celine-danger-text);
+    font-size: 0.8125rem;
   }
 
   /* Flex teaser */
@@ -874,6 +1118,30 @@
     .section-card { padding: var(--celine-space-lg); }
     .page-title { font-size: 1.75rem; }
     .stats-grid { gap: var(--celine-space-md); }
+
+    .period-filter {
+      padding: 0.625rem var(--celine-space-md);
+    }
+
+    .custom-date-filter {
+      grid-template-columns: max-content max-content auto;
+      align-items: center;
+      justify-content: start;
+    }
+
+    .custom-date-filter label {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    .custom-date-filter input {
+      width: 145px;
+    }
+
+    .apply-date-btn {
+      align-self: center;
+    }
   }
 
   @media (min-width: 768px) {
@@ -902,6 +1170,19 @@
     /* Inside a half-width column, 2 cols is plenty — 3 would be too cramped */
     .contribution-col .stats-grid {
       grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .period-filter {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .custom-date-filter {
+      flex: none;
+      justify-content: end;
     }
   }
 </style>
