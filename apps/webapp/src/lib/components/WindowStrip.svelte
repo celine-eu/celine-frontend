@@ -2,7 +2,7 @@
   import { api, type FlexibilityHistoryItem, type SuggestionItem } from '$lib/api';
   import { roundPromise } from '$lib/points';
   import { Icon } from '@celine-eu/ui';
-  import { t } from 'svelte-i18n';
+  import { locale, t } from 'svelte-i18n';
 
   interface Props {
     suggestions: SuggestionItem[];
@@ -16,7 +16,7 @@
     key: string;
     startMs: number;
     range: string;                    // "8-10", or "8:30-10" when minutes are non-zero
-    day: 'today' | 'tomorrow';
+    dayKey: string;                   // local YYYY-MM-DD — groups segments by calendar day
     points: number | null;            // rounded promise
     state: 'open' | 'committed';
     suggestion: SuggestionItem | null; // null when committed
@@ -46,8 +46,22 @@
     return `${hourLabel(startIso)}-${hourLabel(endIso)}`;
   }
 
-  function dayOf(iso: string): 'today' | 'tomorrow' {
-    return new Date(iso).toDateString() === new Date().toDateString() ? 'today' : 'tomorrow';
+  function dayKeyFrom(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function dayKeyOf(iso: string): string {
+    return dayKeyFrom(new Date(iso));
+  }
+
+  // The 48h forecast can reach the day after tomorrow, so days beyond tomorrow get
+  // their own dated heading rather than being lumped under "Tomorrow".
+  function dayLabel(dayKey: string, loc: string): string {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (dayKey === dayKeyFrom(new Date())) return $t('suggestions.history_today');
+    if (dayKey === dayKeyFrom(tomorrow)) return $t('suggestions.history_tomorrow');
+    return new Date(`${dayKey}T00:00:00`).toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'short' });
   }
 
   // Same day-relative bucketing the retired suggestion card used for the reason line.
@@ -81,7 +95,7 @@
         key: `c-${item.id}`,
         startMs: new Date(item.period_start).getTime(),
         range: rangeLabel(item.period_start, item.period_end),
-        day: dayOf(item.period_start),
+        dayKey: dayKeyOf(item.period_start),
         points: item.reward_points_estimated != null ? roundPromise(item.reward_points_estimated) : null,
         state: 'committed',
         suggestion: null,
@@ -95,7 +109,7 @@
         key: `s-${s.id}`,
         startMs: new Date(s.period_start).getTime(),
         range: rangeLabel(s.period_start, s.period_end),
-        day: dayOf(s.period_start),
+        dayKey: dayKeyOf(s.period_start),
         points: s.reward_points != null ? roundPromise(s.reward_points) : null,
         state: isOptimistic ? 'committed' : 'open',
         suggestion: isOptimistic ? null : s,
@@ -104,8 +118,16 @@
     return out.sort((a, b) => a.startMs - b.startMs);
   });
 
-  const todaySegments = $derived(segments.filter((s) => s.day === 'today'));
-  const tomorrowSegments = $derived(segments.filter((s) => s.day === 'tomorrow'));
+  // Grouped by calendar day, chronological — segments are already sorted by start.
+  const dayGroups = $derived.by(() => {
+    const groups: { dayKey: string; list: Segment[] }[] = [];
+    for (const seg of segments) {
+      const last = groups[groups.length - 1];
+      if (last && last.dayKey === seg.dayKey) last.list.push(seg);
+      else groups.push({ dayKey: seg.dayKey, list: [seg] });
+    }
+    return groups;
+  });
 
   function open(seg: Segment) {
     if (seg.state === 'committed' || !seg.suggestion) return;
@@ -173,12 +195,9 @@
   </div>
 {:else}
   <div class="strip">
-    {#if todaySegments.length > 0}
-      {@render dayGroup($t('suggestions.history_today'), todaySegments)}
-    {/if}
-    {#if tomorrowSegments.length > 0}
-      {@render dayGroup($t('suggestions.history_tomorrow'), tomorrowSegments)}
-    {/if}
+    {#each dayGroups as group (group.dayKey)}
+      {@render dayGroup(dayLabel(group.dayKey, $locale ?? 'en'), group.list)}
+    {/each}
   </div>
 {/if}
 
@@ -188,8 +207,8 @@
     <div class="popover" role="dialog" aria-modal="true">
       <p class="pop-title">
         {$t('suggestions.strip_commit_title', { values: { range: selected.range } })}
-        {#if selected.day === 'tomorrow'}
-          <span class="pop-day">· {$t('suggestions.history_tomorrow')}</span>
+        {#if selected.dayKey !== dayKeyFrom(new Date())}
+          <span class="pop-day">· {dayLabel(selected.dayKey, $locale ?? 'en')}</span>
         {/if}
       </p>
       {#if selected.points != null}
