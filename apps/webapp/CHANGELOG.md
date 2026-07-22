@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.35.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.34.0...webapp-v0.35.0) (2026-07-22)
+
+### Bug Fixes
+
+* **webapp:** group window strip by calendar day, not today/tomorrow only ([560a198](https://github.com/celine-eu/celine-frontend/commit/560a198751010639a08b307e97d936149109f4b4))
+
 ## [0.34.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.33.0...webapp-v0.34.0) (2026-07-22)
 
 ### Features
