@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.33.0...webapp-v0.34.0) (2026-07-22)
+
+### Features
+
+* Added the option to select a time period ([26b8a95](https://github.com/celine-eu/celine-frontend/commit/26b8a954921968ef7374f0a49b071b1c5394108b))
+* **webapp:** honest cards -> window strip, season points + anonymous rank ([f6a2f20](https://github.com/celine-eu/celine-frontend/commit/f6a2f204cc1d8a976e24b95a3d6abedcc3794b0f))
+
 ## [0.33.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.32.0...webapp-v0.33.0) (2026-07-21)
 
 ### Features
