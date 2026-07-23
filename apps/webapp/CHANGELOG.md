@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.36.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.35.0...webapp-v0.36.0) (2026-07-23)
+
+### Features
+
+* **webapp:** make window strip a horizontal carousel with featured next window ([f218a6c](https://github.com/celine-eu/celine-frontend/commit/f218a6c737d787d323f4cf28fcd9b3048506bc5f))
+
 ## [0.35.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.34.0...webapp-v0.35.0) (2026-07-22)
 
 ### Bug Fixes
