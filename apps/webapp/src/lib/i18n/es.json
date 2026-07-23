@@ -137,6 +137,7 @@
     "strip_commit": "Confirmar",
     "strip_not_now": "Ahora no",
     "strip_commit_title": "¿Te comprometes con la franja {range}?",
+    "strip_scroll_hint": "Desliza para ver más oportunidades",
     "progress_title": "Tu progreso",
     "progress_period": "Puntos, nivel e insignias",
     "ranking_title": "Tu clasificación",

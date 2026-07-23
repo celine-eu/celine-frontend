@@ -141,6 +141,7 @@
     "strip_commit": "Commit",
     "strip_not_now": "Not now",
     "strip_commit_title": "Commit to {range}?",
+    "strip_scroll_hint": "Swipe to explore more opportunities",
     "progress_title": "Your Progress",
     "progress_period": "Points, level and badges",
     "ranking_title": "Your Ranking",

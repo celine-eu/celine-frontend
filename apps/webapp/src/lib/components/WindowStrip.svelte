@@ -16,7 +16,7 @@
     key: string;
     startMs: number;
     range: string;                    // "8-10", or "8:30-10" when minutes are non-zero
-    dayKey: string;                   // local YYYY-MM-DD — groups segments by calendar day
+    dayKey: string;                   // local YYYY-MM-DD — identifies the calendar day
     points: number | null;            // rounded promise
     state: 'open' | 'committed';
     suggestion: SuggestionItem | null; // null when committed
@@ -118,16 +118,53 @@
     return out.sort((a, b) => a.startMs - b.startMs);
   });
 
-  // Grouped by calendar day, chronological — segments are already sorted by start.
-  const dayGroups = $derived.by(() => {
-    const groups: { dayKey: string; list: Segment[] }[] = [];
-    for (const seg of segments) {
-      const last = groups[groups.length - 1];
-      if (last && last.dayKey === seg.dayKey) last.list.push(seg);
-      else groups.push({ dayKey: seg.dayKey, list: [seg] });
-    }
-    return groups;
+  // The next actionable window — emphasised and scrolled into view on mount.
+  const featuredKey = $derived(segments.find((s) => s.state === 'open')?.key ?? null);
+
+  let stripEl = $state<HTMLDivElement | null>(null);
+  let overflows = $state(false);
+  let scrolled = $state(false);
+  let activeIndex = $state(0);
+  let rafId = 0;
+  let centeredKey = '';
+
+  // Keep the featured card centred whenever it changes (first load, after a commit).
+  $effect(() => {
+    const key = featuredKey;
+    const el = stripEl;
+    if (!el || !key || key === centeredKey) return;
+    const card = el.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`);
+    if (!card) return;
+    centeredKey = key;
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    card.scrollIntoView({ behavior, inline: 'center', block: 'nearest' });
   });
+
+  $effect(() => {
+    // Re-measure when the segment count changes.
+    segments.length;
+    const el = stripEl;
+    if (!el) return;
+    const measure = () => { overflows = el.scrollWidth > el.clientWidth + 1; };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  });
+
+  function onStripScroll() {
+    const el = stripEl;
+    if (!el || rafId) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = 0;
+      if (!el) return;
+      if (el.scrollLeft > 4) scrolled = true;
+      const count = segments.length;
+      if (count < 2) { activeIndex = 0; return; }
+      const pitch = (el.scrollWidth - el.clientWidth) / (count - 1);
+      activeIndex = pitch > 0 ? Math.round(el.scrollLeft / pitch) : 0;
+    });
+  }
 
   function open(seg: Segment) {
     if (seg.state === 'committed' || !seg.suggestion) return;
@@ -158,18 +195,34 @@
   }
 </script>
 
-{#snippet dayGroup(label: string, list: Segment[])}
-  <div class="day-group">
-    <p class="day-label">{label}</p>
-    <div class="segments">
-      {#each list as seg (seg.key)}
+{#if segments.length === 0}
+  <div class="empty-state">
+    <Icon name="sun" size={40} class="empty-icon" />
+    <p class="empty-title">{$t('suggestions.no_opportunities_title')}</p>
+    <p class="empty-text">{$t('suggestions.no_opportunities_body')}</p>
+  </div>
+{:else}
+  <div class="strip-wrap">
+    {#if overflows && !scrolled}
+      <p class="scroll-hint">
+        {$t('suggestions.strip_scroll_hint')}
+        <Icon name="chevron-right" size={16} />
+      </p>
+    {/if}
+
+    <div class="strip" bind:this={stripEl} onscroll={onStripScroll}>
+      {#each segments as seg (seg.key)}
         <button
           class="segment"
           class:committed={seg.state === 'committed'}
+          class:featured={seg.key === featuredKey}
+          data-key={seg.key}
           disabled={seg.state === 'committed'}
           aria-pressed={seg.state === 'committed'}
           onclick={() => open(seg)}
         >
+          <span class="seg-icon"><Icon name="calendar" size={18} /></span>
+          <span class="seg-day">{dayLabel(seg.dayKey, $locale ?? 'en')}</span>
           <span class="seg-range">{seg.range}</span>
           {#if seg.points != null}
             <span class="seg-points">~{seg.points} pts</span>
@@ -184,20 +237,14 @@
         </button>
       {/each}
     </div>
-  </div>
-{/snippet}
 
-{#if segments.length === 0}
-  <div class="empty-state">
-    <Icon name="sun" size={40} class="empty-icon" />
-    <p class="empty-title">{$t('suggestions.no_opportunities_title')}</p>
-    <p class="empty-text">{$t('suggestions.no_opportunities_body')}</p>
-  </div>
-{:else}
-  <div class="strip">
-    {#each dayGroups as group (group.dayKey)}
-      {@render dayGroup(dayLabel(group.dayKey, $locale ?? 'en'), group.list)}
-    {/each}
+    {#if overflows && segments.length > 1}
+      <div class="dots" aria-hidden="true">
+        {#each segments as seg, i (seg.key)}
+          <span class="dot" class:active={i === activeIndex}></span>
+        {/each}
+      </div>
+    {/if}
   </div>
 {/if}
 
@@ -248,31 +295,41 @@
 <svelte:window onkeydown={(e) => { if (e.key === 'Escape') close(); }} />
 
 <style>
-  .strip { display: flex; flex-direction: column; gap: var(--celine-space-md); }
+  .strip-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
 
-  .day-group { display: flex; flex-direction: column; gap: 0.375rem; }
-  .day-label {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--celine-text-tertiary);
+  .scroll-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8125rem;
+    color: var(--celine-text-secondary);
     margin: 0;
   }
 
-  .segments { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  /* Cards bleed to the section-card edge so the next one peeks in. */
+  .strip {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 calc(-1 * var(--celine-space-md));
+    padding: 0.25rem var(--celine-space-md);
+  }
+  .strip::-webkit-scrollbar { display: none; }
 
   .segment {
-    flex: 1 1 0;
-    min-width: 6rem;
+    flex: 0 0 clamp(7.5rem, 42vw, 9.5rem);
+    scroll-snap-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.625rem 0.5rem;
+    gap: 0.3125rem;
+    padding: 0.875rem 0.5rem;
     background: var(--celine-bg-elevated);
     border: 1px solid var(--celine-border);
-    border-radius: var(--celine-radius-md);
+    border-radius: var(--celine-radius-lg);
     cursor: pointer;
     transition: border-color var(--celine-transition-fast);
   }
@@ -282,10 +339,61 @@
     opacity: 0.65;
     cursor: default;
   }
+  .segment.featured {
+    border-color: var(--celine-primary);
+    box-shadow: 0 0 0 1px var(--celine-primary), 0 0 16px -6px var(--celine-primary);
+    padding-block: 1.125rem;
+  }
 
-  .seg-range { font-size: 0.9375rem; font-weight: 700; color: var(--celine-text); }
-  .seg-points { font-size: 0.75rem; font-weight: 600; color: #92400e; background: #fef3c7; border-radius: 999px; padding: 0.0625rem 0.5rem; }
+  .seg-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    border: 1px solid var(--celine-border);
+    color: var(--celine-primary);
+  }
+  .segment.featured .seg-icon { border-color: var(--celine-primary); }
+
+  .seg-day {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--celine-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .segment.featured .seg-day { color: var(--celine-primary); }
+
+  .seg-range { font-size: 1.125rem; font-weight: 700; color: var(--celine-text); white-space: nowrap; }
+  .seg-points {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--celine-text-secondary);
+    background: var(--celine-bg);
+    border: 1px solid var(--celine-border);
+    border-radius: 999px;
+    padding: 0.0625rem 0.5rem;
+    white-space: nowrap;
+  }
   .segment.committed .seg-points { background: var(--celine-border); color: var(--celine-text-secondary); }
+
+  .dots { display: flex; justify-content: center; gap: 0.3125rem; }
+  .dot {
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 999px;
+    background: var(--celine-border);
+    transition: background var(--celine-transition-fast), width var(--celine-transition-fast);
+  }
+  .dot.active { width: 1rem; background: var(--celine-primary); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .segment, .dot { transition: none; }
+  }
 
   .seg-state { display: flex; align-items: center; height: 1rem; }
   .seg-box {
