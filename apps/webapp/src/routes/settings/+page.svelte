@@ -10,6 +10,10 @@
     import { t, locale } from "svelte-i18n";
 
     let settings = $state<Settings | null>(null);
+    /** Whether the dataspace sharing surface exists at all. Read from /api/me:
+     *  the dataspace may not be deployed, and linking to a page that answers
+     *  404 is worse than not offering it. */
+    let dataSharingEnabled = $state(false);
     let loading = $state(true);
     let err = $state("");
     let saved = $state("");
@@ -51,6 +55,13 @@
             const lang = $locale || "en";
             settings = await api.settingsGet(lang);
             loadedLocale = lang;
+            try {
+                dataSharingEnabled = (await api.me()).data_sharing_enabled === true;
+            } catch {
+                // A settings page that fails because a feature flag could not be
+                // read would be worse than one that simply omits the section.
+                dataSharingEnabled = false;
+            }
         } catch (e) {
             err = e instanceof Error ? e.message : String(e);
         } finally {
@@ -138,6 +149,23 @@
             <span>{err}</span>
         </div>
     {:else if settings}
+        {#if dataSharingEnabled}
+            <!-- Only rendered when the dataspace is actually deployed. -->
+            <div class="settings-card">
+                <h2 class="section-title">
+                    <Icon name="info" size={20} />
+                    {$t('data_sharing.title')}
+                </h2>
+                <div class="setting-row">
+                    <div>
+                        <span class="setting-label">{$t('data_sharing.title')}</span>
+                        <span class="setting-description">{$t('data_sharing.subtitle')}</span>
+                    </div>
+                    <a class="sharing-link" href="/data-sharing">{$t('data_sharing.manage')}</a>
+                </div>
+            </div>
+        {/if}
+
         <!-- Language Section -->
         <div class="settings-card" data-tour="settings-language">
             <h2 class="section-title">
@@ -352,6 +380,10 @@
 </section>
 
 <style>
+    .sharing-link {
+        white-space: nowrap;
+    }
+
     .settings-page {
         display: flex;
         flex-direction: column;

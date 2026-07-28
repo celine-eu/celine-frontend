@@ -4,7 +4,8 @@
     "suggestions": "Opportunities",
     "alerts": "Alerts",
     "assistant": "Assistant",
-    "settings": "Settings"
+    "settings": "Settings",
+    "data_sharing": "Data sharing"
   },
   "layout": {
     "sign_out": "Sign out",
@@ -437,5 +438,28 @@
     "tool_running": "Running {tool}...",
     "tool_done": "{tool} completed",
     "tool_error": "{tool} failed"
+  },
+  "data_sharing": {
+    "title": "Data sharing",
+    "subtitle": "Choose what your energy community may do with your data. You can change your mind at any time.",
+    "loading": "Loading...",
+    "retry": "Try again",
+    "no_identity": "This account is not yet set up for data sharing. If you joined the community recently, it may take a little while to appear here.",
+    "none": "There is nothing to share at the moment.",
+    "sharing_on": "Sharing is on",
+    "sharing_off": "Sharing is off",
+    "toggle_description": "Turning this off stops future sharing. It does not affect your membership.",
+    "controller": "Who decides",
+    "recipients": "Who receives it",
+    "retention": "Kept for",
+    "evidence": "Record of this decision",
+    "text_version": "Version you were shown",
+    "decided_at": "Decided on",
+    "disclosed_description": "This sharing happens under a contract rather than your consent, so there is nothing to choose. It is listed here so you know it happens.",
+    "history": "What has happened with your data",
+    "event_ConsentGranted": "You agreed to sharing.",
+    "event_ConsentRevoked": "You withdrew your agreement.",
+    "event_DataDisclosed": "Your data was shared as agreed.",
+    "manage": "Manage"
   }
 }

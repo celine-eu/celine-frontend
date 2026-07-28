@@ -4,7 +4,8 @@
     "suggestions": "Opportunità",
     "alerts": "Avvisi",
     "assistant": "Assistente",
-    "settings": "Impostazioni"
+    "settings": "Impostazioni",
+    "data_sharing": "Condivisione dei dati"
   },
   "layout": {
     "sign_out": "Esci",
@@ -437,5 +438,28 @@
     "tool_running": "Esecuzione {tool}...",
     "tool_done": "{tool} completato",
     "tool_error": "{tool} fallito"
+  },
+  "data_sharing": {
+    "title": "Condivisione dei dati",
+    "subtitle": "Scegli cosa la tua comunità energetica può fare con i tuoi dati. Puoi cambiare idea in qualsiasi momento.",
+    "loading": "Caricamento...",
+    "retry": "Riprova",
+    "no_identity": "Questo account non è ancora abilitato alla condivisione dei dati. Se ti sei iscritto da poco, potrebbe volerci un po' prima che compaia qui.",
+    "none": "Al momento non c'è nulla da condividere.",
+    "sharing_on": "Condivisione attiva",
+    "sharing_off": "Condivisione disattivata",
+    "toggle_description": "Disattivandola interrompi le condivisioni future. Non influisce sulla tua adesione alla comunità.",
+    "controller": "Chi decide",
+    "recipients": "Chi li riceve",
+    "retention": "Conservati per",
+    "evidence": "Registro di questa scelta",
+    "text_version": "Versione che ti è stata mostrata",
+    "decided_at": "Scelta del",
+    "disclosed_description": "Questa condivisione avviene in base a un contratto e non al tuo consenso, quindi non c'è nulla da scegliere. È indicata qui perché tu ne sia informato.",
+    "history": "Cosa è successo ai tuoi dati",
+    "event_ConsentGranted": "Hai acconsentito alla condivisione.",
+    "event_ConsentRevoked": "Hai revocato il consenso.",
+    "event_DataDisclosed": "I tuoi dati sono stati condivisi come concordato.",
+    "manage": "Gestisci"
   }
 }

@@ -13,6 +13,52 @@ export type Me = {
   onboarding_seen: boolean;
   onboarding_seen_pages: string[];
   locale?: string;
+  /** Whether the dataspace sharing surface exists. Hidden entirely when false:
+   *  the dataspace may not be deployed, and a screen whose decisions take
+   *  effect nowhere is worse than no screen. */
+  data_sharing_enabled?: boolean;
+};
+
+/** One published sharing offer, with this member's decision on it.
+ *  Rendered from the dataspace's own vocabulary rather than a local copy — two
+ *  copies of the text somebody agrees to is how the thing shown and the thing
+ *  recorded drift apart. */
+export type SharingOffer = {
+  id: string;
+  purpose: string;
+  /** Only consent-based offers get a toggle. A contract-based one is disclosed,
+   *  not chosen: presenting a choice that does not exist invalidates consent. */
+  requires_consent: boolean;
+  consent_text_version: string;
+  measures?: string[];
+  resolution?: string | null;
+  retention?: string | null;
+  coverage?: { retrospective?: string | null; prospective?: string | null };
+  recipients?: { controller?: string };
+  fallback_text_en?: {
+    purpose_label?: string;
+    purpose_definition?: string;
+    processor_category?: string;
+  };
+  granted: boolean;
+  /** Codes and hashes only — the record of what was shown when the decision was
+   *  made. Never anything about the person. */
+  evidence?: Record<string, unknown> | null;
+  decided_at?: string | null;
+};
+
+export type DataSharingStatus = {
+  /** False for a participant with no dataspace identity — somebody enabled
+   *  before the integration existed. A state to explain, not an error. */
+  has_identity: boolean;
+  offers: SharingOffer[];
+};
+
+export type DataSharingEvent = Record<string, unknown>;
+
+export type DataSharingHistory = {
+  has_identity: boolean;
+  events: DataSharingEvent[];
 };
 
 export type OverviewUser = {
@@ -329,6 +375,13 @@ export const api = {
     }
     return j<Overview>(`/api/overview?${params.toString()}`);
   },
+  dataSharing: () => j<DataSharingStatus>('/api/data-sharing'),
+  dataSharingSet: (offerId: string, enabled: boolean) =>
+    j<DataSharingStatus>(`/api/data-sharing/${encodeURIComponent(offerId)}`, {
+      method: 'POST',
+      body: JSON.stringify({ enabled })
+    }),
+  dataSharingHistory: () => j<DataSharingHistory>('/api/data-sharing/history'),
   notifications: () => j<NotificationItem[]>('/api/notifications'),
   notificationMarkRead: (id: string) =>
     j<{ ok: true }>(`/api/notifications/${id}/read`, { method: 'POST' }),
