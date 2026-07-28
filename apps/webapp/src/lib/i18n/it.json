@@ -142,6 +142,7 @@
     "strip_commit": "Conferma",
     "strip_not_now": "Non ora",
     "strip_commit_title": "Confermi l'impegno per la fascia {range}?",
+    "strip_scroll_hint": "Scorri per scoprire altre opportunità",
     "progress_title": "I tuoi progressi",
     "progress_period": "Punti, livello e badge",
     "ranking_title": "La tua classifica",

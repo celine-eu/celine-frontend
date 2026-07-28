@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.24.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.23.0...grid-v0.24.0) (2026-07-24)
+
+### Features
+
+* Added the option to select a time period ([26b8a95](https://github.com/celine-eu/celine-frontend/commit/26b8a954921968ef7374f0a49b071b1c5394108b))
+* **webapp:** honest cards -> window strip, season points + anonymous rank ([f6a2f20](https://github.com/celine-eu/celine-frontend/commit/f6a2f204cc1d8a976e24b95a3d6abedcc3794b0f))
+* **webapp:** make window strip a horizontal carousel with featured next window ([f218a6c](https://github.com/celine-eu/celine-frontend/commit/f218a6c737d787d323f4cf28fcd9b3048506bc5f))
+
+### Bug Fixes
+
+* update webapp assistant icon ([9aecfd7](https://github.com/celine-eu/celine-frontend/commit/9aecfd7b5df3213b0d3ec616615d55917d5706f3))
+* **webapp:** group window strip by calendar day, not today/tomorrow only ([560a198](https://github.com/celine-eu/celine-frontend/commit/560a198751010639a08b307e97d936149109f4b4))
+
 ## [0.23.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.22.0...grid-v0.23.0) (2026-07-20)
 
 ### Features
