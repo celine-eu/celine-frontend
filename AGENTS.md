@@ -56,3 +56,43 @@ task release:<app>:dry      # preview
 - Keep shared logic in the appropriate package under `packages/`. App-specific components stay in `apps/<app>/src/lib/`.
 - Package `src/internal/` contains components not re-exported from the package index.
 - Apps connect to backends via `host.docker.internal` or `*.celine.localhost` depending on the environment.
+
+
+---
+
+# Working in this repository
+
+Added when the agent harness was adopted. Everything above is this repository's own
+guidance and is unchanged.
+
+## Read in this order
+
+1. This file.
+2. `.agents/README.md` — the rulebook: where work is recorded, and how.
+3. `.agents/knowledge/` — what is true of the code and not visible in it.
+4. `docs/`, on demand. Never speculatively.
+
+## Where things are
+
+| Looking for | Go to |
+|---|---|
+| a repeatable procedure | `.agents/playbooks/` |
+| a trap that is true of the code and not obvious from it | `.agents/knowledge/` |
+| why a technical choice was made | `docs/decisions/` |
+| what is being worked on, and how far it has got | `.agents/plans/`, `.agents/work/` |
+| what is broken | the issue tracker — `gh issue list`. Not a file in this repository |
+
+## Behavioural settings
+
+- **Ask rather than decide** when a request needs a requirement that does not exist yet.
+- **Write the plan first** for anything non-trivial, and create its work directory before
+  the first change of any phase.
+- **Report faithfully.** Name what ran, what did not, and what was skipped.
+- **Establish the baseline before changing anything**, so a pre-existing failure is never
+  attributed to your change.
+
+## Crossing a seam
+
+This repository is one component of a platform assembled from separate repositories.
+Before changing anything exposed to another one, check whether it moves an API contract, a
+data schema, governance metadata, an ontology mapping, or identity and policy behaviour.

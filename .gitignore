@@ -5,3 +5,6 @@ node_modules
 # Dumpster output
 .dumpster
 build
+
+# Execution state: transient, and the plan is what survives
+.agents/work/
