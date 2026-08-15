@@ -4,6 +4,10 @@ vars:
   IMAGE_WEBAPP: ghcr.io/celine-eu/celine-webapp
   IMAGE_ASSISTANT: ghcr.io/celine-eu/celine-assistant
   IMAGE_GRID: ghcr.io/celine-eu/celine-grid-ui
+  # These are local `:dev` tags and do not match what CI publishes, which is
+  # `celine-frontend-<app>` for all four. IMAGE_ROI follows the CI name because roi
+  # had none, and adding a fourth naming style would have been worse than either.
+  IMAGE_ROI: ghcr.io/celine-eu/celine-frontend-roi
 
 tasks:
   setup:
@@ -103,6 +107,12 @@ tasks:
     cmds:
       - npx release-it --dry-run
 
+  release:roi:dry:
+    desc: Preview roi release (dry run)
+    dir: apps/roi
+    cmds:
+      - npx release-it --dry-run
+
   release:grid:dry:
     desc: Preview grid release (dry run)
     dir: apps/grid
@@ -120,6 +130,11 @@ tasks:
     cmds:
       - docker build -f apps/assistant/Dockerfile -t {{.IMAGE_ASSISTANT}}:dev .
 
+  docker:roi:
+    desc: Build roi Docker image
+    cmds:
+      - docker build -f apps/roi/Dockerfile -t {{.IMAGE_ROI}}:dev .
+
   docker:grid:
     desc: Build grid Docker image
     cmds:
@@ -130,4 +145,5 @@ tasks:
     cmds:
       - task: docker:webapp
       - task: docker:assistant
+      - task: docker:roi
       - task: docker:grid

@@ -1,98 +1,77 @@
-## celine-frontend
+<!-- harness-standard v3 — issued by the agent harness. Do not edit; replace it with `python -m harness upgrade <target>`. -->
 
-pnpm monorepo containing all CELINE frontend applications and shared UI packages. Built with SvelteKit 2, Svelte 5, Vite, and TypeScript. Apps are deployed as Node.js Docker images via `@sveltejs/adapter-node`.
+# Agent Guide
 
-## Structure
+This file is the entry point. It is **navigation and constraints**: where things are, and
+what you may not do.
 
-`apps/**` are deployable SvelteKit applications, each with its own Dockerfile, release config, and dev server port. `packages/**` are reusable Svelte component libraries consumed by apps via `workspace:*` dependencies.
-
-### Apps
-
-| App | Package | Port | Backend |
-|---|---|---|---|
-| `apps/assistant` | `@celine-eu/assistant` | 3003 | `celine-ai-assistant` |
-| `apps/roi` | `@celine-eu/roi` | 3004 | `celine-roi` |
-| `apps/webapp` | `@celine-eu/webapp` | 3005 | `celine-webapp` (BFF) |
-| `apps/grid` | `@celine-eu/grid` | 3006 | `celine-grid` |
-
-### Packages
-
-| Package | Scope | Consumers |
-|---|---|---|
-| `packages/ui` | `@celine-eu/ui` — shared design system (Button, Modal, Panel, Icon, Skeleton, ThemeToggle, FeedbackWidget) and `theme.css` | all apps |
-| `packages/assistant-ui` | `@celine-eu/assistant-ui` — chat widget components (AssistantWidget, ChatCore, Composer, MessageList, history, attachments) | assistant, webapp |
-| `packages/roi-ui` | `@celine-eu/roi-ui` — ROI calculator components (RoiCore, RoiResults, MapPicker, RoiWidget) | roi |
-
-Packages export via `src/index.ts` (or `.js`) and use `peerDependencies` on `svelte` and `svelte-i18n`. They are not published to npm — consumed only within the workspace.
-
-## Development
-
-```sh
-pnpm install            # or: task setup
-task dev:<app>          # eg task dev:webapp — starts vite on the app's port
-pnpm --filter @celine-eu/<app> check   # svelte-check + tsc
-```
-
-## i18n
-
-Apps using `svelte-i18n` store translations in `src/lib/i18n/{en,it,es}.json`. Setup is in `src/lib/i18n/index.ts`, loaded from `+layout.ts`.
-
-## Releasing
-
-Each app is independently versioned via `release-it` with conventional commits. Tags follow the pattern `<app>-v<version>` (e.g. `roi-v0.13.0`). Commits use `chore(<app>): release v<version>`.
-
-```sh
-task release:<app>          # bump, changelog, tag, push
-task release:<app>:dry      # preview
-```
-
-## CI/CD
-
-`release.yaml` triggers on push to `main` and on version tags. It detects which apps changed (including `packages/**` changes) and builds + pushes Docker images to `ghcr.io/celine-eu/celine-frontend-<app>`. Tagged pushes also update the `latest` tag.
-
-## Conventions
-
-- Scope commits to the affected app: `feat(webapp): ...`, `fix(roi): ...`. Use no scope for cross-cutting changes.
-- Keep shared logic in the appropriate package under `packages/`. App-specific components stay in `apps/<app>/src/lib/`.
-- Package `src/internal/` contains components not re-exported from the package index.
-- Apps connect to backends via `host.docker.internal` or `*.celine.localhost` depending on the environment.
-
-
----
-
-# Working in this repository
-
-Added when the agent harness was adopted. Everything above is this repository's own
-guidance and is unchanged.
+It says nothing about this repository in particular. **It is standard — byte-identical in
+every repository carrying this harness** — so having read it once you have read it
+everywhere. Nothing repository-specific is ever added here. Content that seems to belong
+in this file belongs in one of the homes below instead, and the rule that decides which is
+in the rulebook.
 
 ## Read in this order
 
 1. This file.
-2. `.agents/README.md` — the rulebook: where work is recorded, and how.
-3. `.agents/knowledge/` — what is true of the code and not visible in it.
+2. `.agents/README.md` — the rulebook: where work is recorded, and how. Also standard,
+   also identical everywhere.
+3. `.agents/knowledge/` — what is true of this repository and not visible in its code.
+   List the directory; read what the task needs.
 4. `docs/`, on demand. Never speculatively.
+
+The two standard files are the same wherever they appear. Having read them at one root, do
+not read them again in a repository nested inside it — read that repository's
+`.agents/knowledge/` instead, because that is the part which differs.
+
+**If a copy of a standard file does differ, the divergence is the finding.** Report it;
+do not follow it and do not quietly reconcile it.
 
 ## Where things are
 
 | Looking for | Go to |
 |---|---|
-| a repeatable procedure | `.agents/playbooks/` |
-| a trap that is true of the code and not obvious from it | `.agents/knowledge/` |
+| what this repository is and does | its `README.md`, then `docs/` |
+| what is true of the code and not obvious from reading it | `.agents/knowledge/` |
+| how a repeated procedure is performed | `.agents/playbooks/` |
 | why a technical choice was made | `docs/decisions/` |
+| what the product must do | the specifications in `docs/` |
+| whether a requirement is verified | `.agents/trace/`, or the tool named in `.agents/harness.toml` |
 | what is being worked on, and how far it has got | `.agents/plans/`, `.agents/work/` |
-| what is broken | the issue tracker — `gh issue list`. Not a file in this repository |
+| what is broken | the issue tracker. Never a file in this repository |
+| how the parts are composed, built and run | the build and composition files at the root |
+
+This table is fixed because the structure is fixed. What varies between repositories is
+what those directories hold — found by listing them, never by an index maintained here. An
+index here would be a second copy of a fact, and the copy is what goes stale.
 
 ## Behavioural settings
 
+The switches, not the rules. What each one serves is stated in the rulebook.
+
 - **Ask rather than decide** when a request needs a requirement that does not exist yet.
+  Ask directly, and do not proceed on an inferred requirement.
 - **Write the plan first** for anything non-trivial, and create its work directory before
   the first change of any phase.
-- **Report faithfully.** Name what ran, what did not, and what was skipped.
 - **Establish the baseline before changing anything**, so a pre-existing failure is never
   attributed to your change.
+- **Report faithfully.** Name what ran, what did not, and what was skipped.
+- **Check whether the change crosses a seam** — an interface another component depends on.
+  A change that crosses one is not local, however local it compiles. Which seams exist
+  here is recorded in `.agents/knowledge/`.
+- **Change the component that owns the behaviour**, not the place that consumes it. A
+  workaround written at the consumer is a defect left in the owner.
 
-## Crossing a seam
+## Maintaining this file
 
-This repository is one component of a platform assembled from separate repositories.
-Before changing anything exposed to another one, check whether it moves an API contract, a
-data schema, governance metadata, an ontology mapping, or identity and policy behaviour.
+**Read only.** Do not edit it, and do not edit `.agents/README.md` beside it. Neither is
+this repository's document.
+
+A change lands by changing the harness that issues it, after which every repository
+receives the same text — `python -m harness upgrade <target>`. Editing one copy creates
+the drift the standard exists to remove, and the next reader cannot tell an improvement
+from an accident. REQ-0012 reports a copy that has been altered.
+
+Anything you were about to add here has a home: a trap goes to `.agents/knowledge/`, a
+procedure to `.agents/playbooks/`, a rationale to `docs/decisions/`, a description of the
+system to `docs/`, and a defect to the issue tracker.
