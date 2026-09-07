@@ -28,6 +28,62 @@
     /** Offer ids with a change in flight, so only that row is disabled. */
     let pending = $state<Record<string, boolean>>({});
 
+    /** Which explanation a member without an identity gets.
+     *
+     * These are four different situations and used to be one sentence. The one
+     * that matters most is the difference between `no_dataspace` — nothing to
+     * decide, ever — and `no_identity`, which onboarding tries to resolve every
+     * time this page is opened and may well have resolved by the next reload.
+     * Telling somebody in the first case to "try again" would be a lie, and
+     * telling somebody in the second that their community does not take part
+     * would be a different one.
+     *
+     * An unrecognised state falls back to the generic sentence rather than
+     * rendering a raw code: a backend that grows a fifth state should degrade to
+     * what this page said before, not to a word nobody wrote.
+     */
+    const STATE_KEYS: Record<string, string> = {
+        no_dataspace: "data_sharing.state_no_dataspace",
+        no_identity: "data_sharing.state_no_identity",
+        identity_conflict: "data_sharing.state_identity_conflict",
+        ambiguous_community: "data_sharing.state_ambiguous_community",
+    };
+
+    let explanation = $derived(
+        STATE_KEYS[status?.state ?? ""] ?? "data_sharing.no_identity",
+    );
+
+    /** Whether reloading could plausibly change the answer.
+     *
+     * Only `no_identity` can: onboarding provisions on the read. Offering a
+     * retry for a community that does not take part, or for a conflict only an
+     * operator can clear, invites a member to keep pressing a button that
+     * cannot help them. */
+    let canRetry = $derived(status?.state === "no_identity");
+
+    let identity = $derived(status?.identity ?? null);
+    let copied = $state(false);
+
+    async function copyDid() {
+        if (!identity?.did) return;
+        try {
+            await navigator.clipboard.writeText(identity.did);
+            copied = true;
+            setTimeout(() => (copied = false), 2000);
+        } catch {
+            // Clipboard is permission-gated and absent over plain HTTP. The DID
+            // is on the page either way, so a failure here costs the member a
+            // convenience and not the value.
+            copied = false;
+        }
+    }
+
+    function formatDate(value: string | null): string {
+        if (!value) return "—";
+        const parsed = new Date(value);
+        return isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
+    }
+
     let consentOffers = $derived(
         (status?.offers ?? []).filter((o) => o.requires_consent),
     );
@@ -98,9 +154,13 @@
         <Button onclick={load}>{$t("data_sharing.retry")}</Button>
     {:else if !status?.has_identity}
         <!-- Normal for a participant enabled before the dataspace existed, or in
-             a community that does not take part. Explain rather than fail. -->
+             a community that does not take part. Explain rather than fail — and
+             say *which*, because they are not the same situation. -->
         <div class="settings-card">
-            <p class="setting-description">{$t("data_sharing.no_identity")}</p>
+            <p class="setting-description">{$t(explanation)}</p>
+            {#if canRetry}
+                <Button onclick={load}>{$t("data_sharing.retry")}</Button>
+            {/if}
         </div>
     {:else}
         {#if consentOffers.length === 0 && disclosedOffers.length === 0}
@@ -187,6 +247,46 @@
             </div>
         {/each}
 
+        {#if identity?.did}
+            <!-- What a member can quote to a REC manager looking them up. The
+                 DID was minted on their behalf, so this page is the only place
+                 they can learn it. Four named fields and never the credential:
+                 the API projects the block for that reason and rendering it by
+                 name is what keeps it true from this end. -->
+            <div class="settings-card">
+                <h2 class="section-title">
+                    <Icon name="info" size={20} />
+                    {$t("data_sharing.identity")}
+                </h2>
+                <p class="setting-description">
+                    {$t("data_sharing.identity_description")}
+                </p>
+                <dl class="offer-facts">
+                    <dt>{$t("data_sharing.identity_did")}</dt>
+                    <dd class="did-row">
+                        <code class="did">{identity.did}</code>
+                        <Button onclick={copyDid}>
+                            {copied
+                                ? $t("data_sharing.identity_copied")
+                                : $t("data_sharing.identity_copy")}
+                        </Button>
+                    </dd>
+                    {#if identity.role}
+                        <dt>{$t("data_sharing.identity_role")}</dt>
+                        <dd>{identity.role}</dd>
+                    {/if}
+                    {#if identity.issued_at}
+                        <dt>{$t("data_sharing.identity_issued")}</dt>
+                        <dd>{formatDate(identity.issued_at)}</dd>
+                    {/if}
+                    {#if identity.expires_at}
+                        <dt>{$t("data_sharing.identity_expires")}</dt>
+                        <dd>{formatDate(identity.expires_at)}</dd>
+                    {/if}
+                </dl>
+            </div>
+        {/if}
+
         {#if events.length}
             <div class="settings-card">
                 <h2 class="section-title">
@@ -233,6 +333,18 @@
 
     .settings-card--muted {
         opacity: 0.85;
+    }
+
+    .did-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .did {
+        font-size: 0.8125rem;
+        word-break: break-all;
     }
 
     .history {

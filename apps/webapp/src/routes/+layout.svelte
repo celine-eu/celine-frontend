@@ -2,6 +2,7 @@
   import { page } from "$app/stores";
   import type { Me, CommunityMeta } from "$lib/api";
   import { api } from "$lib/api";
+  import DataSharingBanner from "$lib/components/DataSharingBanner.svelte";
   import OnboardingTour from "$lib/components/OnboardingTour.svelte";
   import { collectFeedbackDiagnostics } from "$lib/feedback";
   import { meStore } from "$lib/stores";
@@ -244,6 +245,13 @@
   enabled={!!data.me && !data.auth_error}
   completedPages={data.me?.onboarding_seen_pages ?? []}
   onComplete={api.markOnboardingSeen}
+/>
+
+<!-- The way into /data-sharing. Mounted here rather than loaded in `+layout.ts`
+     because that load re-runs per navigation and `GET /api/data-sharing`
+     provisions a credential upstream — see the component. -->
+<DataSharingBanner
+  enabled={!!data.me && !data.auth_error && !!data.me?.data_sharing_enabled}
 />
 
 <FeedbackWidget

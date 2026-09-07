@@ -47,17 +47,66 @@ export type SharingOffer = {
   decided_at?: string | null;
 };
 
+/** Why a member can or cannot decide anything, in one word.
+ *
+ *  These are not four ways of saying the same thing, which is the mistake the
+ *  page made while it had only `has_identity`:
+ *
+ *  - `no_dataspace` — this community does not take part. Nothing to decide, and
+ *    nothing that will change it.
+ *  - `no_identity`  — the community takes part and this member holds no usable
+ *    credential. Onboarding tries to provision one when the page is opened, so
+ *    this can resolve on its own.
+ *  - `identity_conflict` — the identity registry holds a conflicting mapping.
+ *    Only an operator can clear it; a member retrying never will.
+ *  - `ambiguous_community` — the member is in more than one participating
+ *    community, so "their offers" has no single answer. Refused rather than
+ *    guessed.
+ */
+export type DataSharingState =
+  | 'ok'
+  | 'no_dataspace'
+  | 'no_identity'
+  | 'identity_conflict'
+  | 'ambiguous_community';
+
+/** The member's own dataspace identity, as far as they need to know it.
+ *
+ *  Four named fields and deliberately not an open record: upstream projects the
+ *  block to exactly these because it sits beside the member's credential, and
+ *  reading it by name here is what keeps that true from this end too. **Never
+ *  render anything not listed.** */
+export type DataSharingIdentity = {
+  /** What a REC manager asks for when looking this member up. Minted on their
+   *  behalf, so this is the only place they can learn it. */
+  did: string | null;
+  role: string | null;
+  issued_at: string | null;
+  /** "My sharing stopped working" and "my credential expired last week" are one
+   *  event, and without this only one party can see it. */
+  expires_at: string | null;
+};
+
 export type DataSharingStatus = {
   /** False for a participant with no dataspace identity — somebody enabled
    *  before the integration existed. A state to explain, not an error. */
   has_identity: boolean;
+  /** Which explanation. Optional so an older backend still typechecks. */
+  state?: DataSharingState | null;
   offers: SharingOffer[];
+  identity?: DataSharingIdentity | null;
+  /** Has this member ever been asked — here, or by deciding anything in
+   *  onboarding's funnel. False means the invitation, not the reminder. */
+  asked?: boolean;
+  /** Has what they last said gone stale. */
+  review_due?: boolean;
 };
 
 export type DataSharingEvent = Record<string, unknown>;
 
 export type DataSharingHistory = {
   has_identity: boolean;
+  state?: DataSharingState | null;
   events: DataSharingEvent[];
 };
 
