@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.39.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.38.0...webapp-v0.39.0) (2026-09-09)
+
+### Bug Fixes
+
+* **webapp:** add /healthz for container probes ([21af5f9](https://github.com/celine-eu/celine-frontend/commit/21af5f9da2b4238c3af35fb81855dd5417bf23bf))
+
 ## [0.38.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.37.0...webapp-v0.38.0) (2026-09-09)
 
 ### Features
