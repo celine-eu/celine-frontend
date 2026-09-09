@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.40.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.39.0...webapp-v0.40.0) (2026-09-09)
+
+### Bug Fixes
+
+* **webapp:** server-side fetch sends the session cookie only ([70c27bc](https://github.com/celine-eu/celine-frontend/commit/70c27bc612c42265ee46cc24af6be6c3ada80689))
+
 ## [0.39.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.38.0...webapp-v0.39.0) (2026-09-09)
 
 ### Bug Fixes
