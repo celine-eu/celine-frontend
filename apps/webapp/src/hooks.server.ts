@@ -10,16 +10,26 @@ import type { HandleFetch } from '@sveltejs/kit';
  * its own audience (nudging: `svc-celine-nudging`) answered 401 — the
  * `/api/notifications` 500 in staging, 2026-09.
  *
- * The access token the proxy already resolved for this page (`X-Auth-Request-Access-Token`)
- * is the credential the API layer expects, so it is what the server render forwards.
+ * Forwarding the access token as the bearer instead is not the answer either: for a
+ * bearer-created session oauth2-proxy echoes that token in two response headers, and the
+ * ingress's auth subrequest then fails with "upstream sent too big header" (502 → the
+ * render's `/api/me` 500, staging 2026-09-09 13:12).
+ *
+ * So for same-origin API calls the render bypasses SvelteKit's header forwarding and
+ * sends exactly what the browser sends: the session cookie and no `Authorization`
+ * header at all. The proxy resolves the session from the cookie and injects the real
+ * access token, the path every client-side request already takes.
  */
 export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
-  const sameOrigin = new URL(request.url).origin === event.url.origin;
-  if (sameOrigin && !request.headers.has('authorization')) {
-    const accessToken = event.request.headers.get('x-auth-request-access-token');
-    if (accessToken) {
-      request.headers.set('authorization', `Bearer ${accessToken}`);
-    }
+  const url = new URL(request.url);
+  if (url.origin !== event.url.origin || !url.pathname.startsWith('/api/')) {
+    return fetch(request);
   }
-  return fetch(request);
+
+  const headers = new Headers(request.headers);
+  headers.delete('authorization');
+  const cookie = event.request.headers.get('cookie');
+  if (cookie) headers.set('cookie', cookie);
+
+  return globalThis.fetch(new Request(request, { headers }));
 };
