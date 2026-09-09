@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.38.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.37.0...webapp-v0.38.0) (2026-09-09)
+
+### Features
+
+* add data sharing banner ([dc4e723](https://github.com/celine-eu/celine-frontend/commit/dc4e72324ee90b74fc7c9a163a69da5f175d5297))
+* add data sharing withdrawal ([928e404](https://github.com/celine-eu/celine-frontend/commit/928e404b97ef078660633fff98c6fdb0b223d8c7))
+
+### Bug Fixes
+
+* **webapp:** forward access token in server-side fetch ([4f6ecc5](https://github.com/celine-eu/celine-frontend/commit/4f6ecc552b286a041c798355afa8e86b5b79f4bb))
+
 ## [0.37.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.36.0...webapp-v0.37.0) (2026-07-24)
 
 ## [0.36.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.35.0...webapp-v0.36.0) (2026-07-23)
