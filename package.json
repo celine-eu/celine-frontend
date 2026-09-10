@@ -7,11 +7,13 @@
     "dev:webapp": "pnpm --filter @celine-eu/webapp dev",
     "dev:roi": "pnpm --filter @celine-eu/roi dev",
     "dev:grid": "pnpm --filter @celine-eu/grid dev",
+    "dev:community": "pnpm --filter @celine-eu/community dev",
     "build": "pnpm -r build",
     "build:webapp": "pnpm --filter @celine-eu/webapp build",
     "build:assistant": "pnpm --filter @celine-eu/assistant build",
     "build:roi": "pnpm --filter @celine-eu/roi build",
     "build:grid": "pnpm --filter @celine-eu/grid build",
+    "build:community": "pnpm --filter @celine-eu/community build",
     "check": "pnpm -r check"
   },
   "devDependencies": {

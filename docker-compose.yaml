@@ -49,3 +49,16 @@ services:
     extra_hosts:
       - "keycloak.celine.localhost:host-gateway"
       - "api.celine.localhost:host-gateway"
+
+  community:
+    build:
+      context: .
+      dockerfile: apps/community/Dockerfile
+    ports:
+      - "3007:3007"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    extra_hosts:
+      - "keycloak.celine.localhost:host-gateway"
+      - "api.celine.localhost:host-gateway"

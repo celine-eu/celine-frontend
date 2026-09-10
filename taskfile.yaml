@@ -8,6 +8,7 @@ vars:
   # `celine-frontend-<app>` for all four. IMAGE_ROI follows the CI name because roi
   # had none, and adding a fourth naming style would have been worse than either.
   IMAGE_ROI: ghcr.io/celine-eu/celine-frontend-roi
+  IMAGE_COMMUNITY: ghcr.io/celine-eu/celine-frontend-community
 
 tasks:
   setup:
@@ -36,6 +37,11 @@ tasks:
     cmds:
       - pnpm dev:grid
 
+  dev:community:
+    desc: Run REC Manager Dashboard in development mode
+    cmds:
+      - pnpm dev:community
+
   # Build
   build:
     desc: Build all apps
@@ -62,12 +68,18 @@ tasks:
     cmds:
       - pnpm build:grid
 
+  build:community:
+    desc: Build REC Manager Dashboard
+    cmds:
+      - pnpm build:community
+
   release:
     cmds:
       - task release:webapp
       - task release:assistant
       - task release:roi
       - task release:grid
+      - task release:community
 
   # Release - auto version based on conventional commits
   release:webapp:
@@ -91,6 +103,12 @@ tasks:
   release:grid:
     desc: Release grid app (auto version from commits, generates changelog)
     dir: apps/grid
+    cmds:
+      - npx release-it --ci {{.CLI_ARGS}}
+
+  release:community:
+    desc: Release REC Manager Dashboard (auto version from commits, generates changelog)
+    dir: apps/community
     cmds:
       - npx release-it --ci {{.CLI_ARGS}}
 
@@ -119,6 +137,12 @@ tasks:
     cmds:
       - npx release-it --dry-run
 
+  release:community:dry:
+    desc: Preview REC Manager Dashboard release (dry run)
+    dir: apps/community
+    cmds:
+      - npx release-it --dry-run
+
   # Docker builds
   docker:webapp:
     desc: Build webapp Docker image
@@ -140,6 +164,11 @@ tasks:
     cmds:
       - docker build -f apps/grid/Dockerfile -t {{.IMAGE_GRID}}:dev .
 
+  docker:community:
+    desc: Build REC Manager Dashboard Docker image
+    cmds:
+      - docker build -f apps/community/Dockerfile -t {{.IMAGE_COMMUNITY}}:dev .
+
   docker:all:
     desc: Build all Docker images
     cmds:
@@ -147,3 +176,4 @@ tasks:
       - task: docker:assistant
       - task: docker:roi
       - task: docker:grid
+      - task: docker:community

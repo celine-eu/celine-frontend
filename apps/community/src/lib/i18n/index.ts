@@ -1,0 +1,13 @@
+import { getLocaleFromNavigator, init, register } from 'svelte-i18n';
+
+register('en', () => import('./en.json'));
+register('it', () => import('./it.json'));
+register('es', () => import('./es.json'));
+
+const supported = ['en', 'it', 'es'];
+
+export function setupI18n(backendLocale?: string | null) {
+  const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('locale') : null;
+  const detected = saved ?? backendLocale ?? getLocaleFromNavigator()?.slice(0, 2) ?? 'en';
+  init({ fallbackLocale: 'en', initialLocale: supported.includes(detected) ? detected : 'en' });
+}

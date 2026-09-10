@@ -1,0 +1,27 @@
+{
+  "name": "@celine-eu/community",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev --host 0.0.0.0 --port 3007",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 3007",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@celine-eu/ui": "workspace:*",
+    "@sveltejs/kit": "^2.55.0",
+    "html2canvas": "^1.4.1",
+    "svelte": "^5.55.5",
+    "svelte-i18n": "^4.0.0"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "^5.5.4",
+    "@sveltejs/vite-plugin-svelte": "^7.0.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.6.3",
+    "vite": "^8.0.10"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "git": {
+    "commitMessage": "chore(community): release v${version}",
+    "tagName": "community-v${version}",
+    "tagAnnotation": "Release community v${version}",
+    "requireBranch": "main",
+    "push": true,
+    "pushArgs": ["--follow-tags"]
+  },
+  "npm": {
+    "publish": false
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "preset": "conventionalcommits",
+      "infile": "CHANGELOG.md"
+    }
+  },
+  "hooks": {
+    "before:init": ["pnpm --filter @celine-eu/community check"]
+  }
+}

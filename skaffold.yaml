@@ -11,6 +11,9 @@ build:
     - image: ghcr.io/celine-eu/celine-frontend-webapp
       docker:
         dockerfile: Dockerfile.webapp
+    - image: ghcr.io/celine-eu/celine-frontend-community
+      docker:
+        dockerfile: apps/community/Dockerfile
   local:
     push: false
     useDockerCLI: true

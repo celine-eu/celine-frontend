@@ -48,6 +48,9 @@ This monorepo contains the frontend applications and shared packages for the CEL
 │   ├── grid/                    # Grid Resilience Dashboard
 │   │   └── package.json
 │   │
+│   ├── community/               # REC Manager Dashboard
+│   │   └── package.json
+│   │
 │   ├── roi/                     # PV ROI Calculator
 │   │   └── package.json
 │   │
@@ -93,6 +96,7 @@ pnpm install
 pnpm dev:assistant
 pnpm dev:webapp
 pnpm dev:grid
+pnpm dev:community
 pnpm dev:roi
 
 # Build all
@@ -244,4 +248,4 @@ Each app connects to its corresponding backend service:
 | webapp | celine-webapp (BFF) | 8014 |
 | grid | celine-grid | 8015 |
 | roi | celine-roi | 8013 |
-
+| community | celine-community (BFF) | 8019 |
