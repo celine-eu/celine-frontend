@@ -12,7 +12,7 @@
     type FlexibilityWindows,
     type Period,
   } from '$lib/api';
-  import { meStore } from '$lib/stores';
+  import { communityStore } from '$lib/stores';
   import ExportButtons from '$lib/components/ExportButtons.svelte';
 
   let period = $state<Period>('30d');
@@ -25,16 +25,16 @@
   let error = $state(false);
 
   async function load() {
-    const me = $meStore;
-    if (!me) return;
+    const community = $communityStore;
+    if (!community) return;
     loading = true;
     error = false;
     selected = null;
     try {
       [windows, uptake, chain] = await Promise.all([
-        getFlexibilityWindows(me.communityKey, period),
-        getFlexibilityUptake(me.communityKey, period),
-        getDemonstrationChain(me.communityKey, period),
+        getFlexibilityWindows(community.key, period),
+        getFlexibilityUptake(community.key, period),
+        getDemonstrationChain(community.key, period),
       ]);
     } catch {
       error = true;
@@ -44,11 +44,11 @@
   }
 
   async function openWindow(windowId: string) {
-    const me = $meStore;
-    if (!me) return;
+    const community = $communityStore;
+    if (!community) return;
     detailLoading = true;
     try {
-      selected = await getFlexibilityWindow(me.communityKey, windowId, period);
+      selected = await getFlexibilityWindow(community.key, windowId, period);
     } finally {
       detailLoading = false;
     }
@@ -81,7 +81,7 @@
       <h1>{$_('flexibility.title')}</h1>
       <p>{$_('flexibility.subtitle')}</p>
     </div>
-    <div class="heading-actions">{#if $meStore}<ExportButtons communityKey={$meStore.communityKey} dataset="flexibility" {period} />{/if}<label class="period">
+    <div class="heading-actions">{#if $communityStore}<ExportButtons communityKey={$communityStore.key} dataset="flexibility" {period} />{/if}<label class="period">
       <span>{$_('common.period')}</span>
       <select bind:value={period} onchange={load}>
         <option value="today">{$_('period.today')}</option>

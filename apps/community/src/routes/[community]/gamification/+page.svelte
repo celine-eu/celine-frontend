@@ -8,7 +8,7 @@
     type PointsDistribution,
     type PointsLedger,
   } from '$lib/api';
-  import { meStore } from '$lib/stores';
+  import { communityStore } from '$lib/stores';
   import ExportButtons from '$lib/components/ExportButtons.svelte';
 
   let period = $state<Period>('30d');
@@ -19,13 +19,13 @@
   let error = $state(false);
 
   async function load() {
-    const me = $meStore;
-    if (!me) return;
+    const community = $communityStore;
+    if (!community) return;
     loading = true;
     error = false;
     ledger = null;
     try {
-      distribution = await getPointsDistribution(me.communityKey, period);
+      distribution = await getPointsDistribution(community.key, period);
     } catch {
       error = true;
     } finally {
@@ -34,11 +34,11 @@
   }
 
   async function openLedger(deviceId: string) {
-    const me = $meStore;
-    if (!me) return;
+    const community = $communityStore;
+    if (!community) return;
     detailLoading = true;
     try {
-      ledger = await getPointsLedger(me.communityKey, deviceId, period);
+      ledger = await getPointsLedger(community.key, deviceId, period);
     } finally {
       detailLoading = false;
     }
@@ -66,7 +66,7 @@
   <header class="page-heading">
     <div><span>{$_('gamification.eyebrow')}</span><h1>{$_('gamification.title')}</h1><p>{$_('gamification.subtitle')}</p></div>
     <div class="heading-actions">
-      {#if $meStore}<ExportButtons communityKey={$meStore.communityKey} dataset="points" {period} />{/if}
+      {#if $communityStore}<ExportButtons communityKey={$communityStore.key} dataset="points" {period} />{/if}
       <label><span>{$_('common.period')}</span><select bind:value={period} onchange={load}><option value="today">{$_('period.today')}</option><option value="7d">{$_('period.7d')}</option><option value="30d">{$_('period.30d')}</option></select></label>
     </div>
   </header>

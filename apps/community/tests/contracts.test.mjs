@@ -24,7 +24,7 @@ test('manager datasets expose both authorized export formats', async () => {
     alerts: 'alerts',
   };
   for (const [route, dataset] of Object.entries(routes)) {
-    const source = await read(`src/routes/${route}/+page.svelte`);
+    const source = await read(`src/routes/[community]/${route}/+page.svelte`);
     assert.match(source, /ExportButtons/);
     assert.match(source, new RegExp(`dataset="${dataset}"`));
   }
@@ -36,12 +36,12 @@ test('manager datasets expose both authorized export formats', async () => {
 test('participant identity fields are absent from manager contracts and pages', async () => {
   const files = [
     'src/lib/api.ts',
-    'src/routes/+page.svelte',
-    'src/routes/devices/+page.svelte',
-    'src/routes/flexibility/+page.svelte',
-    'src/routes/gamification/+page.svelte',
-    'src/routes/nudging/+page.svelte',
-    'src/routes/alerts/+page.svelte',
+    'src/routes/[community]/+page.svelte',
+    'src/routes/[community]/devices/+page.svelte',
+    'src/routes/[community]/flexibility/+page.svelte',
+    'src/routes/[community]/gamification/+page.svelte',
+    'src/routes/[community]/nudging/+page.svelte',
+    'src/routes/[community]/alerts/+page.svelte',
   ];
   const forbidden = /participant(?:Name|Email|Phone|Address)|firstName|lastName|fiscalCode|taxCode/;
   for (const file of files) {
@@ -50,7 +50,7 @@ test('participant identity fields are absent from manager contracts and pages', 
 });
 
 test('dashboard startup cannot race the manager store or turn API outages into login loops', async () => {
-  const layout = await read('src/routes/+layout.svelte');
+  const layout = await read('src/routes/[community]/+layout.svelte');
   const loader = await read('src/routes/+layout.ts');
 
   assert.doesNotMatch(layout, /meStore\.set/);
@@ -59,8 +59,62 @@ test('dashboard startup cannot race the manager store or turn API outages into l
   assert.match(loader, /throw error;/);
 });
 
+test('the REC comes from the URL, never from the session', async () => {
+  // A manager of several RECs must not be one stale store away from reading the
+  // wrong community's numbers, and a bookmark must reopen the REC it names.
+  const pages = [
+    'src/routes/[community]/+page.svelte',
+    'src/routes/[community]/devices/+page.svelte',
+    'src/routes/[community]/flexibility/+page.svelte',
+    'src/routes/[community]/gamification/+page.svelte',
+    'src/routes/[community]/data-flow/+page.svelte',
+    'src/routes/[community]/nudging/+page.svelte',
+    'src/routes/[community]/alerts/+page.svelte',
+  ];
+  for (const path of pages) {
+    const source = await read(path);
+    assert.doesNotMatch(source, /communityKey\s*:/, path);
+    assert.doesNotMatch(source, /\$meStore\.community/, path);
+  }
+
+  const loader = await read('src/routes/[community]/+layout.ts');
+  assert.match(loader, /params\.community/);
+  assert.match(loader, /redirect\(\s*302,\s*`\/denied\?reason=not-your-rec/);
+});
+
+test('one REC skips the picker and several offer one', async () => {
+  const picker = await read('src/routes/+page.ts');
+
+  assert.match(picker, /me\.communities\.length === 1/);
+  assert.match(picker, /redirect\(302, `\/\$\{encodeURIComponent\(me\.communities\[0\]\.key\)\}`\)/);
+  assert.match(picker, /reason=no-recs/);
+});
+
+test('a refusal, a wrong REC and a downstream outage read differently', async () => {
+  const denied = await read('src/routes/denied/+page.svelte');
+  const loader = await read('src/routes/+layout.ts');
+  const english = JSON.parse(await read('src/lib/i18n/en.json'));
+
+  for (const reason of ['no-recs', 'not-your-rec', 'registry']) {
+    assert.match(denied, new RegExp(reason.replace('-', '\\-')), reason);
+  }
+  // 503 is a downstream being down, not a refusal, and must not be phrased as one.
+  assert.match(loader, /includes\('503'\)[\s\S]*?reason=registry/);
+  assert.notEqual(english['denied.registry'], english['denied.no_recs']);
+  assert.notEqual(english['denied.not_your_rec'], english['denied.no_recs']);
+});
+
+test('surfaces the caller cannot use are absent, not offered and refused', async () => {
+  const layout = await read('src/routes/[community]/+layout.svelte');
+  const alerts = await read('src/routes/[community]/alerts/+page.svelte');
+
+  assert.match(layout, /data\.community\.capabilities\.includes\(section\.capability\)/);
+  assert.match(alerts, /includes\('alerts\.write'\)/);
+  assert.match(alerts, /\{#if canAct\}/);
+});
+
 test('gamification formats numeric output and has no review queue', async () => {
-  const page = await read('src/routes/gamification/+page.svelte');
+  const page = await read('src/routes/[community]/gamification/+page.svelte');
 
   assert.match(page, /new Intl\.NumberFormat/);
   assert.match(page, /formatNumber\(distribution\.bottomDecilePoints\)/);
@@ -69,7 +123,7 @@ test('gamification formats numeric output and has no review queue', async () => 
 });
 
 test('nudging explains every journey stage and identifies the active catalogue', async () => {
-  const page = await read('src/routes/nudging/+page.svelte');
+  const page = await read('src/routes/[community]/nudging/+page.svelte');
   const italian = JSON.parse(await read('src/lib/i18n/it.json'));
 
   assert.match(page, /nudge_step\.\$\{step\.id\}_description/);
@@ -80,14 +134,14 @@ test('nudging explains every journey stage and identifies the active catalogue',
 });
 
 test('manager dashboard reuses the full feedback flow and a larger base font', async () => {
-  const layout = await read('src/routes/+layout.svelte');
+  const layout = await read('src/routes/[community]/+layout.svelte');
   const api = await read('src/lib/api.ts');
   const diagnostics = await read('src/lib/feedback.ts');
   const styles = await read('src/app.css');
 
   assert.match(layout, /FeedbackWidget/);
   assert.match(layout, /collectFeedbackDiagnostics/);
-  assert.match(layout, /\{submitFeedback\}/);
+  assert.match(layout, /submitFeedback\(\{ \.\.\.payload, communityKey: data\.community\.key \}\)/);
   assert.match(api, /request<FeedbackCreated>\('\/api\/feedback'/);
   assert.match(diagnostics, /html2canvas\(document\.documentElement/);
   assert.match(diagnostics, /data-feedback-widget-root/);

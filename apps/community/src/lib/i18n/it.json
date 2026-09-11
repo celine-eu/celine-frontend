@@ -285,5 +285,14 @@
   "denied.title": "Accesso limitato",
   "denied.body": "Il tuo account non è associato al ruolo REC Manager.",
   "error.title": "Impossibile caricare la panoramica",
-  "error.retry": "Riprova"
+  "error.retry": "Riprova",
+  "nav.switch_rec": "Cambia REC",
+  "picker.title": "Scegli una comunità",
+  "picker.subtitle": "Il tuo account gestisce più comunità energetiche. Seleziona quella da aprire.",
+  "picker.filter": "Filtra per nome o chiave",
+  "picker.no_matches": "Nessuna comunità corrisponde al filtro.",
+  "denied.no_recs": "Nessuna comunità energetica ti autorizza. Chiedi a un amministratore REC di aggiungerti alla sua organizzazione Keycloak come manager.",
+  "denied.not_your_rec": "Non gestisci questa comunità energetica.",
+  "denied.registry": "Il registro REC non è raggiungibile, quindi l'elenco delle comunità non può essere risolto. Non è un problema di permessi: riprova tra qualche minuto.",
+  "denied.unavailable_title": "Servizio non disponibile"
 }

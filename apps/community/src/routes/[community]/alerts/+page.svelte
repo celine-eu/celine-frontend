@@ -11,7 +11,11 @@
     type ManagerAlert,
     type Severity,
   } from '$lib/api';
-  import { meStore } from '$lib/stores';
+  import { communityStore, meStore } from '$lib/stores';
+
+  // The dashboard's only write surface. A caller without `alerts.write` reads
+  // the inbox and is not shown three buttons that would each answer 403.
+  const canAct = $derived(($communityStore?.capabilities ?? []).includes('alerts.write'));
   import ExportButtons from '$lib/components/ExportButtons.svelte';
 
   let inbox = $state<AlertsResponse | null>(null);
@@ -23,12 +27,12 @@
   let source = $state('');
 
   async function load() {
-    const me = $meStore;
-    if (!me) return;
+    const community = $communityStore;
+    if (!community) return;
     loading = true;
     error = false;
     try {
-      inbox = await getAlerts(me.communityKey, { severity, state: filterState, source });
+      inbox = await getAlerts(community.key, { severity, state: filterState, source });
     } catch {
       error = true;
     } finally {
@@ -42,25 +46,26 @@
   }
 
   async function acknowledge(alertId: string) {
-    const me = $meStore;
-    if (!me) return;
+    const community = $communityStore;
+    if (!community) return;
     actionId = alertId;
-    try { updateAlert(await acknowledgeAlert(me.communityKey, alertId)); } finally { actionId = null; }
+    try { updateAlert(await acknowledgeAlert(community.key, alertId)); } finally { actionId = null; }
   }
 
   async function mute(alertId: string) {
-    const me = $meStore;
-    if (!me) return;
+    const community = $communityStore;
+    if (!community) return;
     actionId = alertId;
     const until = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    try { updateAlert(await muteAlert(me.communityKey, alertId, until)); } finally { actionId = null; }
+    try { updateAlert(await muteAlert(community.key, alertId, until)); } finally { actionId = null; }
   }
 
   async function assign(alertId: string) {
+    const community = $communityStore;
     const me = $meStore;
-    if (!me) return;
+    if (!community || !me) return;
     actionId = alertId;
-    try { updateAlert(await assignAlert(me.communityKey, alertId, me.sub)); } finally { actionId = null; }
+    try { updateAlert(await assignAlert(community.key, alertId, me.sub)); } finally { actionId = null; }
   }
 
   function formatDate(value?: string): string {
@@ -74,7 +79,7 @@
 <svelte:head><title>{$_('nav.alerts')} · {$_('app.title')}</title></svelte:head>
 
 <div class="page-wrap">
-  <header class="page-heading"><div><span>{$_('alerts.eyebrow')}</span><h1>{$_('alerts.title')}</h1><p>{$_('alerts.subtitle')}</p></div><div class="heading-actions">{#if $meStore}<ExportButtons communityKey={$meStore.communityKey} dataset="alerts" />{/if}{#if inbox}<div class="total"><strong>{inbox.total}</strong><small>{$_('alerts.results')}</small></div>{/if}</div></header>
+  <header class="page-heading"><div><span>{$_('alerts.eyebrow')}</span><h1>{$_('alerts.title')}</h1><p>{$_('alerts.subtitle')}</p></div><div class="heading-actions">{#if $communityStore}<ExportButtons communityKey={$communityStore.key} dataset="alerts" />{/if}{#if inbox}<div class="total"><strong>{inbox.total}</strong><small>{$_('alerts.results')}</small></div>{/if}</div></header>
 
   <section class="panel">
     <form class="filters" onsubmit={(event) => { event.preventDefault(); void load(); }}>
@@ -87,7 +92,7 @@
     {#if loading}<div class="state-view"><div class="spinner"></div><p>{$_('common.loading')}</p></div>
     {:else if error}<div class="state-view error"><strong>!</strong><p>{$_('alerts.error')}</p><button onclick={load}>{$_('error.retry')}</button></div>
     {:else if !inbox || inbox.items.length === 0}<div class="state-view"><strong>✓</strong><p>{$_('alerts.empty')}</p></div>
-    {:else}<div class="alert-list">{#each inbox.items as alert (alert.id)}<article class={`severity-border ${alert.severity}`}><div class="alert-icon"><span>{alert.severity === 'critical' ? '!' : alert.severity === 'high' ? '↑' : '•'}</span></div><div class="alert-main"><div class="meta"><span class={`tag ${alert.severity}`}>{$_(`severity.${alert.severity}`)}</span><span class="tag neutral">{$_(`alert_source.${alert.source}`)}</span><span class={`tag state-${alert.state}`}>{$_(`alert_state.${alert.state}`)}</span></div><h2>{alert.title}</h2><p>{alert.detail}</p><small>{formatDate(alert.createdAt)}{#if alert.resourceId} · <code>{alert.resourceId}</code>{/if}{#if alert.assignedTo} · {$_('alerts.assigned_to')} <code>{alert.assignedTo}</code>{/if}{#if alert.mutedUntil} · {$_('alerts.muted_until')} {formatDate(alert.mutedUntil)}{/if}</small></div><div class="actions"><button disabled={alert.acknowledged || actionId === alert.id} onclick={() => acknowledge(alert.id)}>{alert.acknowledged ? $_('alerts.acknowledged') : $_('alerts.ack')}</button><button class="secondary" disabled={actionId === alert.id} onclick={() => mute(alert.id)}>{$_('alerts.mute_24h')}</button><button class="secondary" disabled={actionId === alert.id || Boolean(alert.assignedTo)} onclick={() => assign(alert.id)}>{alert.assignedTo ? $_('alerts.assigned') : $_('alerts.assign_me')}</button></div></article>{/each}</div>{/if}
+    {:else}<div class="alert-list">{#each inbox.items as alert (alert.id)}<article class={`severity-border ${alert.severity}`}><div class="alert-icon"><span>{alert.severity === 'critical' ? '!' : alert.severity === 'high' ? '↑' : '•'}</span></div><div class="alert-main"><div class="meta"><span class={`tag ${alert.severity}`}>{$_(`severity.${alert.severity}`)}</span><span class="tag neutral">{$_(`alert_source.${alert.source}`)}</span><span class={`tag state-${alert.state}`}>{$_(`alert_state.${alert.state}`)}</span></div><h2>{alert.title}</h2><p>{alert.detail}</p><small>{formatDate(alert.createdAt)}{#if alert.resourceId} · <code>{alert.resourceId}</code>{/if}{#if alert.assignedTo} · {$_('alerts.assigned_to')} <code>{alert.assignedTo}</code>{/if}{#if alert.mutedUntil} · {$_('alerts.muted_until')} {formatDate(alert.mutedUntil)}{/if}</small></div>{#if canAct}<div class="actions"><button disabled={alert.acknowledged || actionId === alert.id} onclick={() => acknowledge(alert.id)}>{alert.acknowledged ? $_('alerts.acknowledged') : $_('alerts.ack')}</button><button class="secondary" disabled={actionId === alert.id} onclick={() => mute(alert.id)}>{$_('alerts.mute_24h')}</button><button class="secondary" disabled={actionId === alert.id || Boolean(alert.assignedTo)} onclick={() => assign(alert.id)}>{alert.assignedTo ? $_('alerts.assigned') : $_('alerts.assign_me')}</button></div>{/if}</article>{/each}</div>{/if}
   </section>
   <p class="audit-notice">{$_('alerts.audit_notice')}</p>
 </div>

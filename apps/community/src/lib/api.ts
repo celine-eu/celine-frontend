@@ -2,21 +2,43 @@ import type { FeedbackContext, FeedbackScreenshot } from './feedback';
 
 export type Period = 'today' | '7d' | '30d';
 
+/** An action name from `policies/community.rego`, e.g. `alerts.write`. */
+export type Capability =
+  | 'console.read'
+  | 'community.read'
+  | 'objectives.write'
+  | 'devices.read'
+  | 'flexibility.read'
+  | 'gamification.read'
+  | 'nudging.read'
+  | 'alerts.read'
+  | 'alerts.write';
+
+export interface CommunityAccess {
+  key: string;
+  name: string;
+  capabilities: Capability[];
+}
+
 export interface Me {
   sub: string;
   email: string;
   name?: string;
   preferredUsername?: string;
   locale?: string;
-  organization: string;
-  communityKey: string;
-  communityName: string;
+  /** Every Keycloak organization the caller belongs to. Diagnostic, not a grant. */
+  organizations: string[];
+  /** A realm `admins` or `managers` badge is what makes `communities` the whole registry. */
+  realmGroups: string[];
+  communities: CommunityAccess[];
   scopes: string[];
 }
 
 export interface FeedbackSubmission {
   rating: number;
   comment: string;
+  /** Which REC the manager was looking at. The BFF checks it rather than deriving it. */
+  communityKey?: string;
   context: FeedbackContext;
   screenshot?: FeedbackScreenshot | null;
 }
@@ -377,6 +399,8 @@ export interface DeviceQuery {
 
 interface MeResponse {
   user: Me;
+  /** False when the REC list came from the token because the registry was down. */
+  registryAvailable: boolean;
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -391,6 +415,20 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 
 export async function getMe(): Promise<Me> {
   return request<MeResponse>('/api/me').then((response) => response.user);
+}
+
+/** Whether `me` may do `capability` in the REC keyed `communityKey`. */
+export function can(
+  me: Me | null,
+  communityKey: string | null | undefined,
+  capability: Capability,
+): boolean {
+  if (!me || !communityKey) return false;
+  return (
+    me.communities.find((community) => community.key === communityKey)?.capabilities.includes(
+      capability,
+    ) ?? false
+  );
 }
 
 export async function getOverview(communityKey: string, period: Period): Promise<Overview> {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { _ } from 'svelte-i18n';
-  import { meStore } from '$lib/stores';
+  import { communityStore } from '$lib/stores';
   import { getDataFlow, type DataFlow, type Period } from '$lib/api';
 
   let dataFlow = $state<DataFlow | null>(null);
@@ -10,11 +10,11 @@
   let error = $state(false);
 
   async function load() {
-    const me = $meStore;
-    if (!me) return;
+    const community = $communityStore;
+    if (!community) return;
     loading = true;
     error = false;
-    try { dataFlow = await getDataFlow(me.communityKey, period); }
+    try { dataFlow = await getDataFlow(community.key, period); }
     catch { error = true; }
     finally { loading = false; }
   }

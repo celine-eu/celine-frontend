@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { _ } from 'svelte-i18n';
   import { getNudgingConversion, type NudgingConversion, type Period } from '$lib/api';
-  import { meStore } from '$lib/stores';
+  import { communityStore } from '$lib/stores';
   import ExportButtons from '$lib/components/ExportButtons.svelte';
 
   let period = $state<Period>('30d');
@@ -11,12 +11,12 @@
   let error = $state(false);
 
   async function load() {
-    const me = $meStore;
-    if (!me) return;
+    const community = $communityStore;
+    if (!community) return;
     loading = true;
     error = false;
     try {
-      data = await getNudgingConversion(me.communityKey, period);
+      data = await getNudgingConversion(community.key, period);
     } catch {
       error = true;
     } finally {
@@ -39,7 +39,7 @@
 <svelte:head><title>{$_('nav.nudging')} · {$_('app.title')}</title></svelte:head>
 
 <div class="page-wrap">
-  <header class="page-heading"><div><span>{$_('nudging.eyebrow')}</span><h1>{$_('nudging.title')}</h1><p>{$_('nudging.subtitle')}</p></div><div class="heading-actions">{#if $meStore}<ExportButtons communityKey={$meStore.communityKey} dataset="nudging" {period} />{/if}<label><span>{$_('common.period')}</span><select bind:value={period} onchange={load}><option value="today">{$_('period.today')}</option><option value="7d">{$_('period.7d')}</option><option value="30d">{$_('period.30d')}</option></select></label></div></header>
+  <header class="page-heading"><div><span>{$_('nudging.eyebrow')}</span><h1>{$_('nudging.title')}</h1><p>{$_('nudging.subtitle')}</p></div><div class="heading-actions">{#if $communityStore}<ExportButtons communityKey={$communityStore.key} dataset="nudging" {period} />{/if}<label><span>{$_('common.period')}</span><select bind:value={period} onchange={load}><option value="today">{$_('period.today')}</option><option value="7d">{$_('period.7d')}</option><option value="30d">{$_('period.30d')}</option></select></label></div></header>
 
   {#if loading}<div class="state"><div class="spinner"></div><p>{$_('common.loading')}</p></div>
   {:else if error}<div class="state error"><strong>!</strong><p>{$_('nudging.error')}</p><button onclick={load}>{$_('error.retry')}</button></div>

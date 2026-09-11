@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { _ } from 'svelte-i18n';
-  import { meStore } from '$lib/stores';
+  import { communityStore } from '$lib/stores';
   import ExportButtons from '$lib/components/ExportButtons.svelte';
   import {
     getDevice,
@@ -25,13 +25,13 @@
   const pageSize = 8;
 
   async function loadDevices(reset = false) {
-    const me = $meStore;
-    if (!me) return;
+    const community = $communityStore;
+    if (!community) return;
     if (reset) page = 1;
     loading = true;
     error = false;
     try {
-      board = await getDevices(me.communityKey, {
+      board = await getDevices(community.key, {
         period: '30d', search, status, engagement, sort, order: sort === 'device_id' ? 'asc' : 'desc', page, pageSize,
       });
     } catch {
@@ -42,11 +42,11 @@
   }
 
   async function openDevice(deviceId: string) {
-    const me = $meStore;
-    if (!me) return;
+    const community = $communityStore;
+    if (!community) return;
     detailLoading = true;
     try {
-      selected = await getDevice(me.communityKey, deviceId);
+      selected = await getDevice(community.key, deviceId);
     } finally {
       detailLoading = false;
     }
@@ -81,7 +81,7 @@
 <div class="page-wrap">
   <header class="page-heading">
     <div><span>{$_('devices.eyebrow')}</span><h1>{$_('devices.title')}</h1><p>{$_('devices.subtitle')}</p></div>
-    <div class="heading-actions">{#if $meStore}<ExportButtons communityKey={$meStore.communityKey} dataset="devices" period="30d" />{/if}{#if board?.partial}<div class="partial" title={board.missingSources.join(', ')}>{$_('common.partial')}</div>{/if}</div>
+    <div class="heading-actions">{#if $communityStore}<ExportButtons communityKey={$communityStore.key} dataset="devices" period="30d" />{/if}{#if board?.partial}<div class="partial" title={board.missingSources.join(', ')}>{$_('common.partial')}</div>{/if}</div>
   </header>
 
   {#if board}

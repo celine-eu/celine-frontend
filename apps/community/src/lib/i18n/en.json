@@ -285,5 +285,14 @@
   "denied.title": "Access restricted",
   "denied.body": "Your account is not associated with a REC Manager role.",
   "error.title": "We could not load the overview",
-  "error.retry": "Try again"
+  "error.retry": "Try again",
+  "nav.switch_rec": "Switch REC",
+  "picker.title": "Choose a community",
+  "picker.subtitle": "Your account manages more than one energy community. Pick the one to open.",
+  "picker.filter": "Filter by name or key",
+  "picker.no_matches": "No community matches that filter.",
+  "denied.no_recs": "No energy community grants you access. Ask a REC administrator to add you to its Keycloak organization as a manager.",
+  "denied.not_your_rec": "You do not manage this energy community.",
+  "denied.registry": "The REC registry is unreachable, so the community list cannot be resolved. This is not a permissions problem — try again in a few minutes.",
+  "denied.unavailable_title": "Service unavailable"
 }
