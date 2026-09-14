@@ -1,9 +1,9 @@
 {
   "assistant": {
-    "page_title": "Asistente CELINE"
+    "page_title": "Asistente de IA CELINE"
   },
   "assistant_ui": {
-    "title": "Asistente",
+    "title": "Asistente de IA",
     "history": "Historial",
     "attachments": "Adjuntos",
     "sources": "Fuentes",
@@ -18,6 +18,8 @@
     "type_message": "Escribe un mensaje...",
     "message_label": "Mensaje",
     "send_message": "Enviar mensaje",
+    "ai_notice": "Las respuestas las genera una IA a través de OpenAI y pueden contener errores; no subas documentos de identidad.",
+    "privacy_policy": "Política de privacidad",
     "remove": "Eliminar",
     "start_conversation": "Inicia una conversación",
     "assistant_generating": "El asistente está generando",

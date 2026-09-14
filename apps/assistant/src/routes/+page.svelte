@@ -1,11 +1,13 @@
 <script lang="ts">
   import { replaceState } from '$app/navigation';
   import { page } from '$app/stores';
+  import { env } from '$env/dynamic/public';
   import { ChatCore } from '@celine-eu/assistant-ui';
   import { t } from 'svelte-i18n';
 
   // Get conversation_id from URL if present
   const conversationId = $derived($page.url.searchParams.get('conversation_id'));
+  const privacyPolicyUrl = env.PUBLIC_PRIVACY_POLICY_URL || '/privacy';
 </script>
 
 <svelte:head>
@@ -22,6 +24,7 @@
     enableUpload={true}
     enableCitations={true}
     conversationId={conversationId}
+    {privacyPolicyUrl}
     onConversationChange={(id) => {
       // Update URL without reload
       const url = new URL(window.location.href);
