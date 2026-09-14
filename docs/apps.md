@@ -46,7 +46,7 @@ REC participant webapp. A full SvelteKit application for community members, incl
 
 **Key components:** `EnergyChart`, `ForecastCard`, `WeatherWidget`, `StatCard`, `SuggestionCard`, `GamificationPanel`, `PointsChart`
 
-**Layout:** The root layout wraps the app in `AssistantProvider` (floating assistant widget) and calls `GET /api/me` to check terms acceptance.
+**Layout:** The root layout loads `GET /api/me` (redirecting to `/accept-terms` when terms are required, except on `/privacy`, `/terms` and `/accept-terms`), then the community and unread notifications. There is no floating assistant widget: `AskAssistantButton`s on `/` and `/suggestions` navigate to `/assistant?prompt=…`.
 
 **Backend:** `celine-webapp` BFF (port 8014)
 
