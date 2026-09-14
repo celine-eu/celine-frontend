@@ -26,6 +26,7 @@
     { path: '/data-flow', label: 'nav.data_flow', icon: '≋', capability: 'devices.read' },
     { path: '/nudging', label: 'nav.nudging', icon: '◉', capability: 'nudging.read' },
     { path: '/alerts', label: 'nav.alerts', icon: '!', capability: 'alerts.read' },
+    { path: '/members', label: 'nav.members', icon: '☷', capability: 'members.read' },
   ];
 
   const nav = $derived(

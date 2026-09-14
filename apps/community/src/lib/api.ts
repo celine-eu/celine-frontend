@@ -1,4 +1,5 @@
 import type { FeedbackContext, FeedbackScreenshot } from './feedback';
+import { codeOf, type SendIntent, type SendOutcome } from './memberSend';
 
 export type Period = 'today' | '7d' | '30d';
 
@@ -12,7 +13,9 @@ export type Capability =
   | 'gamification.read'
   | 'nudging.read'
   | 'alerts.read'
-  | 'alerts.write';
+  | 'alerts.write'
+  | 'members.read'
+  | 'members.invite';
 
 export interface CommunityAccess {
   key: string;
@@ -386,6 +389,63 @@ export interface AlertsResponse {
   items: ManagerAlert[];
 }
 
+/**
+ * A REC member as the registry lists them. The members page is the one place a
+ * participant's name is shown, and the BFF sends nothing else about them: no
+ * address, no account id, no delivery point.
+ */
+export interface MemberSummary {
+  key: string;
+  /** Absent when the registry's name only repeats the key. */
+  name?: string | null;
+  role: string;
+  status: string;
+  area: string;
+}
+
+export interface MembersPage {
+  communityKey: string;
+  items: MemberSummary[];
+  /** The registry's cursor. A search narrows each page, so a page can be empty and still have a next. */
+  nextCursor?: string | null;
+}
+
+/** One past press, from the BFF's audit rows. The name is read back from the registry. */
+export interface MemberSend {
+  id: string;
+  createdAt: string;
+  memberKey: string;
+  memberName?: string | null;
+  intent: SendIntent;
+  code: string;
+  actorId: string;
+}
+
+export interface MemberSendsPage {
+  communityKey: string;
+  items: MemberSend[];
+  nextCursor?: string | null;
+  /** False when the registry did not answer: the rows are complete, the names absent. */
+  namesAvailable: boolean;
+}
+
+export interface MemberSendsQuery {
+  member_key?: string;
+  actor?: string;
+  intent?: SendIntent | '';
+  code?: string;
+  from?: string;
+  to?: string;
+  cursor?: string | null;
+}
+
+export interface MemberQuery {
+  q?: string;
+  status?: string;
+  cursor?: string | null;
+  limit?: number;
+}
+
 export interface DeviceQuery {
   period?: Period;
   search?: string;
@@ -575,6 +635,64 @@ export async function getAlerts(
   return request<AlertsResponse>(
     `/api/communities/${encodeURIComponent(communityKey)}/alerts?${params.toString()}`,
   );
+}
+
+export async function getMembers(
+  communityKey: string,
+  query: MemberQuery = {},
+): Promise<MembersPage> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
+  }
+  return request<MembersPage>(
+    `/api/communities/${encodeURIComponent(communityKey)}/members?${params.toString()}`,
+  );
+}
+
+export async function getMemberSends(
+  communityKey: string,
+  query: MemberSendsQuery = {},
+): Promise<MemberSendsPage> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
+  }
+  return request<MemberSendsPage>(
+    `/api/communities/${encodeURIComponent(communityKey)}/members/sends?${params.toString()}`,
+  );
+}
+
+/**
+ * Ask the BFF to email a member. Resolves with the outcome, refusals included:
+ * a `409 no_email` is an answer for the manager to read, not an exception.
+ * Only a `401` leaves the page, as every other request does.
+ */
+export async function sendMemberEmail(
+  communityKey: string,
+  memberKey: string,
+  intent: SendIntent,
+): Promise<SendOutcome> {
+  const route = intent === 'invitation' ? 'invitation' : 'password-reset';
+  const url = `/api/communities/${encodeURIComponent(communityKey)}/members/${encodeURIComponent(memberKey)}/${route}`;
+  let response: Response;
+  try {
+    response = await fetch(url, { method: 'POST', credentials: 'include' });
+  } catch {
+    return { status: 0, code: 'network_error', kind: intent };
+  }
+  if (response.status === 401) {
+    window.location.href = `/oauth2/sign_in?rd=${encodeURIComponent(window.location.href)}`;
+    return new Promise(() => {});
+  }
+  const body: unknown = await response.json().catch(() => null);
+  if (response.ok) {
+    const sent = body as { code: string; kind: SendIntent; lifespanSeconds: number };
+    return { status: response.status, code: sent.code, kind: sent.kind, lifespanSeconds: sent.lifespanSeconds };
+  }
+  const detail = (body as { detail?: { retryAfterSeconds?: unknown } } | null)?.detail;
+  const retryAfter = typeof detail?.retryAfterSeconds === 'number' ? detail.retryAfterSeconds : undefined;
+  return { status: response.status, code: codeOf(response.status, body), kind: intent, retryAfterSeconds: retryAfter };
 }
 
 export async function acknowledgeAlert(

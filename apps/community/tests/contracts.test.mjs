@@ -70,6 +70,7 @@ test('the REC comes from the URL, never from the session', async () => {
     'src/routes/[community]/data-flow/+page.svelte',
     'src/routes/[community]/nudging/+page.svelte',
     'src/routes/[community]/alerts/+page.svelte',
+    'src/routes/[community]/members/+page.svelte',
   ];
   for (const path of pages) {
     const source = await read(path);
@@ -146,4 +147,37 @@ test('manager dashboard reuses the full feedback flow and a larger base font', a
   assert.match(diagnostics, /html2canvas\(document\.documentElement/);
   assert.match(diagnostics, /data-feedback-widget-root/);
   assert.match(styles, /html\s*\{\s*font-size:\s*17px;/);
+});
+
+test('members are listed by name, and by nothing else that identifies them', async () => {
+  // Requester, 2026-09-14 (A1): the one page that shows participants by name.
+  const page = await read('src/routes/[community]/members/+page.svelte');
+  const api = await read('src/lib/api.ts');
+  const summary = api.match(/export interface MemberSummary \{[\s\S]*?\n\}/)?.[0] ?? '';
+
+  assert.match(summary, /name\?: string \| null;/);
+  // Fields, not words: the page does send an email, it never reads an address.
+  const fields = /^\s*(userId|user_id|did|email|deliveryPoints?|fiscalCode|taxCode|phone)\??:/im;
+  assert.doesNotMatch(summary.replace(/\/\*\*[\s\S]*?\*\//g, ''), fields);
+  const reads = /\.(userId|user_id|did|email|deliveryPoints?|fiscalCode|taxCode|phone)\b/i;
+  assert.doesNotMatch(page.replace(/<!--[\s\S]*?-->|\/\/.*$/gm, ''), reads);
+});
+
+test('a member whose registry name only repeats the key reads as having no name', async () => {
+  const page = await read('src/routes/[community]/members/+page.svelte');
+
+  assert.match(page, /\{#if member\.name\}[\s\S]*?\{:else\}[\s\S]*?members\.no_name/);
+  assert.match(page, /<code>\{member\.key\}<\/code>/);
+});
+
+test('member names are neither stored nor exported by the dashboard', async () => {
+  const page = await read('src/routes/[community]/members/+page.svelte');
+
+  assert.doesNotMatch(page, /localStorage|sessionStorage|indexedDB|ExportButtons/);
+});
+
+test('the members page is offered only with members.read', async () => {
+  const layout = await read('src/routes/[community]/+layout.svelte');
+
+  assert.match(layout, /path: '\/members'[^}]*capability: 'members\.read'/);
 });

@@ -20,7 +20,9 @@ expects:
 - `GET /api/communities/{community_key}/data-flow/pipelines` for coverage and pipeline freshness.
 - points distribution, anti-gaming flags, and device ledgers for `/[community]/gamification`;
 - read-only funnel, delivery health, reachability, and rule metrics for `/[community]/nudging`;
-- the BFF-owned alert inbox and audited actions for `/[community]/alerts`.
+- the BFF-owned alert inbox and audited actions for `/[community]/alerts`;
+- `GET /api/communities/{community_key}/members` for `/[community]/members`, shown only with
+  `members.read`.
 
 ## Which REC is on screen
 
@@ -37,6 +39,20 @@ unreachable — the last of which is temporary and says so.
 The `/[community]/devices` page provides search, filters, pagination and a technical detail drawer. The
 `/[community]/data-flow` page shows 15-minute interval coverage, detected gaps and the latest pipeline state.
 Both views deliberately expose only `device_id`, never participant identity.
+
+`/[community]/members` is the one page that shows participants by name: name, key, role, area and
+status, read from the REC registry through the BFF. The names live in the page's state only. They
+are not stored in the browser and not exported. A member whose registry name is just their key is
+shown by key with "no name on record". Search narrows one registry page at a time, and "Load more"
+fetches the next.
+
+With `members.invite`, each active member has **Send invitation** and **Reset password**. A press
+opens a confirmation dialog, and nothing is requested until the manager confirms. Only one request
+is in flight at a time. The BFF's code becomes a sentence through `src/lib/memberSend.ts`, in the
+three locales: the link's validity comes from `lifespanSeconds`, and a cooldown's wait from
+`retryAfterSeconds`. A mismatch names the other button, and an unknown code is shown raw. The
+"Sent emails" tab lists past presses from the BFF's audit rows, filterable by member key, sender,
+email, outcome and date.
 
 The phase-5 views retain the same boundary: the leaderboard and ledger use only `device_id`, the
 nudging page contains no rule or message editor, and alert acknowledge/mute/assign actions are
