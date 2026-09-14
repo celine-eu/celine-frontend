@@ -406,7 +406,7 @@
     "back": "Torna alla panoramica"
   },
   "assistant_ui": {
-    "title": "Assistente",
+    "title": "Assistente IA",
     "history": "Cronologia",
     "attachments": "Allegati",
     "sources": "Fonti",
@@ -421,6 +421,8 @@
     "type_message": "Scrivi un messaggio...",
     "message_label": "Messaggio",
     "send_message": "Invia messaggio",
+    "ai_notice": "Le risposte sono generate dall'IA tramite OpenAI e possono essere errate; non caricare documenti d'identità.",
+    "privacy_policy": "Informativa sulla privacy",
     "remove": "Rimuovi",
     "start_conversation": "Inizia una conversazione",
     "assistant_generating": "L'assistente sta generando",

@@ -7,6 +7,7 @@
     apiBaseUrl?: string;
     position?: 'bottom-right' | 'bottom-left';
     showWidget?: boolean;
+    privacyPolicyUrl?: string;
     children: Snippet;
   }
 
@@ -14,6 +15,7 @@
     apiBaseUrl = '/api',
     position = 'bottom-right',
     showWidget = true,
+    privacyPolicyUrl = '/privacy',
     children
   }: Props = $props();
 
@@ -41,5 +43,6 @@
     bind:this={widget}
     {apiBaseUrl}
     {position}
+    {privacyPolicyUrl}
   />
 {/if}

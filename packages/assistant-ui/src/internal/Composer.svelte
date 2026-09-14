@@ -9,6 +9,7 @@
     busy?: boolean;
     attachments?: Attachment[];
     enableUpload?: boolean;
+    privacyPolicyUrl?: string;
     onAddFiles?: (files: FileList | null) => void;
     onRemoveAttachment?: (id: string) => void;
     onSend: () => Promise<void>;
@@ -19,6 +20,7 @@
     busy = false,
     attachments = [],
     enableUpload = true,
+    privacyPolicyUrl = "/privacy",
     onAddFiles = () => {},
     onRemoveAttachment = () => {},
     onSend,
@@ -143,6 +145,11 @@
       <Icon name="send" size={20} />
     </button>
   </form>
+
+  <p class="ai-notice">
+    {$t('assistant_ui.ai_notice')}
+    <a href={privacyPolicyUrl} target="_blank" rel="noopener">{$t('assistant_ui.privacy_policy')}</a>
+  </p>
 </footer>
 
 <style>
@@ -295,5 +302,18 @@
   .btn-send:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  /* AI transparency notice (EU AI Act Art. 50) */
+  .ai-notice {
+    margin: var(--celine-space-xs) 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--celine-text-secondary);
+  }
+
+  .ai-notice a {
+    color: inherit;
+    text-decoration: underline;
   }
 </style>

@@ -94,6 +94,7 @@ export interface ChatCoreProps {
   enableCitations?: boolean;
   conversationId?: string | null;
   initialPrompt?: string;
+  privacyPolicyUrl?: string;
   onConversationChange?: (id: string | null) => void;
   onError?: (error: Error) => void;
   onClose?: () => void;

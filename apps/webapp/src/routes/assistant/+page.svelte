@@ -1,8 +1,10 @@
 <script lang="ts">
   import { replaceState } from "$app/navigation";
   import { page } from "$app/state";
+  import { env } from "$env/dynamic/public";
   import { ChatCore } from "@celine-eu/assistant-ui";
   import { Icon } from "@celine-eu/ui";
+  import { t } from "svelte-i18n";
 
   let showHistory = $state(false);
   let showAttachments = $state(false);
@@ -10,6 +12,7 @@
   let hasConversation = $state(false);
   const conversationId = $derived(page.url.searchParams.get("conversation_id"));
   const initialPrompt = $derived(page.url.searchParams.get("prompt") ?? "");
+  const privacyPolicyUrl = env.PUBLIC_PRIVACY_POLICY_URL || "/privacy";
 
   function closePanels() {
     showHistory = false;
@@ -41,13 +44,13 @@
 </script>
 
 <svelte:head>
-  <title>Assistant - REC</title>
+  <title>{$t('assistant_ui.title')} - REC</title>
 </svelte:head>
 
 <section class="assistant-page">
   <header class="page-header">
     <div class="page-header__top">
-      <h1 class="page-title">Assistant</h1>
+      <h1 class="page-title">{$t('assistant_ui.title')}</h1>
       <p class="page-subtitle">Ask questions about your energy community</p>
     </div>
 
@@ -99,6 +102,7 @@
       enableUpload={true}
       {conversationId}
       {initialPrompt}
+      {privacyPolicyUrl}
       onConversationChange={handleConversationChange}
       onPanelsClose={() => {
         showHistory = false;

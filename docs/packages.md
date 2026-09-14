@@ -75,6 +75,14 @@ AI assistant chat interface. Provides a full chat experience that can be embedde
 | `conversationId` | `string` | none | Load an existing conversation |
 | `initialContext` | `AssistantContext` | none | Pre-load assistant context |
 | `initialPrompt` | `string` | none | Pre-fill the composer |
+| `privacyPolicyUrl` | `string` | `/privacy` | Privacy policy linked from the AI notice |
+
+The composer always shows a one-line AI notice (EU AI Act Art. 50): answers are
+AI-generated through OpenAI and can be wrong, identity documents should not be uploaded,
+and a link to `privacyPolicyUrl`, opened in a new tab. The text comes from the
+`assistant_ui.ai_notice` and `assistant_ui.privacy_policy` translation keys, which every
+consuming app must ship. `AssistantWidget` and `AssistantProvider` accept the same
+`privacyPolicyUrl` prop and pass it through.
 
 ### AssistantContext Shape
 

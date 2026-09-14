@@ -10,6 +10,12 @@ Standalone full-page AI assistant application. Provides a single-route SvelteKit
 
 **Docker image:** `ghcr.io/celine-eu/celine-assistant`
 
+**Environment:**
+
+| Variable | Default | Description |
+|---|---|---|
+| `PUBLIC_PRIVACY_POLICY_URL` | `/privacy` | Privacy policy linked from the AI notice under the chat input. This app has no `/privacy` route, so set it in any deployment where that path is not served by another app on the same host |
+
 **Dev:**
 ```bash
 task dev:assistant
@@ -43,6 +49,12 @@ REC participant webapp. A full SvelteKit application for community members, incl
 **Layout:** The root layout wraps the app in `AssistantProvider` (floating assistant widget) and calls `GET /api/me` to check terms acceptance.
 
 **Backend:** `celine-webapp` BFF (port 8014)
+
+**Environment:**
+
+| Variable | Default | Description |
+|---|---|---|
+| `PUBLIC_PRIVACY_POLICY_URL` | `/privacy` | Privacy policy linked from the AI notice under the assistant's chat input |
 
 **Dev:**
 ```bash

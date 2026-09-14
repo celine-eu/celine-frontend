@@ -1,15 +1,18 @@
 <script lang="ts">
   import { Icon } from "@celine-eu/ui";
+  import { t } from "svelte-i18n";
   import ChatCore from "./ChatCore.svelte";
 
   interface Props {
     apiBaseUrl?: string;
     position?: "bottom-right" | "bottom-left";
+    privacyPolicyUrl?: string;
   }
 
   let {
     apiBaseUrl = "/api",
     position = "bottom-right",
+    privacyPolicyUrl = "/privacy",
   }: Props = $props();
 
   let open = $state(false);
@@ -51,7 +54,7 @@
     <header class="window-header">
       <div class="window-title">
         <Icon name="bot" size={18} />
-        <span>Assistant</span>
+        <span>{$t('assistant_ui.title')}</span>
       </div>
       <div class="window-controls">
         <button
@@ -81,6 +84,7 @@
           enableHistory={true}
           enableAttachments={true}
           {initialPrompt}
+          {privacyPolicyUrl}
         />
       </div>
     {/if}

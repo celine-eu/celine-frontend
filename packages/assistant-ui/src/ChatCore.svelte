@@ -29,6 +29,7 @@
     enableCitations = true,
     conversationId: initialConversationId = null,
     initialPrompt = "",
+    privacyPolicyUrl = "/privacy",
     onConversationChange,
     onError,
     onClose,
@@ -434,7 +435,6 @@
 >
   {#if showHeader}
     <ChatHeader
-      title="Assistant"
       bind:showCitations={includeCitations}
       {enableHistory}
       {enableAttachments}
@@ -486,6 +486,7 @@
     {busy}
     {attachments}
     {enableUpload}
+    {privacyPolicyUrl}
     onAddFiles={addFiles}
     onRemoveAttachment={removeAttachment}
     onSend={send}
