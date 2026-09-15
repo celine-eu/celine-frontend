@@ -14,9 +14,11 @@
     "build:roi": "pnpm --filter @celine-eu/roi build",
     "build:grid": "pnpm --filter @celine-eu/grid build",
     "build:community": "pnpm --filter @celine-eu/community build",
-    "check": "pnpm -r check"
+    "check": "pnpm -r check",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "1.60.0",
     "@release-it/conventional-changelog": "^10.0.6",
     "release-it": "^19.0.0",
     "typescript": "^5.6.3"

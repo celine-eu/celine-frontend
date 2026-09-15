@@ -8,6 +8,15 @@ export const load: LayoutLoad = async ({ url, fetch }) => {
   let me = null;
   let status = 0;
 
+  // An `/api/*` path that reached this app has no BFF in front of it (a dev server hit
+  // directly, a probe). Rendering its 404 runs this load, and `handleFetch` sends the
+  // `/api/me` below as a real request back to this same server: one more `/api/*` 404,
+  // and so on without end — thousands of sockets a second, enough to exhaust the host's
+  // ephemeral ports (celine-dev, 2026-09-15). Never fetch the API while rendering one.
+  if (url.pathname.startsWith('/api/')) {
+    return { me: null, needs_terms: false, community: null, auth_error: false, unread_count: 0 };
+  }
+
   try {
     const res = await fetch('/api/me', { credentials: 'include' });
     // oauth2-proxy redirects unauthenticated requests to SSO (302 → HTML page).
