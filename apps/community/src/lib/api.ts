@@ -51,6 +51,40 @@ export interface FeedbackCreated {
   createdAt: string;
 }
 
+export type FeedbackState = 'new' | 'seen' | 'resolved';
+
+export interface FeedbackItem {
+  id: string;
+  rating: number;
+  comment?: string;
+  pageUrl: string;
+  pageTitle?: string;
+  pagePath?: string;
+  locale?: string;
+  timezone?: string;
+  viewportWidth?: number;
+  viewportHeight?: number;
+  screenWidth?: number;
+  screenHeight?: number;
+  colorScheme?: 'light' | 'dark';
+  clientTimestamp?: string;
+  extra: Record<string, unknown>;
+  hasScreenshot: boolean;
+  status: FeedbackState;
+  seenAt?: string;
+  resolvedAt?: string;
+  createdAt: string;
+}
+
+export interface FeedbackList {
+  communityKey: string;
+  page: number;
+  pageSize: number;
+  total: number;
+  counts: Record<FeedbackState, number>;
+  items: FeedbackItem[];
+}
+
 export interface EnergyPoint {
   label: string;
   importKwh: number;
@@ -741,4 +775,36 @@ export async function submitFeedback(payload: FeedbackSubmission): Promise<Feedb
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
   });
+}
+
+export async function getFeedback(
+  communityKey: string,
+  query: { status?: FeedbackState | ''; page?: number; pageSize?: number } = {},
+): Promise<FeedbackList> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== '') params.set(key, String(value));
+  }
+  return request<FeedbackList>(
+    `/api/communities/${encodeURIComponent(communityKey)}/feedback?${params.toString()}`,
+  );
+}
+
+export async function updateFeedbackStatus(
+  communityKey: string,
+  feedbackId: string,
+  status: Exclude<FeedbackState, 'new'>,
+): Promise<FeedbackItem> {
+  return request<FeedbackItem>(
+    `/api/communities/${encodeURIComponent(communityKey)}/feedback/${encodeURIComponent(feedbackId)}`,
+    {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ status }),
+    },
+  );
+}
+
+export function feedbackScreenshotUrl(communityKey: string, feedbackId: string): string {
+  return `/api/communities/${encodeURIComponent(communityKey)}/feedback/${encodeURIComponent(feedbackId)}/screenshot`;
 }

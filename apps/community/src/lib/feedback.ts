@@ -37,30 +37,53 @@ async function captureScreenshot(): Promise<FeedbackScreenshot | null> {
     const width = window.innerWidth;
     const height = window.innerHeight;
     const scale = Math.min(window.devicePixelRatio || 1, 2);
-    const canvas = await html2canvas(document.documentElement, {
-      backgroundColor: getComputedStyle(document.body).backgroundColor || '#ffffff',
-      foreignObjectRendering: false,
-      logging: false,
-      scale,
-      useCORS: true,
-      width,
-      height,
-      windowWidth: width,
-      windowHeight: height,
-      scrollX: -window.scrollX,
-      scrollY: -window.scrollY,
-      ignoreElements: (element) => element.hasAttribute('data-feedback-widget-root'),
-      onclone: (clonedDocument) => {
-        clonedDocument
-          .querySelectorAll<HTMLElement>('[data-feedback-widget-root]')
-          .forEach((node) => (node.style.display = 'none'));
-      },
-    });
+
+    const render = (renderScale: number, simplifyStyles = false) =>
+      html2canvas(document.documentElement, {
+        backgroundColor: getComputedStyle(document.body).backgroundColor || '#ffffff',
+        foreignObjectRendering: false,
+        logging: false,
+        scale: renderScale,
+        useCORS: true,
+        width,
+        height,
+        windowWidth: width,
+        windowHeight: height,
+        scrollX: -window.scrollX,
+        scrollY: -window.scrollY,
+        ignoreElements: (element) => element.hasAttribute('data-feedback-widget-root'),
+        onclone: (clonedDocument) => {
+          clonedDocument
+            .querySelectorAll<HTMLElement>('[data-feedback-widget-root]')
+            .forEach((node) => (node.style.display = 'none'));
+
+          // html2canvas 1.x cannot parse newer CSS image functions such as
+          // conic-gradient. If the normal render fails, keep the page content
+          // and remove decorative effects in the retry instead of dropping the
+          // screenshot from the feedback altogether.
+          if (simplifyStyles) {
+            clonedDocument.querySelectorAll<HTMLElement>('*').forEach((node) => {
+              node.style.setProperty('background-image', 'none', 'important');
+              node.style.setProperty('box-shadow', 'none', 'important');
+              node.style.setProperty('filter', 'none', 'important');
+              node.style.setProperty('backdrop-filter', 'none', 'important');
+            });
+          }
+        },
+      });
+
+    let canvas: HTMLCanvasElement;
+    try {
+      canvas = await render(scale);
+    } catch {
+      canvas = await render(1, true);
+    }
     const webp = canvas.toDataURL('image/webp', 0.9);
     return toScreenshotPayload(
       webp.startsWith('data:image/webp;base64,') ? webp : canvas.toDataURL('image/png'),
     );
-  } catch {
+  } catch (error) {
+    console.warn('Feedback screenshot capture failed', error);
     return null;
   } finally {
     hiddenNodes.forEach((node, index) => (node.style.display = previousDisplay[index] ?? ''));

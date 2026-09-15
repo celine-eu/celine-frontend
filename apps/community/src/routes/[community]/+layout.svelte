@@ -27,6 +27,7 @@
     { path: '/nudging', label: 'nav.nudging', icon: '◉', capability: 'nudging.read' },
     { path: '/alerts', label: 'nav.alerts', icon: '!', capability: 'alerts.read' },
     { path: '/members', label: 'nav.members', icon: '☷', capability: 'members.read' },
+    { path: '/feedback', label: 'nav.feedback', icon: '✉', capability: 'community.read' },
   ];
 
   const nav = $derived(
@@ -98,6 +99,7 @@
     <header class="topbar">
       <div class="mobile-brand"><span class="brand-mark">C</span><strong>CELINE</strong></div>
       <div class="topbar-actions">
+        <a class="icon-button" href={`${base}/feedback`} aria-label={$_('nav.feedback')}>✉</a>
         <button class="icon-button" onclick={toggleTheme} aria-label="Toggle color theme">
           {dark ? '☀' : '☾'}
         </button>
@@ -169,11 +171,11 @@
   .sidebar-footer small, .sidebar-footer strong { display: block; }
   .sidebar-footer small { color: var(--community-muted); font-size: 0.62rem; font-weight: 700; }
   .sidebar-footer strong { font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .community-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px color-mix(in srgb, #22c55e 18%, transparent); }
+  .community-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18); }
   .workspace { min-width: 0; min-height: 100dvh; }
-  .topbar { position: sticky; top: 0; z-index: 15; height: 68px; padding: 0 2rem; display: flex; align-items: center; background: color-mix(in srgb, var(--community-bg) 86%, transparent); backdrop-filter: blur(16px); border-bottom: 1px solid color-mix(in srgb, var(--community-border) 70%, transparent); }
+  .topbar { position: sticky; top: 0; z-index: 15; height: 68px; padding: 0 2rem; display: flex; align-items: center; background: var(--community-bg); backdrop-filter: blur(16px); border-bottom: 1px solid var(--community-border); }
   .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 0.65rem; position: relative; }
-  .icon-button { width: 36px; height: 36px; border: 1px solid var(--community-border); border-radius: 10px; background: var(--community-surface); color: var(--community-text); cursor: pointer; }
+  .icon-button { width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--community-border); border-radius: 10px; background: var(--community-surface); color: var(--community-text); text-decoration: none; cursor: pointer; }
   .profile { display: flex; align-items: center; gap: 0.55rem; padding: 0.25rem 0.45rem 0.25rem 0.25rem; border: 0; background: transparent; color: var(--community-text); cursor: pointer; }
   .avatar { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--community-primary); color: white; font-size: 0.7rem; font-weight: 800; }
   .profile-copy { text-align: left; }

@@ -42,6 +42,7 @@ test('participant identity fields are absent from manager contracts and pages', 
     'src/routes/[community]/gamification/+page.svelte',
     'src/routes/[community]/nudging/+page.svelte',
     'src/routes/[community]/alerts/+page.svelte',
+    'src/routes/[community]/feedback/+page.svelte',
   ];
   const forbidden = /participant(?:Name|Email|Phone|Address)|firstName|lastName|fiscalCode|taxCode/;
   for (const file of files) {
@@ -71,6 +72,7 @@ test('the REC comes from the URL, never from the session', async () => {
     'src/routes/[community]/nudging/+page.svelte',
     'src/routes/[community]/alerts/+page.svelte',
     'src/routes/[community]/members/+page.svelte',
+    'src/routes/[community]/feedback/+page.svelte',
   ];
   for (const path of pages) {
     const source = await read(path);
@@ -139,6 +141,13 @@ test('manager dashboard reuses the full feedback flow and a larger base font', a
   const api = await read('src/lib/api.ts');
   const diagnostics = await read('src/lib/feedback.ts');
   const styles = await read('src/app.css');
+  const captureSurfaces = await Promise.all([
+    read('src/app.css'),
+    read('src/routes/[community]/+layout.svelte'),
+    read('src/routes/[community]/+page.svelte'),
+    read('src/routes/[community]/feedback/+page.svelte'),
+    read('src/routes/[community]/flexibility/+page.svelte'),
+  ]);
 
   assert.match(layout, /FeedbackWidget/);
   assert.match(layout, /collectFeedbackDiagnostics/);
@@ -146,7 +155,30 @@ test('manager dashboard reuses the full feedback flow and a larger base font', a
   assert.match(api, /request<FeedbackCreated>\('\/api\/feedback'/);
   assert.match(diagnostics, /html2canvas\(document\.documentElement/);
   assert.match(diagnostics, /data-feedback-widget-root/);
+  assert.match(diagnostics, /render\(1, true\)/);
+  assert.match(diagnostics, /background-image', 'none'/);
   assert.match(styles, /html\s*\{\s*font-size:\s*17px;/);
+  assert.doesNotMatch(captureSurfaces.join('\n'), /color-mix\(/);
+});
+
+test('manager feedback inbox is REC-scoped and exposes the review workflow', async () => {
+  const layout = await read('src/routes/[community]/+layout.svelte');
+  const api = await read('src/lib/api.ts');
+  const page = await read('src/routes/[community]/feedback/+page.svelte');
+
+  assert.match(layout, /path: '\/feedback'/);
+  assert.match(layout, /href=\{`\$\{base\}\/feedback`\}/);
+  assert.match(api, /getFeedback[\s\S]*?\/api\/communities\/\$\{encodeURIComponent\(communityKey\)\}\/feedback/);
+  assert.match(api, /updateFeedbackStatus/);
+  assert.match(api, /feedbackScreenshotUrl/);
+  assert.match(page, /'new' \| 'seen' \| 'resolved'|FeedbackState/);
+  assert.match(page, /advance\(item, 'seen'\)/);
+  assert.match(page, /advance\(item, 'resolved'\)/);
+  assert.match(page, /feedbackScreenshotUrl/);
+  assert.match(page, /class="screenshot-preview"/);
+  assert.match(page, /role="dialog"/);
+  assert.match(page, /feedback_inbox\.no_screenshot/);
+  assert.doesNotMatch(page, /userId|clientIp|userAgent/);
 });
 
 test('members are listed by name, and by nothing else that identifies them', async () => {

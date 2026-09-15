@@ -219,7 +219,7 @@
   .chain-line { flex: 1; min-width: 18px; height: 2px; margin: 0 0.4rem 1.2rem; background: var(--community-border); }
   .detail-link { display: block; width: max-content; margin: 1.2rem 0 0 auto; color: var(--community-primary); text-decoration: none; font-size: 0.7rem; font-weight: 750; }
   .skeleton { position: relative; overflow: hidden; border-radius: var(--community-radius); background: var(--community-border); }
-  .skeleton::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--community-surface) 70%, transparent), transparent); animation: shine 1.4s infinite; }
+  .skeleton::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, var(--community-surface), transparent); animation: shine 1.4s infinite; }
   .kpi-skeleton { height: 135px; }
   .body-skeleton { height: 390px; margin-top: 0.9rem; }
   .error-state { min-height: 360px; display: grid; place-content: center; justify-items: center; gap: 0.7rem; text-align: center; }
