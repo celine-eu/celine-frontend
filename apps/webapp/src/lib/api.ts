@@ -45,6 +45,8 @@ export type SharingOffer = {
    *  made. Never anything about the person. */
   evidence?: Record<string, unknown> | null;
   decided_at?: string | null;
+  /** The version the onboarding form showed this offer at, accepted or not. */
+  presented_version?: string | null;
 };
 
 /** Why a member can or cannot decide anything, in one word.
@@ -430,6 +432,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ enabled })
     }),
+  /** Close the banner: records when, and which offers were on offer. */
+  dataSharingSeen: () => j<DataSharingStatus>('/api/data-sharing/seen', { method: 'POST' }),
   dataSharingHistory: () => j<DataSharingHistory>('/api/data-sharing/history'),
   notifications: () => j<NotificationItem[]>('/api/notifications'),
   notificationMarkRead: (id: string) =>

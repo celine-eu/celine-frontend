@@ -9,12 +9,12 @@ import { openSignedIn } from './sign-in';
  * (celine-dev playbook `proving-the-participant-invitation-locally`).
  *
  *   E2E_COMMUNITY_URL  http://community.celine.localhost
- *   E2E_REC            greenland   (a community in rec-registry, with members)
- *   E2E_MEMBER_KEY     gl-00001    (a member of it)
+ *   E2E_REC            example-rec   (a community in rec-registry, with members)
+ *   E2E_MEMBER_KEY     ex-00001    (a member of it)
  */
 const COMMUNITY_URL = process.env.E2E_COMMUNITY_URL ?? 'http://community.celine.localhost';
-const REC = process.env.E2E_REC ?? 'greenland';
-const MEMBER_KEY = process.env.E2E_MEMBER_KEY ?? 'gl-00001';
+const REC = process.env.E2E_REC ?? 'example-rec';
+const MEMBER_KEY = process.env.E2E_MEMBER_KEY ?? 'ex-00001';
 
 test.use({ locale: 'en-GB' });
 

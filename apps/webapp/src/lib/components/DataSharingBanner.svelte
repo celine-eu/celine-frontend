@@ -66,14 +66,14 @@
 
   /** Record the dismissal and go, in that order.
    *
-   * `markOnboardingSeen` writes `user_onboarding_views` under `data-sharing` —
-   * the same table, key and route every in-app tour already uses, so this adds
-   * no state anywhere. A failed write means the member is asked again later,
-   * which is the harmless direction. */
+   * `dataSharingSeen` writes `user_onboarding_views` under `data-sharing`, with
+   * the offers that were on offer, so a later or changed offer brings the banner
+   * back and one already shown does not. A failed write means the member is
+   * asked again later, which is the harmless direction. */
   async function acknowledge(navigate: boolean) {
     dismissing = true;
     try {
-      await api.markOnboardingSeen("data-sharing");
+      await api.dataSharingSeen();
     } catch {
       // Asked once more than needed is the safe way to be wrong.
     }
