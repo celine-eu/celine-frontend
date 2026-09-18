@@ -52,6 +52,7 @@ export interface FeedbackCreated {
 }
 
 export type FeedbackState = 'new' | 'seen' | 'resolved';
+export type FeedbackSource = 'manager' | 'user';
 
 export interface FeedbackItem {
   id: string;
@@ -780,13 +781,15 @@ export async function submitFeedback(payload: FeedbackSubmission): Promise<Feedb
 export async function getFeedback(
   communityKey: string,
   query: { status?: FeedbackState | ''; page?: number; pageSize?: number } = {},
+  source: FeedbackSource = 'manager',
 ): Promise<FeedbackList> {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query)) {
     if (value !== undefined && value !== '') params.set(key, String(value));
   }
+  const resource = source === 'user' ? 'user-feedback' : 'feedback';
   return request<FeedbackList>(
-    `/api/communities/${encodeURIComponent(communityKey)}/feedback?${params.toString()}`,
+    `/api/communities/${encodeURIComponent(communityKey)}/${resource}?${params.toString()}`,
   );
 }
 
@@ -794,9 +797,11 @@ export async function updateFeedbackStatus(
   communityKey: string,
   feedbackId: string,
   status: Exclude<FeedbackState, 'new'>,
+  source: FeedbackSource = 'manager',
 ): Promise<FeedbackItem> {
+  const resource = source === 'user' ? 'user-feedback' : 'feedback';
   return request<FeedbackItem>(
-    `/api/communities/${encodeURIComponent(communityKey)}/feedback/${encodeURIComponent(feedbackId)}`,
+    `/api/communities/${encodeURIComponent(communityKey)}/${resource}/${encodeURIComponent(feedbackId)}`,
     {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
@@ -805,6 +810,11 @@ export async function updateFeedbackStatus(
   );
 }
 
-export function feedbackScreenshotUrl(communityKey: string, feedbackId: string): string {
-  return `/api/communities/${encodeURIComponent(communityKey)}/feedback/${encodeURIComponent(feedbackId)}/screenshot`;
+export function feedbackScreenshotUrl(
+  communityKey: string,
+  feedbackId: string,
+  source: FeedbackSource = 'manager',
+): string {
+  const resource = source === 'user' ? 'user-feedback' : 'feedback';
+  return `/api/communities/${encodeURIComponent(communityKey)}/${resource}/${encodeURIComponent(feedbackId)}/screenshot`;
 }
