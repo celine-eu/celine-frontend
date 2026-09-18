@@ -19,7 +19,7 @@
     import { api, type DataSharingStatus, type SharingOffer } from "$lib/api";
     import { Button, Icon } from "@celine-eu/ui";
     import { onMount } from "svelte";
-    import { t } from "svelte-i18n";
+    import { t, locale } from "svelte-i18n";
 
     let status = $state<DataSharingStatus | null>(null);
     let events = $state<Record<string, unknown>[]>([]);
@@ -127,8 +127,27 @@
         }
     }
 
+    /** The community's wording: the member's language, else the first one
+     *  written. `null` means the dataspace's generic label and definition. */
+    function offerWording(
+        offer: SharingOffer,
+    ): { title: string; body: string } | null {
+        const text = offer.text;
+        if (!text) return null;
+        const pick = (key: string | undefined) => {
+            const value = key && key !== "version" ? text[key] : undefined;
+            return value && typeof value === "object" ? value : null;
+        };
+        const first = Object.keys(text).find((k) => k !== "version");
+        return pick($locale?.slice(0, 2)) ?? pick(first);
+    }
+
     function offerTitle(offer: SharingOffer): string {
-        return offer.fallback_text_en?.purpose_label ?? offer.purpose;
+        return (
+            offerWording(offer)?.title ??
+            offer.fallback_text_en?.purpose_label ??
+            offer.purpose
+        );
     }
 
     /** A plain-language line per event. Falls back to the code rather than
@@ -176,7 +195,11 @@
                     {offerTitle(offer)}
                 </h2>
 
-                {#if offer.fallback_text_en?.purpose_definition}
+                {#if offerWording(offer)}
+                    <p class="setting-description offer-body">
+                        {offerWording(offer)?.body}
+                    </p>
+                {:else if offer.fallback_text_en?.purpose_definition}
                     <p class="setting-description">
                         {offer.fallback_text_en.purpose_definition}
                     </p>
@@ -304,6 +327,11 @@
 </section>
 
 <style>
+    /* A community's wording is written in paragraphs; keep its line breaks. */
+    .offer-body {
+        white-space: pre-line;
+    }
+
     .sharing-page {
         display: flex;
         flex-direction: column;

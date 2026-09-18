@@ -40,6 +40,9 @@ export type SharingOffer = {
     purpose_definition?: string;
     processor_category?: string;
   };
+  /** The community's own wording, per locale, attached by onboarding only when
+   *  written for this `consent_text_version`. */
+  text?: { version: string; [locale: string]: string | { title: string; body: string } };
   granted: boolean;
   /** Codes and hashes only — the record of what was shown when the decision was
    *  made. Never anything about the person. */
