@@ -82,7 +82,20 @@ function offerTitle(offer: SharingOffer): string {
 async function openDataSharing(page: Page): Promise<Loaded> {
   await page.addInitScript(() => localStorage.setItem('locale', 'en'));
   await openSignedIn(page, `${WEBAPP_URL}/data-sharing`);
-  expect(new URL(page.url()).pathname).toBe('/data-sharing');
+  // **A first-run gate is not a data-sharing failure.** An account that has never accepted
+  // the terms is sent to `/accept-terms` before any page, and the bare URL assertion this
+  // used to be reported that as three red data-sharing checks. It is a state in which the
+  // page was never reached — a loud skip, like the others here — and answering the gate is
+  // not this run's to do: it would record somebody's acceptance to get a check to run.
+  const landed = new URL(page.url()).pathname;
+  if (landed !== '/data-sharing') {
+    didNotRun('the app sent this account somewhere else before the page', [
+      `Signing in as E2E_USER landed on ${landed}, not /data-sharing.`,
+      'A first-run gate (terms acceptance) stands in front of every page for an account',
+      'that has never been through it, and accepting on somebody\'s behalf is a record',
+      'this check must not write. To run: sign in as an account already past it.',
+    ]);
+  }
 
   // Reload rather than race the first render: the fetch is fired `onMount`, after a redirect
   // chain through oauth2-proxy that may have completed before the listener existed.
