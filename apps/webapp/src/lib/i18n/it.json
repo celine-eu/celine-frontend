@@ -473,6 +473,8 @@
     "retention": "Conservati per",
     "retry": "Riprova",
     "sharing_off": "Condivisione disattivata",
+    "sharing_pending": "Condivisione in sospeso",
+    "pending_description": "La tua scelta è arrivata ad alcuni dei sistemi che conservano questi dati, ma non ancora a tutti, quindi non è indicata né come attiva né come disattivata. Disattivandola interrompi la condivisione in tutti.",
     "sharing_on": "Condivisione attiva",
     "state_ambiguous_community": "Appartieni a più di una comunità partecipante, quindi non possiamo sapere quali impostazioni mostrare. Contatta il referente della tua comunità.",
     "state_identity_conflict": "Non riusciamo a confermare la tua identità nello spazio dati. Il referente della tua comunità è stato avvisato e se ne occuperà; non devi fare nulla.",

@@ -454,6 +454,8 @@
     "retention": "Se conservan durante",
     "retry": "Reintentar",
     "sharing_off": "Compartir desactivado",
+    "sharing_pending": "Compartir pendiente",
+    "pending_description": "Tu decisión ha llegado a algunos de los sistemas que conservan estos datos, pero todavía no a todos, por eso no se muestra ni activada ni desactivada. Al desactivarlo se detiene la compartición en todos ellos.",
     "sharing_on": "Compartir activado",
     "state_ambiguous_community": "Perteneces a más de una comunidad participante, así que no podemos saber qué ajustes mostrar. Contacta con la persona responsable de tu comunidad.",
     "state_identity_conflict": "No podemos confirmar tu identidad en el espacio de datos. Ya se ha avisado a la persona responsable de tu comunidad, que lo resolverá; no tienes que hacer nada.",

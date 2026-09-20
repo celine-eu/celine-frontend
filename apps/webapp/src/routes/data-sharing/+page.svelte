@@ -16,7 +16,12 @@
      *   held here. Two copies of the text somebody agrees to is how the thing
      *   shown and the thing recorded drift apart, invisibly.
      */
-    import { api, type DataSharingStatus, type SharingOffer } from "$lib/api";
+    import {
+        api,
+        offerState,
+        type DataSharingStatus,
+        type SharingOffer,
+    } from "$lib/api";
     import { Button, Icon } from "@celine-eu/ui";
     import { onMount } from "svelte";
     import { t, locale } from "svelte-i18n";
@@ -114,11 +119,34 @@
         }
     }
 
+    /** Mixed, not on or off, while the connectors holding this offer's data
+     *  disagree. `indeterminate` is a DOM property with no attribute, so it is
+     *  set here rather than in the markup. */
+    function mixed(node: HTMLInputElement, on: boolean) {
+        node.indeterminate = on;
+        return {
+            update(next: boolean) {
+                node.indeterminate = next;
+            },
+        };
+    }
+
+    /** What pressing the control asks for.
+     *
+     * Only a withdrawn offer is granted. A pending one is **withdrawn**, like a
+     * granted one: a mixed switch has no obvious direction, withdrawal is the one
+     * that must always be available (GDPR Art. 7(3)), and onboarding sends it to
+     * every connector holding the data, so it settles them rather than adding a
+     * third disagreement. Granting again is one more press, from `withdrawn`. */
+    function nextDecision(offer: SharingOffer): boolean {
+        return offerState(offer) === "withdrawn";
+    }
+
     async function toggle(offer: SharingOffer) {
         pending = { ...pending, [offer.id]: true };
         err = "";
         try {
-            status = await api.dataSharingSet(offer.id, !offer.granted);
+            status = await api.dataSharingSet(offer.id, nextDecision(offer));
         } catch (e) {
             err = e instanceof Error ? e.message : String(e);
         } finally {
@@ -189,6 +217,7 @@
         {/if}
 
         {#each consentOffers as offer (offer.id)}
+            {@const state = offerState(offer)}
             <div class="settings-card">
                 <h2 class="section-title">
                     <Icon name="info" size={20} />
@@ -220,26 +249,35 @@
                     {/if}
                 </dl>
 
+                <!-- `pending`: the connectors holding this offer's data disagree
+                     (a grant one has not recorded, a withdrawal one did not take).
+                     Shown as neither on nor off, and still pressable: see
+                     `nextDecision`. -->
                 <label class="setting-row">
                     <input
                         type="checkbox"
-                        checked={offer.granted}
+                        checked={state !== "withdrawn"}
+                        use:mixed={state === "pending"}
                         disabled={pending[offer.id]}
                         onchange={() => toggle(offer)}
                     />
                     <div>
                         <span class="setting-label">
-                            {offer.granted
-                                ? $t("data_sharing.sharing_on")
-                                : $t("data_sharing.sharing_off")}
+                            {state === "pending"
+                                ? $t("data_sharing.sharing_pending")
+                                : state === "granted"
+                                  ? $t("data_sharing.sharing_on")
+                                  : $t("data_sharing.sharing_off")}
                         </span>
                         <span class="setting-description">
-                            {$t("data_sharing.toggle_description")}
+                            {state === "pending"
+                                ? $t("data_sharing.pending_description")
+                                : $t("data_sharing.toggle_description")}
                         </span>
                     </div>
                 </label>
 
-                {#if offer.granted && offer.evidence}
+                {#if state === "granted" && offer.evidence}
                     <!-- The record of what was shown when the decision was made:
                          codes and hashes, never anything about the person. -->
                     <details class="evidence">

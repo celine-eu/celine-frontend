@@ -38,6 +38,9 @@ type SharingOffer = {
   purpose: string;
   requires_consent: boolean;
   granted: boolean;
+  /** `pending` while the connectors holding the offer's data disagree; absent from an
+   *  older onboarding, whose `granted` then says it all. */
+  state?: 'granted' | 'withdrawn' | 'pending';
   fallback_text_en?: { purpose_label?: string };
   text?: Record<string, unknown>;
 };
@@ -176,9 +179,16 @@ test('every consent-based offer is shown with a control that can withdraw it', a
     const control = card.locator('input[type="checkbox"]');
     await expect(control).toHaveCount(1);
     await expect(control).toBeEnabled();
-    await expect(control).toBeChecked({ checked: offer.granted });
+    const state = offer.state ?? (offer.granted ? 'granted' : 'withdrawn');
+    if (state === 'pending') {
+      // Neither on nor off while the connectors disagree — see data-sharing-pending.spec.ts.
+      await expect(control).toBeChecked({ indeterminate: true });
+      await expect(card).toContainText('Sharing is pending');
+      continue;
+    }
+    await expect(control).toBeChecked({ checked: state === 'granted' });
     // The control has to say which way it is pointing, and what turning it off costs.
-    await expect(card).toContainText(offer.granted ? 'Sharing is on' : 'Sharing is off');
+    await expect(card).toContainText(state === 'granted' ? 'Sharing is on' : 'Sharing is off');
     await expect(card).toContainText(
       'Turning this off stops future sharing. It does not affect your membership.'
     );

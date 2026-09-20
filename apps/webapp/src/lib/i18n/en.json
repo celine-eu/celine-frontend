@@ -473,6 +473,8 @@
     "retention": "Kept for",
     "retry": "Try again",
     "sharing_off": "Sharing is off",
+    "sharing_pending": "Sharing is pending",
+    "pending_description": "Your choice has reached some of the systems that hold this data, but not all of them yet, so it is shown as neither on nor off. Turning this off stops sharing in all of them.",
     "sharing_on": "Sharing is on",
     "state_ambiguous_community": "You belong to more than one participating community, so we cannot tell which sharing settings to show. Please contact your community manager.",
     "state_identity_conflict": "We cannot confirm your data space identity. Your community manager has been notified and will sort it out; there is nothing you need to do.",

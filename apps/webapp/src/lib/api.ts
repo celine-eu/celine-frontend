@@ -43,7 +43,14 @@ export type SharingOffer = {
   /** The community's own wording, per locale, attached by onboarding only when
    *  written for this `consent_text_version`. */
   text?: { version: string; [locale: string]: string | { title: string; body: string } };
+  /** A standing grant exists at *some* connector holding this offer's data. True
+   *  while `state` is `pending`, so render from `state`, not from this. */
   granted: boolean;
+  /** Where the decision stands across every connector holding the offer's data.
+   *  `pending` while they disagree — a grant one of them has not recorded yet, or
+   *  a withdrawal that reached only one — and never to be shown as on or off.
+   *  Optional so an older backend still typechecks; see `offerState`. */
+  state?: SharingDecisionState;
   /** Codes and hashes only — the record of what was shown when the decision was
    *  made. Never anything about the person. */
   evidence?: Record<string, unknown> | null;
@@ -51,6 +58,15 @@ export type SharingOffer = {
   /** The version the onboarding form showed this offer at, accepted or not. */
   presented_version?: string | null;
 };
+
+/** One offer's decision across the connectors that hold its data. */
+export type SharingDecisionState = 'granted' | 'withdrawn' | 'pending';
+
+/** The offer's state, from `state` when the backend sends it and from `granted`
+ *  when it predates it — which is exactly what that backend meant. */
+export function offerState(offer: Pick<SharingOffer, 'granted' | 'state'>): SharingDecisionState {
+  return offer.state ?? (offer.granted ? 'granted' : 'withdrawn');
+}
 
 /** Why a member can or cannot decide anything, in one word.
  *
