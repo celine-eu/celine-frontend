@@ -43,6 +43,8 @@
   "feedback_source.user_help": "Reports submitted by community participants.",
   "feedback_source.manager": "Manager dashboard",
   "feedback_source.manager_help": "Reports submitted from this management dashboard.",
+  "feedback_source.roi": "ROI calculator",
+  "feedback_source.roi_help": "Reports submitted from the return-on-investment calculator.",
   "feedback_inbox.all": "All",
   "feedback_inbox.error": "Feedback could not be loaded.",
   "feedback_inbox.empty": "No feedback matches the selected filter.",

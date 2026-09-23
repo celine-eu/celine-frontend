@@ -52,7 +52,7 @@ export interface FeedbackCreated {
 }
 
 export type FeedbackState = 'new' | 'seen' | 'resolved';
-export type FeedbackSource = 'manager' | 'user';
+export type FeedbackSource = 'manager' | 'user' | 'roi';
 
 export interface FeedbackItem {
   id: string;
@@ -787,7 +787,7 @@ export async function getFeedback(
   for (const [key, value] of Object.entries(query)) {
     if (value !== undefined && value !== '') params.set(key, String(value));
   }
-  const resource = source === 'user' ? 'user-feedback' : 'feedback';
+  const resource = feedbackResource(source);
   return request<FeedbackList>(
     `/api/communities/${encodeURIComponent(communityKey)}/${resource}?${params.toString()}`,
   );
@@ -799,7 +799,7 @@ export async function updateFeedbackStatus(
   status: Exclude<FeedbackState, 'new'>,
   source: FeedbackSource = 'manager',
 ): Promise<FeedbackItem> {
-  const resource = source === 'user' ? 'user-feedback' : 'feedback';
+  const resource = feedbackResource(source);
   return request<FeedbackItem>(
     `/api/communities/${encodeURIComponent(communityKey)}/${resource}/${encodeURIComponent(feedbackId)}`,
     {
@@ -815,6 +815,12 @@ export function feedbackScreenshotUrl(
   feedbackId: string,
   source: FeedbackSource = 'manager',
 ): string {
-  const resource = source === 'user' ? 'user-feedback' : 'feedback';
+  const resource = feedbackResource(source);
   return `/api/communities/${encodeURIComponent(communityKey)}/${resource}/${encodeURIComponent(feedbackId)}/screenshot`;
+}
+
+function feedbackResource(source: FeedbackSource): string {
+  if (source === 'user') return 'user-feedback';
+  if (source === 'roi') return 'roi-feedback';
+  return 'feedback';
 }

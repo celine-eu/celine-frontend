@@ -47,11 +47,11 @@
   --celine-transition-base: 250ms ease;
   --celine-transition-slow: 350ms ease;
 
-  /* Z-Index Scale */
-  --celine-z-dropdown: 100;
-  --celine-z-modal: 200;
-  --celine-z-floating: 300;
-  --celine-z-tooltip: 400;
+  /* Z-Index Scale — kept above map libraries (Leaflet controls reach 1000). */
+  --celine-z-dropdown: 1000;
+  --celine-z-floating: 1100;
+  --celine-z-modal: 1200;
+  --celine-z-tooltip: 1300;
 }
 
 /* ============================================

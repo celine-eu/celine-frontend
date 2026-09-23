@@ -3,12 +3,19 @@
   import { t, locale } from 'svelte-i18n';
   import { replaceState } from '$app/navigation';
   import { RoiCore } from '@celine-eu/roi-ui';
+  import { FeedbackWidget } from '@celine-eu/ui';
   import { SUPPORTED, LOCALE_LABELS, setLocale } from '$lib/i18n';
+  import { collectFeedbackDiagnostics } from '$lib/feedback';
+  import { getFeedbackCommunities, submitFeedback } from '$lib/feedbackApi';
 
   let theme = $state('light');
+  let feedbackCommunities = $state<string[]>([]);
 
   onMount(() => {
     theme = document.documentElement.getAttribute('data-theme') ?? 'light';
+    void getFeedbackCommunities()
+      .then((communities) => (feedbackCommunities = communities))
+      .catch((error) => console.warn('ROI feedback communities unavailable', error));
   });
 
   function toggleTheme() {
@@ -53,6 +60,28 @@
     <RoiCore apiBaseUrl="/api" onUrlChange={(url) => replaceState(url, {})} />
   </div>
 </main>
+
+{#if feedbackCommunities.length > 0}
+  <FeedbackWidget
+    buttonLabel={$t('feedback.button')}
+    title={$t('feedback.title')}
+    description={$t('feedback.description')}
+    communityOptions={feedbackCommunities.map((key) => ({ key, label: key }))}
+    labels={{
+      community: $t('feedback.community'),
+      communityRequired: $t('feedback.communityRequired'),
+      rating: $t('feedback.rating'),
+      comment: $t('feedback.comment'),
+      commentPlaceholder: $t('feedback.commentPlaceholder'),
+      currentSelection: $t('feedback.currentSelection'),
+      close: $t('feedback.close'),
+      submit: $t('feedback.submit'),
+      success: $t('feedback.success'),
+    }}
+    collectContext={collectFeedbackDiagnostics}
+    submitFeedback={submitFeedback}
+  />
+{/if}
 
 <style>
   .page {

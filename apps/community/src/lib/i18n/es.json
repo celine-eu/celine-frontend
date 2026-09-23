@@ -43,6 +43,8 @@
   "feedback_source.user_help": "Avisos enviados por participantes de la comunidad.",
   "feedback_source.manager": "Panel de gestión",
   "feedback_source.manager_help": "Avisos enviados desde este panel de gestión.",
+  "feedback_source.roi": "Calculadora ROI",
+  "feedback_source.roi_help": "Avisos enviados desde la calculadora de retorno de la inversión.",
   "feedback_inbox.all": "Todos",
   "feedback_inbox.error": "No se pudo cargar el feedback.",
   "feedback_inbox.empty": "Ningún feedback coincide con el filtro seleccionado.",

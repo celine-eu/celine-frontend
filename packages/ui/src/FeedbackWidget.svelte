@@ -27,12 +27,15 @@
   export type FeedbackSubmission = {
     rating: number;
     comment: string;
+    communityKey?: string;
     context: FeedbackContext;
     screenshot?: FeedbackScreenshot | null;
   };
 
   type FeedbackWidgetLabels = {
     rating: string;
+    community: string;
+    communityRequired: string;
     comment: string;
     commentPlaceholder: string;
     currentSelection: string;
@@ -48,6 +51,7 @@
     title?: string;
     description?: string;
     labels?: Partial<FeedbackWidgetLabels>;
+    communityOptions?: Array<{ key: string; label: string }>;
     class?: string;
   }
 
@@ -58,11 +62,14 @@
     title = 'Lascia un feedback',
     description = 'Valuta la pagina e aggiungi un commento utile per debug e miglioramenti.',
     labels = {},
+    communityOptions = [],
     class: className = '',
   }: Props = $props();
 
   const resolvedLabels: FeedbackWidgetLabels = $derived.by(() => ({
     rating: labels.rating ?? 'Valutazione',
+    community: labels.community ?? 'Comunità energetica',
+    communityRequired: labels.communityRequired ?? 'Seleziona la comunità a cui riferire il feedback.',
     comment: labels.comment ?? 'Commento',
     commentPlaceholder: labels.commentPlaceholder ?? 'Descrivi cosa ha funzionato o cosa è andato storto.',
     currentSelection: labels.currentSelection ?? 'Selezione corrente',
@@ -77,6 +84,12 @@
   let loading = $state(false);
   let error = $state('');
   let success = $state('');
+  let communityKey = $state('');
+
+  $effect(() => {
+    const available = communityOptions.some((option) => option.key === communityKey);
+    if (!available) communityKey = communityOptions.length === 1 ? communityOptions[0].key : '';
+  });
 
   function resetForm(): void {
     rating = 0;
@@ -97,6 +110,10 @@
   }
 
   async function handleSubmit(): Promise<void> {
+    if (communityOptions.length > 0 && !communityKey) {
+      error = resolvedLabels.communityRequired;
+      return;
+    }
     loading = true;
     error = '';
     success = '';
@@ -106,6 +123,7 @@
       await submitFeedback({
         rating,
         comment: comment.trim(),
+        communityKey: communityKey || undefined,
         context: diagnostics.context,
         screenshot: diagnostics.screenshot ?? null,
       });
@@ -135,6 +153,18 @@
   <Modal open={open} title={title} size="md" onClose={close}>
     <div class="feedback-widget__body">
       <p class="feedback-widget__description">{description}</p>
+
+      {#if communityOptions.length > 1}
+        <div class="feedback-widget__group">
+          <label class="feedback-widget__label" for="feedback-community">{resolvedLabels.community}</label>
+          <select id="feedback-community" class="feedback-widget__select" bind:value={communityKey}>
+            <option value="">—</option>
+            {#each communityOptions as option (option.key)}
+              <option value={option.key}>{option.label}</option>
+            {/each}
+          </select>
+        </div>
+      {/if}
 
       <div class="feedback-widget__group">
         <div class="feedback-widget__label">{resolvedLabels.rating}</div>
@@ -269,7 +299,8 @@
     color: var(--celine-text-secondary);
   }
 
-  .feedback-widget__textarea {
+  .feedback-widget__textarea,
+  .feedback-widget__select {
     width: 100%;
     min-height: 8rem;
     padding: 0.875rem 1rem;
@@ -278,8 +309,15 @@
     background: var(--celine-bg);
     color: var(--celine-text);
     box-sizing: border-box;
-    resize: vertical;
     font: inherit;
+  }
+
+  .feedback-widget__select {
+    min-height: 2.75rem;
+  }
+
+  .feedback-widget__textarea {
+    resize: vertical;
   }
 
   .feedback-widget__status {
