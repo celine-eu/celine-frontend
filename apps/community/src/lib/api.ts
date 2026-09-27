@@ -1,6 +1,17 @@
 import type { FeedbackContext, FeedbackScreenshot } from './feedback';
 import { codeOf, type SendIntent, type SendOutcome } from './memberSend';
 
+export {
+  attachMeter,
+  detachMeter,
+  getMemberMeters,
+  type MemberMeter,
+  type MemberMeters,
+  type MeterOutcome,
+  type MeterRead,
+  type MeterType,
+} from './memberMeter';
+
 export type Period = 'today' | '7d' | '30d';
 
 /** An action name from `policies/community.rego`, e.g. `alerts.write`. */
@@ -15,7 +26,8 @@ export type Capability =
   | 'alerts.read'
   | 'alerts.write'
   | 'members.read'
-  | 'members.invite';
+  | 'members.invite'
+  | 'members.meter';
 
 export interface CommunityAccess {
   key: string;
@@ -436,6 +448,11 @@ export interface MemberSummary {
   role: string;
   status: string;
   area: string;
+  /**
+   * Whether the member holds a meter: yes or no, never which. `null` when the BFF
+   * could not read the community's meters; the list is served all the same.
+   */
+  hasMeter?: boolean | null;
 }
 
 export interface MembersPage {

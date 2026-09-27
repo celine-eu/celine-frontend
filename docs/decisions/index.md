@@ -36,5 +36,6 @@ edited to say something else.
 
 ## The records
 
-<TODO: a one-line table as they accumulate. An index nobody updates is worse than none,
-so either keep it or delete this section.>
+| ADR | Decision |
+|---|---|
+| [ADR-0001](ADR-0001-the-community-area-map-uses-leaflet-and-openstreetmap-tiles.md) | The community dashboard's area map uses leaflet and OpenStreetMap's public tiles, as `packages/roi-ui` does; the tile server seeing managers' requests is accepted |
