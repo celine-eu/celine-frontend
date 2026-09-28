@@ -168,7 +168,8 @@ test('manager feedback inbox is REC-scoped and exposes the review workflow', asy
 
   assert.match(layout, /path: '\/feedback'/);
   assert.match(layout, /href=\{`\$\{base\}\/feedback`\}/);
-  assert.match(api, /getFeedback[\s\S]*?\/api\/communities\/\$\{encodeURIComponent\(communityKey\)\}\/feedback/);
+  assert.match(api, /getFeedback[\s\S]*?feedbackResource\(source\)/);
+  assert.match(api, /\/api\/communities\/\$\{encodeURIComponent\(communityKey\)\}\/\$\{resource\}/);
   assert.match(api, /updateFeedbackStatus/);
   assert.match(api, /feedbackScreenshotUrl/);
   assert.match(page, /'new' \| 'seen' \| 'resolved'|FeedbackState/);
@@ -178,6 +179,10 @@ test('manager feedback inbox is REC-scoped and exposes the review workflow', asy
   assert.match(page, /class="screenshot-preview"/);
   assert.match(page, /role="dialog"/);
   assert.match(page, /feedback_inbox\.no_screenshot/);
+  assert.match(api, /FeedbackSource = 'manager' \| 'user' \| 'roi'/);
+  assert.match(api, /source === 'roi'[^\n]*'roi-feedback'/);
+  assert.match(page, /selectSource\('roi'\)/);
+  assert.match(page, /feedback_source\.roi/);
   assert.doesNotMatch(page, /userId|clientIp|userAgent/);
 });
 

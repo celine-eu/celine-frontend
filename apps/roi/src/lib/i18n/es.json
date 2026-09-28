@@ -5,6 +5,20 @@
     "logo": "CELINE Solar ROI",
     "tagline": "Estima el retorno de inversión de tu sistema fotovoltaico"
   },
+  "feedback": {
+    "button": "Comentarios",
+    "title": "Enviar comentarios",
+    "description": "Valora la calculadora ROI y dinos qué podemos mejorar. Adjuntaremos automáticamente el contexto técnico y, cuando sea posible, una captura.",
+    "community": "Comunidad energética relacionada",
+    "communityRequired": "Selecciona la comunidad a la que se refiere el comentario.",
+    "rating": "Valoración",
+    "comment": "Comentario",
+    "commentPlaceholder": "Describe qué funcionó o qué salió mal.",
+    "currentSelection": "Selección actual",
+    "close": "Cerrar",
+    "submit": "Enviar",
+    "success": "Comentario enviado correctamente."
+  },
   "step1": {
     "title": "Seleccionar ubicación",
     "hintBefore": "Busca tu dirección, luego",

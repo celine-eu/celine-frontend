@@ -43,6 +43,8 @@
   "feedback_source.user_help": "Segnalazioni inviate dai partecipanti della comunità.",
   "feedback_source.manager": "Dashboard manager",
   "feedback_source.manager_help": "Segnalazioni inviate da questa dashboard di gestione.",
+  "feedback_source.roi": "Calcolatore ROI",
+  "feedback_source.roi_help": "Segnalazioni inviate dalla schermata di calcolo del ritorno sull'investimento.",
   "feedback_inbox.all": "Tutti",
   "feedback_inbox.error": "Impossibile caricare i feedback.",
   "feedback_inbox.empty": "Nessun feedback corrisponde al filtro selezionato.",
