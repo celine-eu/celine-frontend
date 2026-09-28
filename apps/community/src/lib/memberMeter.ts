@@ -12,6 +12,10 @@
  * browser's HTTP cache never keeps it; nothing here writes to browser storage; and no
  * outcome sentence contains it, so a message left under a row of the members list
  * does not put the id beside the name.
+ *
+ * **Detach for every member, attach for active members only** (plan D45, amending
+ * D42): a manager can free a meter held by a suspended or inactive member, but only
+ * an active member is given one. The BFF refuses the same (`409 member_not_active`).
  */
 
 import type { OutcomeMessage, Tone, Translate } from './memberSend';
@@ -61,6 +65,7 @@ export const METER_CODES = [
   'sensor_held',
   'asset_key_taken',
   'asset_key_too_long',
+  'member_not_active',
   'member_not_found',
   'community_not_found',
   'meter_not_found',
@@ -84,6 +89,29 @@ const TONES: Record<string, Tone> = {
   sensor_held: 'warning',
   sensor_id_blank: 'warning',
 };
+
+/** What the meter action offers a member, from their status and the list's meter flag (D45). */
+export interface MeterAccess {
+  /** Whether the dialog opens at all: always for an active member, else only when they may hold a meter. */
+  open: boolean;
+  /** Whether the dialog offers an attach: only for an active member. Detach is offered for everyone. */
+  attach: boolean;
+  /** The row button's translation key. */
+  label: 'members.meter.open_attach' | 'members.meter.open_manage' | 'members.meter.open_detach';
+}
+
+export function meterAccess(member: { status?: string | null; hasMeter?: boolean | null }): MeterAccess {
+  const active = (member.status ?? '').trim().toLowerCase() === 'active';
+  if (active) {
+    return {
+      open: true,
+      attach: true,
+      label: member.hasMeter === false ? 'members.meter.open_attach' : 'members.meter.open_manage',
+    };
+  }
+  // Not active: nothing to attach, and nothing to detach when the list knows they hold no meter.
+  return { open: member.hasMeter !== false, attach: false, label: 'members.meter.open_detach' };
+}
 
 /** An attach's default type: `bidirectional` for a prosumer, `consumption` otherwise. */
 export function defaultMeterType(role: string | null | undefined): MeterType {

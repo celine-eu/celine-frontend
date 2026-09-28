@@ -11,6 +11,7 @@ import {
   defaultMeterType,
   detachMeter,
   getMemberMeters,
+  meterAccess,
   meterCodeOf,
   meterOutcomeMessage,
   normalizeSensorId,
@@ -232,7 +233,7 @@ test('the meter action exists only with members.meter', async () => {
   const page = await read(PAGE);
 
   assert.match(page, /includes\('members\.meter'\)/);
-  assert.match(page, /\{#if canMeter\}\s*<button[^>]*onclick=\{\(\) => openMeter\(member\)\}/);
+  assert.match(page, /\{#if canMeter\}\s*\{@const access = meterAccess\(member\)\}\s*<button[^>]*onclick=\{\(\) => openMeter\(member\)\}/);
   assert.equal(page.match(/openMeter\(member\)/g)?.length, 1);
 });
 
@@ -320,4 +321,29 @@ test('the list says yes, no or unknown in every locale', async () => {
   }
   const page = await read(PAGE);
   assert.match(page, /member\.hasMeter === true[\s\S]*?member\.hasMeter === false[\s\S]*?has_meter_unknown/);
+});
+
+test('D45: an active member can be given a meter; anyone who may hold one can have it detached', () => {
+  assert.deepEqual(meterAccess({ status: 'active', hasMeter: false }), { open: true, attach: true, label: 'members.meter.open_attach' });
+  assert.deepEqual(meterAccess({ status: 'active', hasMeter: true }), { open: true, attach: true, label: 'members.meter.open_manage' });
+  assert.deepEqual(meterAccess({ status: 'active', hasMeter: null }), { open: true, attach: true, label: 'members.meter.open_manage' });
+  for (const status of ['pending', 'suspended', 'inactive']) {
+    // A meter the list says they hold, or may hold, can still be freed.
+    assert.deepEqual(meterAccess({ status, hasMeter: true }), { open: true, attach: false, label: 'members.meter.open_detach' }, status);
+    assert.deepEqual(meterAccess({ status, hasMeter: null }), { open: true, attach: false, label: 'members.meter.open_detach' }, status);
+    // Nothing to detach and nothing to attach: the button stays disabled.
+    assert.equal(meterAccess({ status, hasMeter: false }).open, false, status);
+  }
+});
+
+test('D45: the BFF refusing to attach to a member who is not active reads as its own sentence', async () => {
+  stubFetch({ status: 409, body: { detail: { code: 'member_not_active' } } });
+  const outcome = await attachMeter('example-rec', 'ex-00001', SENSOR);
+  assert.equal(outcome.code, 'member_not_active');
+  for (const locale of LOCALES) {
+    const message = meterOutcomeMessage(outcome, translator(locale));
+    assert.equal(message.text, bundles[locale]['members.meter.outcome.member_not_active'], locale);
+    assert.ok(!message.text.includes(SENSOR), locale);
+    assert.equal(message.retry, false);
+  }
 });

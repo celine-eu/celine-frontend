@@ -4,18 +4,36 @@
   import {
     attachMeter,
     detachMeter,
+    editMemberProfile,
+    getCommunityAreas,
     getMemberMeters,
     getMembers,
     sendMemberEmail,
+    type CommunityArea,
     type MemberMeter,
     type MemberSummary,
     type MeterOutcome,
     type MeterType,
+    type ProfileChanges,
+    type ProfileOutcome,
   } from '$lib/api';
   import { outcomeMessage, type OutcomeMessage, type SendIntent } from '$lib/memberSend';
-  import { METER_TYPES, SENSOR_ID_MAX_LENGTH, defaultMeterType, meterOutcomeMessage, normalizeSensorId } from '$lib/memberMeter';
+  import { METER_TYPES, SENSOR_ID_MAX_LENGTH, defaultMeterType, meterAccess, meterOutcomeMessage, normalizeSensorId } from '$lib/memberMeter';
+  import {
+    EDITABLE_ROLES,
+    areaKeyLabel,
+    areaLabel,
+    areaOptions,
+    canEditMember,
+    isRoleEditable,
+    normalizeRole,
+    profileChanges,
+    profileOutcomeMessage,
+    warningKeys,
+  } from '$lib/memberProfile';
   import { communityStore } from '$lib/stores';
   import MemberSends from '$lib/components/MemberSends.svelte';
+  import AreaMap from '$lib/components/AreaMap.svelte';
 
   // The one page that shows participants by name. Names are held in this
   // component's state only, for as long as the page is open: nothing is written
@@ -117,8 +135,12 @@
     }
   }
 
+  // Detach is offered for every member, so a manager can free a meter held by a
+  // suspended member; attach only for active members (D45, amending D42).
+  const meterAttach = $derived(meterFor ? meterAccess(meterFor).attach : false);
+
   function openMeter(member: MemberSummary) {
-    if (meterBusy) return;
+    if (meterBusy || !meterAccess(member).open) return;
     meterFor = member;
     meterList = [];
     sensorInput = '';
@@ -139,7 +161,7 @@
   }
 
   function askAttach() {
-    if (meterBusy) return;
+    if (meterBusy || !meterAttach) return;
     const sensorId = normalizeSensorId(sensorInput);
     if (!sensorId) {
       // Refused here, before any request: the BFF would answer `sensor_id_blank`.
@@ -184,6 +206,113 @@
     } finally {
       meterBusy = false;
       meterConfirm = null;
+    }
+  }
+
+  // The edit dialog (celine-community ADR-0003): role and area, nothing else. The
+  // role moves between consumer and prosumer only; any other role is shown
+  // read-only and only the area can change (D30). Saving shows what the change
+  // does to the meter's data, and nothing is sent until the manager confirms.
+  const canEdit = $derived(($communityStore?.capabilities ?? []).includes('members.edit'));
+
+  let editFor = $state<MemberSummary | null>(null);
+  let editAreas = $state<CommunityArea[]>([]);
+  let areasLoading = $state(false);
+  let areasFailed = $state(false);
+  let draftRole = $state('');
+  let draftArea = $state('');
+  let editConfirm = $state<ProfileChanges | null>(null);
+  let editBusy = $state(false);
+  let editMessage = $state<OutcomeMessage | null>(null);
+  let editOutcomes = $state<Record<string, OutcomeMessage>>({});
+  // An areas read answered after the dialog moved on to another member is dropped.
+  let areasRead = 0;
+
+  const draftChanges = $derived(
+    editFor ? profileChanges(editFor, { role: draftRole, area: draftArea }) : {},
+  );
+  const hasDraftChanges = $derived(draftChanges.role !== undefined || draftChanges.area !== undefined);
+
+  function profileSentence(outcome: ProfileOutcome): OutcomeMessage {
+    return profileOutcomeMessage(outcome, (key, options) => $_(key, options));
+  }
+
+  function roleLabel(role: string): string {
+    return $_(`members.profile.role.${normalizeRole(role)}`, { default: role });
+  }
+
+  async function readAreas(member: MemberSummary) {
+    const community = $communityStore;
+    if (!community) return;
+    const ticket = ++areasRead;
+    areasLoading = true;
+    areasFailed = false;
+    try {
+      const read = await getCommunityAreas(community.key);
+      if (ticket !== areasRead || editFor?.key !== member.key) return;
+      if (read.ok) {
+        editAreas = read.areas;
+      } else {
+        editAreas = [];
+        areasFailed = true;
+        editMessage = profileSentence(read.outcome);
+      }
+    } finally {
+      if (ticket === areasRead) areasLoading = false;
+    }
+  }
+
+  function openEdit(member: MemberSummary) {
+    // Only active members are edited (D45); the BFF refuses the rest.
+    if (editBusy || !canEditMember(member.status)) return;
+    editFor = member;
+    editAreas = [];
+    draftRole = normalizeRole(member.role);
+    draftArea = member.area;
+    editConfirm = null;
+    editMessage = null;
+    void readAreas(member);
+  }
+
+  function closeEdit() {
+    if (editBusy) return;
+    areasRead++;
+    editFor = null;
+    editAreas = [];
+    editConfirm = null;
+    editMessage = null;
+  }
+
+  function askSave() {
+    if (editBusy || !hasDraftChanges) return;
+    editMessage = null;
+    editConfirm = { ...draftChanges };
+  }
+
+  // Confirmation is the decision, and one press is in flight at a time.
+  async function confirmEdit() {
+    const community = $communityStore;
+    const member = editFor;
+    const changes = editConfirm;
+    if (!community || !member || !changes || editBusy) return;
+    editBusy = true;
+    try {
+      const outcome = await editMemberProfile(community.key, member.key, changes);
+      const message = profileSentence(outcome);
+      editMessage = message;
+      editOutcomes = { ...editOutcomes, [member.key]: message };
+      if (outcome.code === 'updated' || outcome.code === 'unchanged') {
+        // The row and the dialog follow the member as the registry now has them.
+        const role = outcome.role || member.role;
+        const area = outcome.area || member.area;
+        members = members.map((item) => (item.key === member.key ? { ...item, role, area } : item));
+        editFor = { ...member, role, area };
+        draftRole = normalizeRole(role);
+        draftArea = area;
+      }
+    } finally {
+      editBusy = false;
+      editConfirm = null;
     }
   }
 
@@ -262,7 +391,7 @@
     {:else}
       <div class="table-scroll">
         <table>
-          <thead><tr><th>{$_('members.name')}</th><th>{$_('members.key')}</th><th>{$_('members.role')}</th><th>{$_('members.area')}</th><th>{$_('members.status')}</th><th>{$_('members.has_meter')}</th>{#if canInvite}<th>{$_('members.actions')}</th>{/if}</tr></thead>
+          <thead><tr><th>{$_('members.name')}</th><th>{$_('members.key')}</th><th>{$_('members.role')}</th><th>{$_('members.area')}</th><th>{$_('members.status')}</th><th>{$_('members.has_meter')}</th>{#if canInvite || canEdit}<th>{$_('members.actions')}</th>{/if}</tr></thead>
           <tbody>
             {#each members as member (member.key)}
               <tr>
@@ -274,17 +403,28 @@
                 <td class="meter">
                   <span class={`tag meter-${member.hasMeter === true ? 'yes' : member.hasMeter === false ? 'no' : 'unknown'}`} title={member.hasMeter == null ? $_('members.has_meter_unknown_hint') : undefined}>{meterFlag(member)}</span>
                   {#if canMeter}
-                    <button class="send secondary" disabled={meterBusy} onclick={() => openMeter(member)}>{$_(member.hasMeter === false ? 'members.meter.open_attach' : 'members.meter.open_manage')}</button>
+                    {@const access = meterAccess(member)}
+                    <button class="send secondary" disabled={meterBusy || !access.open} title={access.attach ? undefined : $_('members.meter.inactive_reason', { values: { status: statusLabel(member.status) } })} onclick={() => openMeter(member)}>{$_(access.label)}</button>
                     {#if meterOutcomes[member.key]}<p class={`outcome ${meterOutcomes[member.key].tone}`} role="status">{meterOutcomes[member.key].text}</p>{/if}
                   {/if}
                 </td>
-                {#if canInvite}
+                {#if canInvite || canEdit}
                   <td class="actions">
-                    <div class="buttons" title={member.status === 'active' ? undefined : $_('members.inactive_reason', { values: { status: statusLabel(member.status) } })}>
-                      <button class="send" disabled={sending || member.status !== 'active'} onclick={() => ask(member, 'invitation')}>{$_('members.send_invitation')}</button>
-                      <button class="send secondary" disabled={sending || member.status !== 'active'} onclick={() => ask(member, 'password_reset')}>{$_('members.reset_password')}</button>
+                    <div class="buttons">
+                      {#if canEdit}
+                        <span class="buttons" title={canEditMember(member.status) ? undefined : $_('members.profile.inactive_reason', { values: { status: statusLabel(member.status) } })}>
+                          <button class="send secondary" disabled={editBusy || !canEditMember(member.status)} onclick={() => openEdit(member)}>{$_('members.profile.open')}</button>
+                        </span>
+                      {/if}
+                      {#if canInvite}
+                        <span class="buttons" title={member.status === 'active' ? undefined : $_('members.inactive_reason', { values: { status: statusLabel(member.status) } })}>
+                          <button class="send" disabled={sending || member.status !== 'active'} onclick={() => ask(member, 'invitation')}>{$_('members.send_invitation')}</button>
+                          <button class="send secondary" disabled={sending || member.status !== 'active'} onclick={() => ask(member, 'password_reset')}>{$_('members.reset_password')}</button>
+                        </span>
+                      {/if}
                     </div>
-                    {#if outcomes[member.key]}<p class={`outcome ${outcomes[member.key].tone}`} role="status">{outcomes[member.key].text}</p>{/if}
+                    {#if canEdit && editOutcomes[member.key]}<p class={`outcome ${editOutcomes[member.key].tone}`} role="status">{editOutcomes[member.key].text}</p>{/if}
+                    {#if canInvite && outcomes[member.key]}<p class={`outcome ${outcomes[member.key].tone}`} role="status">{outcomes[member.key].text}</p>{/if}
                   </td>
                 {/if}
               </tr>
@@ -347,17 +487,73 @@
           {/if}
         {/if}
 
-        <form class="attach" onsubmit={(event) => { event.preventDefault(); askAttach(); }}>
-          <label><span>{$_('members.meter.sensor_id')}</span><input bind:value={sensorInput} maxlength={SENSOR_ID_MAX_LENGTH} autocomplete="off" spellcheck="false" autocapitalize="off" /></label>
-          <label><span>{$_('members.meter.meter_type')}</span><select bind:value={meterType}>{#each METER_TYPES as value}<option {value}>{$_(`members.meter.type.${value}`)}</option>{/each}</select></label>
-          <p class="hint">{$_('members.meter.sensor_id_hint')}</p>
+        {#if meterAttach}
+          <form class="attach" onsubmit={(event) => { event.preventDefault(); askAttach(); }}>
+            <label><span>{$_('members.meter.sensor_id')}</span><input bind:value={sensorInput} maxlength={SENSOR_ID_MAX_LENGTH} autocomplete="off" spellcheck="false" autocapitalize="off" /></label>
+            <label><span>{$_('members.meter.meter_type')}</span><select bind:value={meterType}>{#each METER_TYPES as value}<option {value}>{$_(`members.meter.type.${value}`)}</option>{/each}</select></label>
+            <p class="hint">{$_('members.meter.sensor_id_hint')}</p>
+            <div class="dialog-actions">
+              <button type="button" class="send secondary" disabled={meterBusy} onclick={closeMeter}>{$_('members.meter.close')}</button>
+              <button type="submit" class="send" disabled={meterBusy}>{$_('members.meter.attach')}</button>
+            </div>
+          </form>
+        {:else}
+          <p class="hint">{$_('members.meter.attach_inactive', { values: { status: statusLabel(meterFor.status) } })}</p>
           <div class="dialog-actions">
             <button type="button" class="send secondary" disabled={meterBusy} onclick={closeMeter}>{$_('members.meter.close')}</button>
-            <button type="submit" class="send" disabled={meterBusy}>{$_('members.meter.attach')}</button>
+          </div>
+        {/if}
+      {/if}
+      {#if meterMessage}<p class={`outcome ${meterMessage.tone}`} role="status">{meterMessage.text}</p>{/if}
+    </div>
+  </div>
+{/if}
+
+{#if editFor}
+  <div class="dialog-backdrop">
+    <div class="dialog edit-dialog" role="dialog" aria-modal="true" aria-labelledby="edit-dialog-title">
+      <h2 id="edit-dialog-title">{$_('members.profile.dialog_title', { values: { member: displayName(editFor) } })}</h2>
+      <p><code>{editFor.key}</code></p>
+
+      {#if editConfirm}
+        <h3>{$_('members.profile.confirm_title', { values: { member: displayName(editFor) } })}</h3>
+        <ul class="changes">
+          {#if editConfirm.role !== undefined}<li>{$_('members.profile.change_role', { values: { from: roleLabel(editFor.role), to: roleLabel(editConfirm.role) } })}</li>{/if}
+          {#if editConfirm.area !== undefined}<li>{$_('members.profile.change_area', { values: { from: areaKeyLabel(editAreas, editFor.area, (key, options) => $_(key, options)), to: areaKeyLabel(editAreas, editConfirm.area, (key, options) => $_(key, options)) } })}</li>{/if}
+        </ul>
+        <div class="warning" role="note">
+          {#each warningKeys(editConfirm) as key}<p>{$_(key)}</p>{/each}
+        </div>
+        <div class="dialog-actions">
+          <button class="send secondary" disabled={editBusy} onclick={() => (editConfirm = null)}>{$_('members.profile.back')}</button>
+          <button class="send" disabled={editBusy} onclick={confirmEdit}>{editBusy ? $_('members.profile.working') : $_('members.profile.confirm')}</button>
+        </div>
+      {:else}
+        <form class="profile" onsubmit={(event) => { event.preventDefault(); askSave(); }}>
+          {#if isRoleEditable(editFor.role)}
+            <label><span>{$_('members.role')}</span><select bind:value={draftRole}>{#each EDITABLE_ROLES as value}<option {value}>{roleLabel(value)}</option>{/each}</select></label>
+          {:else}
+            <div class="read-only"><span>{$_('members.role')}</span><strong>{roleLabel(editFor.role)}</strong><p class="hint">{$_('members.profile.role_read_only_hint')}</p></div>
+          {/if}
+          <label><span>{$_('members.area')}</span>
+            <select bind:value={draftArea} disabled={areasLoading || areasFailed}>
+              {#if areasLoading || areasFailed}
+                <option value={editFor.area}>{editFor.area}</option>
+              {:else}
+                {#each areaOptions(editAreas, editFor.area) as area (area.key)}<option value={area.key}>{areaLabel(area, (key, options) => $_(key, options))}</option>{/each}
+              {/if}
+            </select>
+          </label>
+          {#if areasLoading}<p class="hint">{$_('members.profile.areas_loading')}</p>{/if}
+          {#if $communityStore}<AreaMap communityKey={$communityStore.key} selected={draftArea} />{/if}
+          <p class="hint">{$_('members.profile.hint')}</p>
+          <div class="dialog-actions">
+            <button type="button" class="send secondary" disabled={editBusy} onclick={closeEdit}>{$_('members.profile.close')}</button>
+            <button type="submit" class="send" disabled={editBusy || !hasDraftChanges}>{$_('members.profile.save')}</button>
           </div>
         </form>
       {/if}
-      {#if meterMessage}<p class={`outcome ${meterMessage.tone}`} role="status">{meterMessage.text}</p>{/if}
+      {#if editMessage}<p class={`outcome ${editMessage.tone}`} role="status">{editMessage.text}</p>{/if}
     </div>
   </div>
 {/if}
@@ -387,6 +583,9 @@
   .meter { white-space:normal; min-width:150px; } .meter .tag { margin-right:.35rem; } .tag.meter-yes { color:var(--community-success); background:var(--community-primary-soft); }
   .meter-dialog { width:min(92vw,520px); } .dialog h3 { margin:.9rem 0 .3rem; font-size:.78rem; } .dialog .hint { font-size:.64rem; }
   .meters { margin:.3rem 0; padding:0; list-style:none; display:grid; gap:.35rem; } .meters li { display:flex; align-items:center; gap:.5rem; font-size:.7rem; } .meters li span { color:var(--community-muted); } .meters li button { margin-left:auto; }
+  .edit-dialog { width:min(92vw,640px); max-height:92vh; overflow-y:auto; } .profile { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; margin-top:.6rem; } .profile .hint, .profile .dialog-actions { grid-column:1 / -1; }
+  .read-only { display:grid; gap:.3rem; align-content:start; } .read-only span { color:var(--community-muted); font-size:.61rem; font-weight:700; } .read-only strong { font-size:.75rem; } .read-only .hint { margin:0; }
+  .changes { margin:.3rem 0; padding-left:1.1rem; font-size:.72rem; } .warning { margin-top:.6rem; padding:.55rem .75rem; border-radius:9px; background:var(--community-warning-soft); } .warning p { color:var(--community-warning); }
   .attach { display:grid; grid-template-columns:2fr 1fr; gap:.55rem; margin-top:.9rem; } .attach .hint, .attach .dialog-actions { grid-column:1 / -1; }
   .state { min-height:280px; display:grid; place-content:center; justify-items:center; gap:.6rem; color:var(--community-muted); text-align:center; }.state p { margin:0; }.state.error strong { color:var(--community-danger); font-size:1.5rem; }.state.error button { padding:.5rem .8rem; background:var(--community-primary); color:white; }.spinner { width:25px; height:25px; border:3px solid var(--community-border); border-top-color:var(--community-primary); border-radius:50%; animation:spin .8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }

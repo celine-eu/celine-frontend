@@ -12,6 +12,19 @@ export {
   type MeterType,
 } from './memberMeter';
 
+export {
+  editMemberProfile,
+  getCommunityAreas,
+  type AreaBoundary,
+  type AreasRead,
+  type CommunityArea,
+  type CommunityAreas,
+  type ProfileChanges,
+  type ProfileOutcome,
+} from './memberProfile';
+
+export { getAreaShapes, type AreaShape, type AreaShapes, type ShapesRead } from './areaMap';
+
 export type Period = 'today' | '7d' | '30d';
 
 /** An action name from `policies/community.rego`, e.g. `alerts.write`. */
@@ -27,7 +40,8 @@ export type Capability =
   | 'alerts.write'
   | 'members.read'
   | 'members.invite'
-  | 'members.meter';
+  | 'members.meter'
+  | 'members.edit';
 
 export interface CommunityAccess {
   key: string;

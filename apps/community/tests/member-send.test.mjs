@@ -115,7 +115,10 @@ test('the buttons exist only with members.invite', async () => {
   const page = await read('src/routes/[community]/members/+page.svelte');
 
   assert.match(page, /includes\('members\.invite'\)/);
-  assert.match(page, /\{#if canInvite\}\s*<td class="actions">/);
+  // The actions cell is shared with the edit action; the email buttons stay behind canInvite.
+  assert.match(page, /\{#if canInvite \|\| canEdit\}\s*<td class="actions">/);
+  assert.match(page, /\{#if canInvite\}\s*<span class="buttons"[^>]*>\s*<button class="send"[^>]*onclick=\{\(\) => ask\(member, 'invitation'\)\}/);
+  assert.equal(page.match(/ask\(member, 'invitation'\)/g)?.length, 1);
 });
 
 test('past sends are labelled shortly, in every locale, and unknown codes stay raw', async () => {

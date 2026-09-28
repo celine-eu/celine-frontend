@@ -90,6 +90,48 @@ task dev:grid
 
 ---
 
+## apps/community
+
+REC Manager Dashboard. A SvelteKit application for the managers of a renewable energy community: energy overview, devices and data flow, flexibility, gamification, nudging, alerts, members and feedback. It is separate from `apps/webapp`, and follows the deployment and role-gate pattern of `apps/grid`.
+
+**Routes:**
+
+| Route | Description |
+|---|---|
+| `/` | REC picker over the RECs `GET /api/me` returned; redirects straight into the only one |
+| `/denied` | No REC managed, a REC that is not yours, or the REC registry unreachable |
+| `/[community]` | Overview for the REC in the path |
+| `/[community]/devices` | Device board and technical detail drawer, by `device_id` only |
+| `/[community]/data-flow` | Interval coverage, gaps and pipeline freshness |
+| `/[community]/flexibility` | Flexibility windows and the offered → points pathway |
+| `/[community]/gamification` | Points distribution, anti-gaming flags, device ledgers |
+| `/[community]/nudging` | Read-only nudging metrics |
+| `/[community]/alerts` | Alert inbox with acknowledge, mute and assign |
+| `/[community]/members` | Members by name, with invitation and password-reset sends, the meter dialog and the role and area dialog with its area map |
+| `/[community]/feedback` | Manager-dashboard and participant-dashboard feedback inbox |
+
+**Capabilities:** each REC in `GET /api/me` carries the caller's capabilities, and a section or action the caller has none for is absent rather than offered and refused. The members page needs `members.read`; its actions need `members.invite` (sends), `members.meter` (attach and detach a meter) and `members.edit` (role and area). The BFF enforces every one of them again.
+
+**Key components:** `AreaMap`, `EnergyChart`, `ExportButtons`, `KpiCard`, `MemberSends`. Outcome codes become sentences in `src/lib/memberSend.ts`, `memberMeter.ts` and `memberProfile.ts`, in `en`, `it` and `es`.
+
+**Map:** the role and area dialog draws a read-only map of the REC's areas with `leaflet` on OpenStreetMap's public tiles ([ADR-0001](decisions/ADR-0001-the-community-area-map-uses-leaflet-and-openstreetmap-tiles.md)). The tile server sees the manager's IP address and the tiles shown; no member data is sent to it.
+
+**Privacy:** member names and a member's sensor ids live in page state only, never in browser storage, a URL or an export. A sensor id is typed as free text in the meter dialog; nothing lists or suggests meters.
+
+**Backend:** `celine-community` BFF (port 8019). See `apps/community/README.md` for the routes the app reads and what each dialog does.
+
+**Docker image:** `ghcr.io/celine-eu/celine-frontend-community`
+
+**Tests:** `pnpm --filter @celine-eu/community test` (`node --test`), `check` and `build`; `e2e/community-area-map.spec.ts` renders the map in Chromium with the BFF and the tile server stubbed.
+
+**Dev:**
+```bash
+task dev:community
+# http://localhost:3007
+```
+
+---
+
 ## apps/roi
 
 PV installation ROI calculator. Single-page application for estimating the financial return of a photovoltaic installation, including production estimates, CER incentives, CAPEX, and financial analysis. Supports PDF export of results and map-based location selection.

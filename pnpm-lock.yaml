@@ -66,6 +66,9 @@ importers:
       html2canvas:
         specifier: ^1.4.1
         version: 1.4.1
+      leaflet:
+        specifier: ^1.9.4
+        version: 1.9.4
       svelte:
         specifier: ^5.55.5
         version: 5.55.5(@typescript-eslint/types@8.57.1)
@@ -79,6 +82,9 @@ importers:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^7.0.0
         version: 7.0.0(svelte@5.55.5(@typescript-eslint/types@8.57.1))(vite@8.0.10(@types/node@22.19.11)(jiti@2.6.1))
+      '@types/leaflet':
+        specifier: ^1.9.21
+        version: 1.9.21
       svelte-check:
         specifier: ^4.0.0
         version: 4.4.6(picomatch@4.0.4)(svelte@5.55.5(@typescript-eslint/types@8.57.1))(typescript@5.9.3)

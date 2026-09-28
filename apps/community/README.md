@@ -24,7 +24,10 @@ expects:
 - `GET /api/communities/{community_key}/members` for `/[community]/members`, shown only with
   `members.read`;
 - `GET`, `PUT` and `DELETE /api/communities/{community_key}/members/{member_key}/meter` for the
-  meter dialog, offered only with `members.meter`.
+  meter dialog, offered only with `members.meter`;
+- `PATCH /api/communities/{community_key}/members/{member_key}` (`{role?, area?}`),
+  `GET /api/communities/{community_key}/areas` and `GET …/areas/shapes` for the edit dialog and its
+  area map, offered only with `members.edit`.
 
 ## Which REC is on screen
 
@@ -58,8 +61,15 @@ three locales: the link's validity comes from `lifespanSeconds`, and a cooldown'
 "Sent emails" tab lists past presses from the BFF's audit rows, filterable by member key, sender,
 email, outcome and date.
 
-With `members.meter`, each member has **Attach meter** (or **Attach or detach meter** when they
-may already hold one), which opens the meter dialog (`celine-community` ADR-0004):
+With `members.meter`, each member has a meter button that opens the meter dialog (`celine-community`
+ADR-0004). **Detach is offered for every member; attach only for active members** (plan D45), so a
+manager can free a meter still held by a suspended or inactive member. The BFF enforces the same and
+answers `member_not_active` to an attach for anyone else:
+
+- An active member's button is **Attach meter** (or **Attach or detach meter** when they may already
+  hold one). A member who is not active gets **Detach meter**, and the dialog lists their meters
+  without the attach form, saying why. When the list knows such a member holds no meter, the button
+  is disabled and says why.
 
 - The dialog reads that one member's meters (`GET …/meter`) and shows their sensor ids, each with
   **Detach**. This is the only place a name meets a sensor id.
@@ -78,6 +88,7 @@ may already hold one), which opens the meter dialog (`celine-community` ADR-0004
   - `asset_key_taken`: the registry already has another record under this meter's key, including
     one this member holds for a different sensor id; nothing changed, and an administrator is told;
   - `asset_key_too_long`: the id is too long for the registry;
+  - `member_not_active`: the member is not active, so nothing was attached;
   - an unanswered registry, which asks the manager to reopen the dialog and check;
   - a missing registry grant, which is a configuration problem and not a refusal of the manager;
   - an unknown code, shown raw.
@@ -87,9 +98,56 @@ may already hold one), which opens the meter dialog (`celine-community` ADR-0004
   - the dialog's read is `cache: 'no-store'`;
   - no outcome sentence contains it.
 
-Planned, not implemented: role and area editing on the members page, with a read-only map of the
-REC's area boundaries drawn with `leaflet` on OpenStreetMap's public tiles, as `packages/roi-ui`
-draws its map ([ADR-0001](../../docs/decisions/ADR-0001-the-community-area-map-uses-leaflet-and-openstreetmap-tiles.md)).
+With `members.edit`, each **active** member has **Edit**, which opens the role and area dialog
+(`celine-community` ADR-0003). For a member who is not active the button is disabled and says why;
+the BFF refuses the same (`member_not_active`, plan D45):
+
+- **Role** is a select of `consumer` and `prosumer` only. Settlement counts a meter's production
+  only for a prosumer. A member whose role is anything else (`producer`, an imported `operator` or
+  `admin`) sees that role read-only, and only their area can change. The BFF refuses the same
+  (`role_not_allowed`, `role_read_only`), so the dialog is not the enforcement.
+- **Area** is a select of the REC's areas from `GET …/areas`, each shown with its primary
+  substation id: the BFF's `primarySubstation` (the area's first topology node, the node the
+  pipelines attribute its meters to), else its boundary's id. A member whose area the registry no
+  longer lists keeps it in the select. If the areas cannot be read, the area stays as it is and the
+  role can still be changed.
+- **Only what changed is sent.** **Save** is disabled while nothing differs. It opens a
+  confirmation that lists the changes and warns what they do to the meter's data:
+  - a role change decides whether the meter's production counts, from the next pipeline run;
+  - an area change moves the meter's new rows to the new area's substation, from the next
+    pipeline run;
+  - rows already computed keep the old values, and a later full refresh rewrites the whole
+    history with the new values.
+- Nothing is sent until the manager confirms, and only one request is in flight at a time. The row
+  then shows the role and area the BFF answered.
+- The BFF's code becomes a sentence through `src/lib/memberProfile.ts`, in the three locales:
+  `updated`, `unchanged` (nothing was written), `role_not_allowed`, `role_read_only`,
+  `member_not_active`,
+  `invalid_role`, `unknown_area`, `member_not_found`, `community_not_found`, `profile_rejected`,
+  `registry_unavailable`, `registry_refused` (a configuration problem, not a refusal of the
+  manager), `profile_writes_not_configured`, and an unknown code, shown raw.
+
+Below the area select, the dialog shows a **read-only map of the REC's areas**
+(`src/lib/components/AreaMap.svelte`, `src/lib/areaMap.ts`;
+[ADR-0001](../../docs/decisions/ADR-0001-the-community-area-map-uses-leaflet-and-openstreetmap-tiles.md)):
+
+- The shapes come from the BFF's `GET …/areas/shapes`: each area that has a boundary, with its
+  primary-substation boundary as GeoJSON, which the BFF reads from the Digital Twin. Each area is
+  drawn with its name and substation id as a label; the area the select shows is highlighted.
+- Nothing on the map is edited: no drawing tools, no handles, no draggable shapes. Boundaries are
+  admin-driven.
+- `leaflet` is imported lazily on mount, as `packages/roi-ui`'s `MapPicker.svelte` does, so
+  server-side rendering never touches `window`, and only when there is at least one shape to draw.
+  The base layer is OpenStreetMap's public tiles with its attribution. The tile server sees the
+  manager's IP address and which tiles are shown, and nothing else: the dialog says so, and no
+  member data is sent to it. If the tiles fail, the boundaries still draw on a blank background.
+- An area whose boundary the Digital Twin has no shape for is named under the map instead of drawn.
+  With no boundary at all, the map says there is nothing to draw and requests no tiles.
+- When the shapes cannot be read (`digital_twin_unavailable`, `digital_twin_refused`,
+  `digital_twin_not_configured`, a registry failure, the network), a sentence in the three locales
+  takes the map's place and the area select keeps working.
+- No shape or coordinate is logged or kept in the browser; the answer lives in the component while
+  the dialog is open.
 
 The phase-5 views retain the same boundary: the leaderboard and ledger use only `device_id`, the
 nudging page contains no rule or message editor, and alert acknowledge/mute/assign actions are

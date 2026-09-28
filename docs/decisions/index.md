@@ -39,3 +39,14 @@ edited to say something else.
 | ADR | Decision |
 |---|---|
 | [ADR-0001](ADR-0001-the-community-area-map-uses-leaflet-and-openstreetmap-tiles.md) | The community dashboard's area map uses leaflet and OpenStreetMap's public tiles, as `packages/roi-ui` does; the tile server seeing managers' requests is accepted |
+
+### Implementation notes
+
+An accepted ADR is not edited, so what has landed since it was written is recorded here.
+
+- **ADR-0001 is implemented.** Its opening paragraph says nothing is implemented yet; that is no longer
+  true. The map is `apps/community/src/lib/components/AreaMap.svelte` with
+  `apps/community/src/lib/areaMap.ts`, drawn in the members page's role-and-area dialog
+  (`apps/community/README.md`). `apps/community/tests/area-map.test.mjs` checks the module;
+  `e2e/community-area-map.spec.ts` renders the map in Chromium against the UI dev server with
+  the BFF and the tile server stubbed.
