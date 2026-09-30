@@ -1,6 +1,8 @@
 <script lang="ts">
     import { api, type NotificationItem } from "$lib/api";
     import { requestAndSubscribeWebPush, type WebPushFailureReason } from "$lib/push";
+    import { acknowledgeDataSharingPrompt, dataSharingPrompt } from "$lib/dataSharingPrompt";
+    import { goto, invalidate } from "$app/navigation";
     import { Button, Icon, Skeleton } from "@celine-eu/ui";
     import { onMount } from "svelte";
     import { t, locale } from "svelte-i18n";
@@ -26,6 +28,7 @@
         err = "";
         try {
             items = await api.notifications();
+            markSeen(items);
             if (typeof Notification !== "undefined") {
                 pushPermission = Notification.permission;
             }
@@ -60,34 +63,37 @@
         }
     }
 
-    async function markRead(id: string) {
-        try {
-            await api.notificationMarkRead(id);
-            items = items.map((n) =>
-                n.id === id ? { ...n, read_at: new Date().toISOString() } : n,
-            );
-        } catch (e) {
-            err = e instanceof Error ? e.message : String(e);
-        }
-    }
-
-    async function markAllRead() {
-        try {
-            await api.notificationMarkAllRead();
-            items = items.map((n) => ({
-                ...n,
-                read_at: n.read_at ?? new Date().toISOString(),
-            }));
-        } catch (e) {
-            err = e instanceof Error ? e.message : String(e);
-        }
+    /** Showing the list is reading it: every unread item on screen is marked read.
+     *
+     * Only on the server. `items` stays as it was on arrival, so what is new this
+     * visit keeps its highlight and the "Unread" filter still finds it. Item by item,
+     * not `read-all`: one that arrived after the list was fetched has not been seen.
+     * The data-sharing prompt is not marked — putting it off is its own answer.
+     * A failed write leaves the item unread for next time, which is harmless. */
+    async function markSeen(list: NotificationItem[]) {
+        const unread = list.filter((n) => !n.read_at);
+        if (unread.length === 0) return;
+        await Promise.allSettled(unread.map((n) => api.notificationMarkRead(n.id)));
+        // The bell's count comes from the layout load.
+        await invalidate("app:notifications");
     }
 
     const filteredItems = $derived(
         filter === "unread" ? items.filter((n) => !n.read_at) : items,
     );
 
-    const unreadCount = $derived(items.filter((n) => !n.read_at).length);
+    const unreadCount = $derived(
+        items.filter((n) => !n.read_at).length + ($dataSharingPrompt ? 1 : 0),
+    );
+
+    /** The data-sharing prompt, answered: opened, or put off until something changes. */
+    let answering = $state(false);
+    async function answerSharingPrompt(open: boolean) {
+        answering = true;
+        await acknowledgeDataSharingPrompt();
+        answering = false;
+        if (open) await goto("/data-sharing");
+    }
 
     onMount(loadAll);
 </script>
@@ -161,11 +167,6 @@
                     >{/if}
             </button>
         </div>
-        {#if unreadCount > 0}
-            <button class="mark-all-btn" onclick={markAllRead}
-                >{$t('notifications.mark_all_read')}</button
-            >
-        {/if}
     </div>
 
     {#if loading}
@@ -183,7 +184,7 @@
             <Icon name="alert-circle" size={20} />
             <span>{err}</span>
         </div>
-    {:else if filteredItems.length === 0}
+    {:else if filteredItems.length === 0 && !$dataSharingPrompt}
         <div class="empty-state" data-tour="notifications-list">
             <Icon name="bell" size={48} />
             <p class="empty-title">
@@ -195,6 +196,41 @@
         </div>
     {:else}
         <ul class="notification-list" data-tour="notifications-list">
+            {#if $dataSharingPrompt}
+                <!-- Not a stored notification: the backend's `asked` / `review_due`,
+                     shown in the one place the app asks for attention. -->
+                <li class="notification-item unread sharing-prompt">
+                    <div class="notification-header">
+                        <span class="notification-title">
+                            {$dataSharingPrompt === "invite"
+                                ? $t("data_sharing.banner_invite_title")
+                                : $t("data_sharing.banner_review_title")}
+                        </span>
+                    </div>
+                    <p class="notification-body">
+                        {$dataSharingPrompt === "invite"
+                            ? $t("data_sharing.banner_invite_body")
+                            : $t("data_sharing.banner_review_body")}
+                    </p>
+                    <div class="notification-footer">
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onclick={() => answerSharingPrompt(true)}
+                            disabled={answering}
+                        >
+                            {$t("data_sharing.banner_open")}
+                        </Button>
+                        <button
+                            class="mark-read-btn"
+                            onclick={() => answerSharingPrompt(false)}
+                            disabled={answering}
+                        >
+                            {$t("data_sharing.banner_dismiss")}
+                        </button>
+                    </div>
+                </li>
+            {/if}
             {#each filteredItems as n (n.id)}
                 <li class="notification-item" class:unread={!n.read_at}>
                     <div class="notification-header">
@@ -211,14 +247,6 @@
                         <span class="severity-tag severity--{n.severity}">
                             {n.severity}
                         </span>
-                        {#if !n.read_at}
-                            <button
-                                class="mark-read-btn"
-                                onclick={() => markRead(n.id)}
-                            >
-                                {$t('notifications.mark_as_read')}
-                            </button>
-                        {/if}
                     </div>
                 </li>
             {/each}
@@ -333,20 +361,6 @@
 
     .tab.active .badge {
         background: rgba(255, 255, 255, 0.3);
-    }
-
-    .mark-all-btn {
-        padding: var(--celine-space-xs) var(--celine-space-sm);
-        border: none;
-        background: transparent;
-        color: var(--celine-primary);
-        font: inherit;
-        font-size: 0.875rem;
-        cursor: pointer;
-    }
-
-    .mark-all-btn:hover {
-        text-decoration: underline;
     }
 
     .loading,
