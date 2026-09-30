@@ -99,7 +99,8 @@ async function open(page: Page, locale: string, decisions: Decision[] = []) {
   await expect(page.locator('.loading-card')).toHaveCount(0, { timeout: 30_000 });
 }
 
-const card = (page: Page, title: string) => page.locator('.settings-card', { hasText: title });
+/** One offer's row: its checkbox, title and details. */
+const card = (page: Page, title: string) => page.locator('.offer-row', { hasText: title });
 
 test.use({ locale: 'en-GB' });
 
@@ -108,8 +109,6 @@ test('a pending offer is shown as neither on nor off, with an enabled control', 
 
   const pending = card(page, 'Pending offer');
   await expect(pending).toContainText('Sharing is pending');
-  await expect(pending).not.toContainText('Sharing is on');
-  await expect(pending).not.toContainText('Sharing is off');
   await expect(pending).toContainText('not all of them yet');
 
   const control = pending.locator('input[type="checkbox"]');
@@ -118,13 +117,13 @@ test('a pending offer is shown as neither on nor off, with an enabled control', 
   // Mixed: the switch itself says neither.
   await expect(control).toBeChecked({ indeterminate: true });
   // The record of a granted decision does not describe a pending one.
-  await expect(pending.locator('details.evidence')).toHaveCount(0);
+  await expect(pending.locator('.evidence')).toHaveCount(0);
 
-  // The two settled states are unchanged.
-  await expect(card(page, 'Granted offer')).toContainText('Sharing is on');
+  // The two settled states are unchanged, and say nothing about pending.
   await expect(card(page, 'Granted offer').locator('input[type="checkbox"]')).toBeChecked();
-  await expect(card(page, 'Withdrawn offer')).toContainText('Sharing is off');
+  await expect(card(page, 'Granted offer')).not.toContainText('Sharing is pending');
   await expect(card(page, 'Withdrawn offer').locator('input[type="checkbox"]')).not.toBeChecked();
+  await expect(card(page, 'Withdrawn offer')).not.toContainText('Sharing is pending');
 });
 
 test('pressing a pending control withdraws, and the page shows what came back', async ({ page }) => {
@@ -135,7 +134,7 @@ test('pressing a pending control withdraws, and the page shows what came back', 
 
   await expect.poll(() => decisions).toEqual([{ offerId: PENDING.id, enabled: false }]);
   const settled = card(page, 'Pending offer');
-  await expect(settled).toContainText('Sharing is off');
+  await expect(settled).not.toContainText('Sharing is pending');
   await expect(settled.locator('input[type="checkbox"]')).not.toBeChecked();
   await expect(settled.locator('input[type="checkbox"]')).toHaveJSProperty('indeterminate', false);
 });
@@ -237,10 +236,10 @@ test('a live pending offer renders as pending', async ({ page }) => {
   }
 
   for (const offer of pendingOffers) {
-    const pending = page.locator('.settings-card', { hasText: liveTitle(offer) });
+    // By id, not title: two offers may share a title (one access per recipient).
+    const pending = page.locator(`.offer-row[data-offer-id="${offer.id}"]`);
+    await expect(pending).toContainText(liveTitle(offer));
     await expect(pending).toContainText('Sharing is pending');
-    await expect(pending).not.toContainText('Sharing is on');
-    await expect(pending).not.toContainText('Sharing is off');
     const control = pending.locator('input[type="checkbox"]');
     await expect(control).toHaveCount(1);
     await expect(control).toBeEnabled();

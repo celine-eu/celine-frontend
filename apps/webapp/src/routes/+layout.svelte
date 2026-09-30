@@ -2,7 +2,7 @@
   import { page } from "$app/stores";
   import type { Me, CommunityMeta } from "$lib/api";
   import { api } from "$lib/api";
-  import DataSharingBanner from "$lib/components/DataSharingBanner.svelte";
+  import { dataSharingPrompt, loadDataSharingPrompt } from "$lib/dataSharingPrompt";
   import OnboardingTour from "$lib/components/OnboardingTour.svelte";
   import { collectFeedbackDiagnostics } from "$lib/feedback";
   import { meStore } from "$lib/stores";
@@ -29,6 +29,15 @@
   $effect(() => {
     meStore.set(data.me);
   });
+
+  // The data-sharing prompt lives in the notification area: one unread item on
+  // the bell, the first entry on /notifications. Asked once per app load.
+  $effect(() => {
+    if (data.me && !data.auth_error && data.me.data_sharing_enabled) {
+      loadDataSharingPrompt();
+    }
+  });
+  let unreadCount = $derived(data.unread_count + ($dataSharingPrompt ? 1 : 0));
 
   $effect(() => {
     if ($locale) {
@@ -136,9 +145,9 @@
           data-tour="nav-notifications"
         >
           <Icon name="bell" size={20} />
-          {#if data.unread_count > 0}
-            <span class="notif-badge" aria-label="{data.unread_count} unread">
-              {data.unread_count > 9 ? '9+' : data.unread_count}
+          {#if unreadCount > 0}
+            <span class="notif-badge" aria-label="{unreadCount} unread">
+              {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           {/if}
         </a>
@@ -245,13 +254,6 @@
   enabled={!!data.me && !data.auth_error}
   completedPages={data.me?.onboarding_seen_pages ?? []}
   onComplete={api.markOnboardingSeen}
-/>
-
-<!-- The way into /data-sharing. Mounted here rather than loaded in `+layout.ts`
-     because that load re-runs per navigation and `GET /api/data-sharing`
-     provisions a credential upstream — see the component. -->
-<DataSharingBanner
-  enabled={!!data.me && !data.auth_error && !!data.me?.data_sharing_enabled}
 />
 
 <FeedbackWidget

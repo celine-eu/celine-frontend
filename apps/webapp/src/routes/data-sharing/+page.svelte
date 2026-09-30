@@ -22,7 +22,7 @@
         type DataSharingStatus,
         type SharingOffer,
     } from "$lib/api";
-    import { Button, Icon } from "@celine-eu/ui";
+    import { Button, Icon, Skeleton } from "@celine-eu/ui";
     import { onMount } from "svelte";
     import { t, locale } from "svelte-i18n";
 
@@ -83,6 +83,36 @@
         }
     }
 
+    /** An ISO-8601 period (`P2Y`, `P18M`, `P30D`) in words, in the member's
+     *  language; the code itself when it is anything else. */
+    function period(value: string | null | undefined): string {
+        if (!value) return "";
+        const match = /^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?$/.exec(value);
+        if (!match || !match.slice(1).some(Boolean)) return value;
+        const units = ["year", "month", "day"] as const;
+        return match
+            .slice(1)
+            .map((n, i) =>
+                n
+                    ? new Intl.NumberFormat($locale ?? undefined, {
+                          style: "unit",
+                          unit: units[i],
+                          unitDisplay: "long",
+                      }).format(Number(n))
+                    : "",
+            )
+            .filter(Boolean)
+            .join(" ");
+    }
+
+    /** Who may process the data for the recipient, in words; the code when no
+     *  sentence has been written for it. */
+    function processors(category: string): string {
+        const key = `data_sharing.processors_${category}`;
+        const label = $t(key);
+        return label === key ? category.replaceAll("-", " ") : label;
+    }
+
     function formatDate(value: string | null): string {
         if (!value) return "—";
         const parsed = new Date(value);
@@ -95,6 +125,71 @@
     let disclosedOffers = $derived(
         (status?.offers ?? []).filter((o) => !o.requires_consent),
     );
+
+    /** Every offer another one requires (an access before its uses) first,
+     *  then the rest — each group in the order the dataspace publishes them. */
+    let orderedConsent = $derived.by(() => {
+        const required = new Set(consentOffers.flatMap((o) => o.requires_offers ?? []));
+        const rank = (o: SharingOffer) => (required.has(o.id) ? 0 : 1);
+        return [...consentOffers].sort((a, b) => rank(a) - rank(b));
+    });
+
+    /** The community's one switch, as the onboarding wizard shows it: onboarding
+     *  carries its wording on every offer (`switch`). `null` → one row per offer
+     *  with no switch above them. */
+    let switchWording = $derived.by((): { title: string; label: string } | null => {
+        const wording = consentOffers.find((o) => o.switch)?.switch;
+        if (!wording) return null;
+        const first = Object.keys(wording)[0];
+        return wording[$locale?.slice(0, 2) ?? ""] ?? (first ? wording[first] : null) ?? null;
+    });
+
+    let parties = $derived(
+        [...new Set(orderedConsent.map(recipientName))].filter(Boolean),
+    );
+    let allOn = $derived(
+        consentOffers.length > 0 &&
+            consentOffers.every((o) => offerState(o) === "granted"),
+    );
+    let someOn = $derived(consentOffers.some((o) => offerState(o) !== "withdrawn"));
+    let busy = $derived(Object.keys(pending).length > 0);
+
+    /** Who gets the data, by name: onboarding's `recipient_name`, else the alias. */
+    function recipientName(offer: SharingOffer): string {
+        return (
+            offer.recipient_name ??
+            offer.recipients?.recipient ??
+            offer.recipients?.controller ??
+            ""
+        );
+    }
+
+    function current(id: string): SharingOffer | undefined {
+        return consentOffers.find((o) => o.id === id);
+    }
+
+    /** The offers this one needs that are not granted. A use of data that only
+     *  exists because of another offer (an access) cannot be granted without it. */
+    function unmet(offer: SharingOffer): SharingOffer[] {
+        return (offer.requires_offers ?? [])
+            .map(current)
+            .filter((o): o is SharingOffer => !!o && offerState(o) !== "granted");
+    }
+
+    /** Every offer that needs this one, directly or not. */
+    function dependents(offer: SharingOffer): SharingOffer[] {
+        const out: SharingOffer[] = [];
+        const walk = (id: string) => {
+            for (const o of consentOffers) {
+                if ((o.requires_offers ?? []).includes(id) && !out.includes(o)) {
+                    out.push(o);
+                    walk(o.id);
+                }
+            }
+        };
+        walk(offer.id);
+        return out;
+    }
 
     onMount(load);
 
@@ -142,16 +237,52 @@
         return offerState(offer) === "withdrawn";
     }
 
-    async function toggle(offer: SharingOffer) {
-        pending = { ...pending, [offer.id]: true };
-        err = "";
+    /** One decision on one offer; `status` is replaced by the answer. */
+    async function decide(id: string, grant: boolean) {
+        pending = { ...pending, [id]: true };
         try {
-            status = await api.dataSharingSet(offer.id, nextDecision(offer));
+            status = await api.dataSharingSet(id, grant);
+        } finally {
+            const { [id]: _, ...rest } = pending;
+            pending = rest;
+        }
+    }
+
+    /** Withdrawing an offer withdraws what depends on it first, as the wizard
+     *  does: a use left standing without its access admits nobody, and would
+     *  read as on. */
+    async function toggle(offer: SharingOffer) {
+        err = "";
+        const grant = nextDecision(offer);
+        try {
+            if (!grant) {
+                for (const d of dependents(offer).reverse()) {
+                    const now = current(d.id);
+                    if (now && offerState(now) !== "withdrawn") await decide(d.id, false);
+                }
+            }
+            await decide(offer.id, grant);
         } catch (e) {
             err = e instanceof Error ? e.message : String(e);
-        } finally {
-            const { [offer.id]: _, ...rest } = pending;
-            pending = rest;
+        }
+    }
+
+    /** The one switch: every offer on (accesses before their uses) or every
+     *  offer off (uses before their accesses). Each is still its own decision. */
+    async function setAll(grant: boolean) {
+        err = "";
+        const order = grant ? orderedConsent : [...orderedConsent].reverse();
+        try {
+            for (const o of order) {
+                const now = current(o.id);
+                if (!now) continue;
+                const state = offerState(now);
+                if (grant ? state !== "granted" : state !== "withdrawn") {
+                    await decide(o.id, grant);
+                }
+            }
+        } catch (e) {
+            err = e instanceof Error ? e.message : String(e);
         }
     }
 
@@ -178,13 +309,54 @@
         );
     }
 
+    /** An event's type. Provenance serves JSON-LD — `"@type": "ds:ConsentGranted"`,
+     *  and no `event_type` — so reading only `event_type` rendered every line
+     *  empty. `event_type` stays as the fallback for a plain-JSON source. */
+    function eventType(event: Record<string, unknown>): string {
+        return String(event["@type"] ?? event.event_type ?? "").replace(/^ds:/, "");
+    }
+
     /** A plain-language line per event. Falls back to the code rather than
      *  hiding an event nobody has written a sentence for yet. */
     function describe(event: Record<string, unknown>): string {
-        const kind = String(event.event_type ?? "");
+        const kind = eventType(event);
+        if (!kind) return $t("data_sharing.event_unknown");
         const key = `data_sharing.event_${kind}`;
         const label = $t(key);
         return label === key ? kind : label;
+    }
+
+    /** One line per thing that happened, not per record of it. A consent is
+     *  recorded once per dataset its offer is bound to, so one decision on an
+     *  offer bound to six datasets arrives as six identical events in the same
+     *  second. Consecutive events of one type, on one offer, in one second are
+     *  one line. */
+    let historyLines = $derived.by(() => {
+        const lines: { key: string; event: Record<string, unknown> }[] = [];
+        for (const event of events) {
+            const when = String(event["ds:occurredAt"] ?? event.occurred_at ?? "").slice(0, 19);
+            const key = `${eventType(event)}|${event["ds:offerId"] ?? event.offer_id ?? ""}|${when}`;
+            if (lines.at(-1)?.key === key) continue;
+            lines.push({ key, event });
+        }
+        return lines;
+    });
+
+    function eventWhen(event: Record<string, unknown>): string {
+        const value = event["ds:occurredAt"] ?? event.occurred_at;
+        if (!value) return "";
+        const parsed = new Date(String(value));
+        return isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString();
+    }
+
+    /** Which choice the event is about, by the title the member saw. */
+    function eventOffer(event: Record<string, unknown>): string {
+        const id = event["ds:offerId"] ?? event.offer_id;
+        if (!id) return "";
+        const offer = (status?.offers ?? []).find((o) => o.id === id);
+        if (!offer) return String(id);
+        const who = recipientName(offer);
+        return who ? `${offerTitle(offer)} · ${who}` : offerTitle(offer);
     }
 </script>
 
@@ -195,117 +367,93 @@
     </header>
 
     {#if loading}
-        <div class="loading-card">{$t("data_sharing.loading")}</div>
+        <div class="section-card loading-card">
+            <Skeleton variant="text" width="40%" />
+            <Skeleton variant="text" width="90%" />
+            <Skeleton variant="text" width="70%" />
+        </div>
     {:else if err}
-        <div class="error-banner">{err}</div>
-        <Button onclick={load}>{$t("data_sharing.retry")}</Button>
+        <div class="error-banner">
+            <Icon name="alert-circle" size={20} />
+            <span>{err}</span>
+        </div>
+        <div><Button variant="secondary" onclick={load}>{$t("data_sharing.retry")}</Button></div>
     {:else if !status?.has_identity}
         <!-- Normal for a participant enabled before the dataspace existed, or in
              a community that does not take part. Explain rather than fail — and
              say *which*, because they are not the same situation. -->
-        <div class="settings-card">
-            <p class="setting-description">{$t(explanation)}</p>
+        <div class="section-card">
+            <p class="card-text">{$t(explanation)}</p>
             {#if canRetry}
-                <Button onclick={load}>{$t("data_sharing.retry")}</Button>
+                <div class="card-actions">
+                    <Button variant="secondary" onclick={load}>{$t("data_sharing.retry")}</Button>
+                </div>
             {/if}
         </div>
     {:else}
         {#if consentOffers.length === 0 && disclosedOffers.length === 0}
-            <div class="settings-card">
-                <p class="setting-description">{$t("data_sharing.none")}</p>
+            <div class="section-card">
+                <p class="card-text">{$t("data_sharing.none")}</p>
             </div>
         {/if}
 
-        {#each consentOffers as offer (offer.id)}
-            {@const state = offerState(offer)}
-            <div class="settings-card">
-                <h2 class="section-title">
-                    <Icon name="info" size={20} />
-                    {offerTitle(offer)}
-                </h2>
+        {#if consentOffers.length}
+            <section class="section-card consent-card">
+                <div class="section-header">
+                    <Icon name="shield-check" size={22} class="section-icon" />
+                    <h2 class="section-title">
+                        {switchWording?.title ?? $t("data_sharing.title")}
+                    </h2>
+                </div>
 
-                {#if offerWording(offer)}
-                    <p class="setting-description offer-body">
-                        {offerWording(offer)?.body}
-                    </p>
-                {:else if offer.fallback_text_en?.purpose_definition}
-                    <p class="setting-description">
-                        {offer.fallback_text_en.purpose_definition}
-                    </p>
-                {/if}
-
-                <dl class="offer-facts">
-                    {#if offer.recipients?.controller}
-                        <dt>{$t("data_sharing.controller")}</dt>
-                        <dd>{offer.recipients.controller}</dd>
-                    {/if}
-                    {#if offer.fallback_text_en?.processor_category}
-                        <dt>{$t("data_sharing.recipients")}</dt>
-                        <dd>{offer.fallback_text_en.processor_category}</dd>
-                    {/if}
-                    {#if offer.retention}
-                        <dt>{$t("data_sharing.retention")}</dt>
-                        <dd>{offer.retention}</dd>
-                    {/if}
-                </dl>
-
-                <!-- `pending`: the connectors holding this offer's data disagree
-                     (a grant one has not recorded, a withdrawal one did not take).
-                     Shown as neither on nor off, and still pressable: see
-                     `nextDecision`. -->
-                <label class="setting-row">
-                    <input
-                        type="checkbox"
-                        checked={state !== "withdrawn"}
-                        use:mixed={state === "pending"}
-                        disabled={pending[offer.id]}
-                        onchange={() => toggle(offer)}
-                    />
-                    <div>
-                        <span class="setting-label">
-                            {state === "pending"
-                                ? $t("data_sharing.sharing_pending")
-                                : state === "granted"
-                                  ? $t("data_sharing.sharing_on")
-                                  : $t("data_sharing.sharing_off")}
-                        </span>
-                        <span class="setting-description">
-                            {state === "pending"
-                                ? $t("data_sharing.pending_description")
-                                : $t("data_sharing.toggle_description")}
-                        </span>
-                    </div>
-                </label>
-
-                {#if state === "granted" && offer.evidence}
-                    <!-- The record of what was shown when the decision was made:
-                         codes and hashes, never anything about the person. -->
-                    <details class="evidence">
-                        <summary>{$t("data_sharing.evidence")}</summary>
-                        <dl class="offer-facts">
-                            <dt>{$t("data_sharing.text_version")}</dt>
-                            <dd>{offer.consent_text_version}</dd>
-                            {#if offer.decided_at}
-                                <dt>{$t("data_sharing.decided_at")}</dt>
-                                <dd>{new Date(offer.decided_at).toLocaleString()}</dd>
+                {#if switchWording}
+                    <label class="setting-row switch-row">
+                        <input
+                            type="checkbox"
+                            checked={allOn}
+                            use:mixed={someOn && !allOn}
+                            disabled={busy}
+                            onchange={() => setAll(!allOn)}
+                        />
+                        <span class="setting-copy">
+                            <span class="setting-label">{switchWording.label}</span>
+                            {#if parties.length}
+                                <span class="setting-description">{parties.join(", ")}</span>
                             {/if}
-                        </dl>
+                        </span>
+                    </label>
+                    <details class="more">
+                        <summary class="more-toggle">
+                            {$t("data_sharing.learn_more")}
+                            <Icon name="chevron-down" size={16} class="more-chevron" />
+                        </summary>
+                        <div class="offer-list offer-list--nested">
+                            {#each orderedConsent as offer (offer.id)}
+                                {@render offerRow(offer)}
+                            {/each}
+                        </div>
                     </details>
+                {:else}
+                    <div class="offer-list">
+                        {#each orderedConsent as offer (offer.id)}
+                            {@render offerRow(offer)}
+                        {/each}
+                    </div>
                 {/if}
-            </div>
-        {/each}
+
+                <p class="card-footnote">{$t("data_sharing.toggle_description")}</p>
+            </section>
+        {/if}
 
         {#each disclosedOffers as offer (offer.id)}
             <!-- Disclosed, not chosen: no control, because there is no choice. -->
-            <div class="settings-card settings-card--muted">
-                <h2 class="section-title">
-                    <Icon name="info" size={20} />
-                    {offerTitle(offer)}
-                </h2>
-                <p class="setting-description">
-                    {$t("data_sharing.disclosed_description")}
-                </p>
-            </div>
+            <section class="section-card section-card--muted">
+                <div class="section-header">
+                    <Icon name="info" size={22} class="section-icon" />
+                    <h2 class="section-title">{offerTitle(offer)}</h2>
+                </div>
+                <p class="card-text">{$t("data_sharing.disclosed_description")}</p>
+            </section>
         {/each}
 
         {#if identity?.did}
@@ -314,108 +462,547 @@
                  they can learn it. Four named fields and never the credential:
                  the API projects the block for that reason and rendering it by
                  name is what keeps it true from this end. -->
-            <div class="settings-card">
-                <h2 class="section-title">
-                    <Icon name="info" size={20} />
-                    {$t("data_sharing.identity")}
-                </h2>
-                <p class="setting-description">
-                    {$t("data_sharing.identity_description")}
-                </p>
-                <dl class="offer-facts">
-                    <dt>{$t("data_sharing.identity_did")}</dt>
-                    <dd class="did-row">
-                        <code class="did">{identity.did}</code>
-                        <Button onclick={copyDid}>
-                            {copied
-                                ? $t("data_sharing.identity_copied")
-                                : $t("data_sharing.identity_copy")}
-                        </Button>
-                    </dd>
+            <section class="section-card">
+                <div class="section-header">
+                    <Icon name="users" size={22} class="section-icon" />
+                    <div>
+                        <h2 class="section-title">{$t("data_sharing.identity")}</h2>
+                        <p class="section-subtitle">{$t("data_sharing.identity_description")}</p>
+                    </div>
+                </div>
+                <div class="did-row">
+                    <code class="did">{identity.did}</code>
+                    <Button variant="secondary" size="sm" onclick={copyDid}>
+                        {copied
+                            ? $t("data_sharing.identity_copied")
+                            : $t("data_sharing.identity_copy")}
+                    </Button>
+                </div>
+                <dl class="facts">
                     {#if identity.role}
-                        <dt>{$t("data_sharing.identity_role")}</dt>
-                        <dd>{identity.role}</dd>
+                        <div>
+                            <dt>{$t("data_sharing.identity_role")}</dt>
+                            <dd>{identity.role}</dd>
+                        </div>
                     {/if}
                     {#if identity.issued_at}
-                        <dt>{$t("data_sharing.identity_issued")}</dt>
-                        <dd>{formatDate(identity.issued_at)}</dd>
+                        <div>
+                            <dt>{$t("data_sharing.identity_issued")}</dt>
+                            <dd>{formatDate(identity.issued_at)}</dd>
+                        </div>
                     {/if}
                     {#if identity.expires_at}
-                        <dt>{$t("data_sharing.identity_expires")}</dt>
-                        <dd>{formatDate(identity.expires_at)}</dd>
+                        <div>
+                            <dt>{$t("data_sharing.identity_expires")}</dt>
+                            <dd>{formatDate(identity.expires_at)}</dd>
+                        </div>
                     {/if}
                 </dl>
-            </div>
+            </section>
         {/if}
 
         {#if events.length}
-            <div class="settings-card">
-                <h2 class="section-title">
-                    <Icon name="info" size={20} />
-                    {$t("data_sharing.history")}
-                </h2>
+            <section class="section-card">
+                <div class="section-header">
+                    <Icon name="history" size={22} class="section-icon" />
+                    <h2 class="section-title">{$t("data_sharing.history")}</h2>
+                </div>
                 <ul class="history">
-                    {#each events as event, i (i)}
-                        <li>{describe(event)}</li>
+                    {#each historyLines as { event }, i (i)}
+                        <li class="history-item">
+                            <span class="history-what">{describe(event)}</span>
+                            {#if eventOffer(event)}
+                                <span class="history-offer">{eventOffer(event)}</span>
+                            {/if}
+                            {#if eventWhen(event)}
+                                <span class="history-when">{eventWhen(event)}</span>
+                            {/if}
+                        </li>
                     {/each}
                 </ul>
-            </div>
+            </section>
         {/if}
     {/if}
 </section>
 
-<style>
-    /* A community's wording is written in paragraphs; keep its line breaks. */
-    .offer-body {
-        white-space: pre-line;
-    }
+{#snippet offerRow(offer: SharingOffer)}
+    {@const state = offerState(offer)}
+    {@const blocked = state === "withdrawn" && unmet(offer).length > 0}
+    <div class="offer-row" class:offer-row--blocked={blocked} data-offer-id={offer.id}>
+        <!-- `pending`: the connectors holding this offer's data disagree (a
+             grant one has not recorded, a withdrawal one did not take). Shown
+             as neither on nor off, and still pressable: see `nextDecision`. -->
+        <label class="setting-row">
+            <input
+                type="checkbox"
+                checked={state !== "withdrawn"}
+                use:mixed={state === "pending"}
+                disabled={pending[offer.id] || blocked}
+                onchange={() => toggle(offer)}
+            />
+            <span class="setting-copy">
+                <span class="setting-label">{offerTitle(offer)}</span>
+                {#if recipientName(offer)}
+                    <span class="setting-description">{recipientName(offer)}</span>
+                {/if}
+            </span>
+        </label>
+        <div class="offer-detail">
+            {#if state === "pending"}
+                <p class="offer-note offer-note--warning">
+                    <Icon name="alert-triangle" size={14} />
+                    <span>
+                        {$t("data_sharing.sharing_pending")} — {$t("data_sharing.pending_description")}
+                    </span>
+                </p>
+            {/if}
+            {#if blocked}
+                <p class="offer-note">
+                    {$t("data_sharing.requires")}
+                    {unmet(offer)
+                        .map((o) => `«${offerTitle(o)}» (${recipientName(o)})`)
+                        .join(", ")}
+                </p>
+            {/if}
+            <details class="more">
+                <summary class="more-toggle">
+                    {$t("data_sharing.learn_more")}
+                    <Icon name="chevron-down" size={16} class="more-chevron" />
+                </summary>
+                <div class="more-panel">
+                    {#if offerWording(offer)}
+                        <p class="offer-body">{offerWording(offer)?.body}</p>
+                    {:else if offer.fallback_text_en?.purpose_definition}
+                        <p class="offer-body">{offer.fallback_text_en.purpose_definition}</p>
+                    {/if}
+                    <dl class="facts">
+                        {#if recipientName(offer)}
+                            <div>
+                                <dt>{$t("data_sharing.controller")}</dt>
+                                <dd>{recipientName(offer)}</dd>
+                            </div>
+                        {/if}
+                        {#if offer.fallback_text_en?.processor_category}
+                            <div>
+                                <dt>{$t("data_sharing.recipients")}</dt>
+                                <dd>{processors(offer.fallback_text_en.processor_category)}</dd>
+                            </div>
+                        {/if}
+                        {#if offer.retention}
+                            <div>
+                                <dt>{$t("data_sharing.retention")}</dt>
+                                <dd>{period(offer.retention)}</dd>
+                            </div>
+                        {/if}
+                        {#if state === "granted" && offer.evidence}
+                            <!-- The record of what was shown when the decision was made:
+                                 codes and hashes, never anything about the person. -->
+                            <div class="evidence">
+                                <dt>{$t("data_sharing.text_version")}</dt>
+                                <dd>{offer.consent_text_version}</dd>
+                            </div>
+                            {#if offer.decided_at}
+                                <div class="evidence">
+                                    <dt>{$t("data_sharing.decided_at")}</dt>
+                                    <dd>{new Date(offer.decided_at).toLocaleString()}</dd>
+                                </div>
+                            {/if}
+                        {/if}
+                    </dl>
+                </div>
+            </details>
+        </div>
+    </div>
+{/snippet}
 
+<style>
+    /* The app's page and card language — `section-card`, `section-header`,
+       `page-header` from the overview, `setting-row` from settings. Scoped per
+       page there, so stated again here. */
     .sharing-page {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: var(--celine-space-lg);
     }
 
-    .offer-facts {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 0.25rem 1rem;
-        margin: 0.5rem 0;
-        font-size: 0.875rem;
+    .page-header {
+        margin-bottom: var(--celine-space-sm);
     }
 
-    .offer-facts dt {
-        opacity: 0.7;
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--celine-text);
+        margin: 0 0 var(--celine-space-xs);
+        line-height: 1.2;
     }
 
-    .offer-facts dd {
+    .page-subtitle {
+        font-size: 0.9375rem;
+        color: var(--celine-text-secondary);
         margin: 0;
     }
 
-    .evidence {
-        margin-top: 0.75rem;
-        font-size: 0.875rem;
+    .section-card {
+        background: var(--celine-bg-elevated);
+        border: 1px solid var(--celine-border);
+        border-radius: var(--celine-radius-lg);
+        padding: var(--celine-space-md);
     }
 
-    .settings-card--muted {
-        opacity: 0.85;
+    .section-card--muted {
+        background: var(--celine-bg-sunken);
+    }
+
+    .loading-card {
+        display: flex;
+        flex-direction: column;
+        gap: var(--celine-space-sm);
+    }
+
+    .section-header {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--celine-space-sm);
+        margin-bottom: var(--celine-space-md);
+    }
+
+    .section-header > div {
+        flex: 1;
+    }
+
+    :global(.section-icon) {
+        color: var(--celine-primary);
+        margin-top: 2px;
+        flex: none;
+    }
+
+    .section-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--celine-text);
+        margin: 0;
+        line-height: 1.3;
+    }
+
+    .section-subtitle,
+    .card-text {
+        font-size: 0.875rem;
+        color: var(--celine-text-secondary);
+        margin: var(--celine-space-xs) 0 0;
+        line-height: 1.5;
+    }
+
+    .card-text {
+        margin: 0;
+    }
+
+    .card-actions {
+        margin-top: var(--celine-space-md);
+    }
+
+    .card-footnote {
+        font-size: 0.8125rem;
+        color: var(--celine-text-tertiary);
+        margin: var(--celine-space-md) 0 0;
+        padding-top: var(--celine-space-md);
+        border-top: 1px solid var(--celine-border);
+    }
+
+    .error-banner {
+        display: flex;
+        align-items: center;
+        gap: var(--celine-space-sm);
+        padding: var(--celine-space-md);
+        background: var(--celine-danger-bg);
+        color: var(--celine-danger-text);
+        border-radius: var(--celine-radius-md);
+    }
+
+    /* ── rows: the settings page's checkbox rows ─────────────────────────── */
+
+    .setting-row {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--celine-space-md);
+        cursor: pointer;
+    }
+
+    .setting-row input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        margin: 2px 0 0;
+        flex: none;
+        accent-color: var(--celine-primary);
+        cursor: pointer;
+    }
+
+    .setting-row input[type="checkbox"]:disabled {
+        cursor: not-allowed;
+    }
+
+    .setting-copy {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+
+    .setting-label {
+        font-weight: 500;
+        color: var(--celine-text);
+        line-height: 1.4;
+    }
+
+    .setting-description {
+        font-size: 0.8125rem;
+        color: var(--celine-text-secondary);
+        margin-top: 2px;
+    }
+
+    .switch-row .setting-label {
+        font-weight: 600;
+    }
+
+    .offer-list {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .offer-list--nested {
+        margin-top: var(--celine-space-sm);
+        border: 1px solid var(--celine-border);
+        border-radius: var(--celine-radius-md);
+        padding: 0 var(--celine-space-md);
+    }
+
+    .offer-row {
+        padding: var(--celine-space-md) 0;
+        border-bottom: 1px solid var(--celine-border);
+    }
+
+    .offer-row:last-child {
+        border-bottom: none;
+    }
+
+    .offer-row--blocked .setting-label {
+        color: var(--celine-text-secondary);
+    }
+
+    /* Everything under a row lines up with its label, not its checkbox. */
+    .offer-detail,
+    .switch-row + .more {
+        margin-left: calc(20px + var(--celine-space-md));
+    }
+
+    .offer-note {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--celine-space-xs);
+        font-size: 0.8125rem;
+        color: var(--celine-text-tertiary);
+        margin: var(--celine-space-xs) 0 0;
+    }
+
+    .offer-note--warning {
+        color: var(--celine-warning-text);
+        background: var(--celine-warning-bg);
+        border-radius: var(--celine-radius-sm);
+        padding: var(--celine-space-xs) var(--celine-space-sm);
+    }
+
+    /* ── "Learn more" ────────────────────────────────────────────────────── */
+
+    .more {
+        margin-top: var(--celine-space-xs);
+    }
+
+    .more-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--celine-space-xs);
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--celine-primary);
+        cursor: pointer;
+        list-style: none;
+        border-radius: var(--celine-radius-sm);
+    }
+
+    .more-toggle::-webkit-details-marker {
+        display: none;
+    }
+
+    .more-toggle::marker {
+        content: "";
+    }
+
+    .more-toggle:hover {
+        color: var(--celine-primary-hover);
+    }
+
+    .more-toggle:focus-visible {
+        outline: 2px solid var(--celine-primary);
+        outline-offset: 2px;
+    }
+
+    :global(.more-chevron) {
+        transition: transform 0.15s ease;
+    }
+
+    .more[open] > .more-toggle :global(.more-chevron) {
+        transform: rotate(180deg);
+    }
+
+    .more-panel {
+        margin-top: var(--celine-space-sm);
+        padding: var(--celine-space-sm) var(--celine-space-md);
+        background: var(--celine-bg-sunken);
+        border-radius: var(--celine-radius-md);
+    }
+
+    /* A community's wording is written in paragraphs; keep its line breaks. */
+    .offer-body {
+        white-space: pre-line;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: var(--celine-text);
+        margin: 0 0 var(--celine-space-sm);
+    }
+
+    /* ── facts ───────────────────────────────────────────────────────────── */
+
+    .facts {
+        display: flex;
+        flex-direction: column;
+        gap: var(--celine-space-xs);
+        margin: 0;
+        font-size: 0.8125rem;
+    }
+
+    .facts > div {
+        display: flex;
+        gap: var(--celine-space-sm);
+    }
+
+    .facts dt {
+        flex: 0 0 9rem;
+        color: var(--celine-text-secondary);
+    }
+
+    .facts dd {
+        margin: 0;
+        color: var(--celine-text);
+        min-width: 0;
     }
 
     .did-row {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: var(--celine-space-sm);
         flex-wrap: wrap;
+        margin-bottom: var(--celine-space-md);
     }
 
     .did {
+        flex: 1 1 16rem;
         font-size: 0.8125rem;
         word-break: break-all;
+        padding: var(--celine-space-sm) var(--celine-space-md);
+        background: var(--celine-bg-sunken);
+        border-radius: var(--celine-radius-md);
+        color: var(--celine-text);
     }
 
+    /* ── history ─────────────────────────────────────────────────────────── */
+
     .history {
+        list-style: none;
         margin: 0;
-        padding-left: 1.25rem;
+        padding: 0;
+    }
+
+    .history-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: var(--celine-space-sm) 0;
+        border-bottom: 1px solid var(--celine-border);
+    }
+
+    .history-item:first-child {
+        padding-top: 0;
+    }
+
+    .history-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .history-what {
         font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--celine-text);
+    }
+
+    .history-offer {
+        font-size: 0.8125rem;
+        color: var(--celine-text-secondary);
+    }
+
+    .history-when {
+        font-size: 0.75rem;
+        color: var(--celine-text-tertiary);
+    }
+
+    /* Narrow screens: one level of indentation, and each fact's label above
+       its value, so the text keeps a readable measure. */
+    @media (max-width: 639px) {
+        .switch-row + .more {
+            margin-left: 0;
+        }
+
+        .offer-list--nested {
+            border: none;
+            border-top: 1px solid var(--celine-border);
+            border-radius: 0;
+            padding: 0;
+        }
+
+        .more-panel {
+            padding: var(--celine-space-sm);
+        }
+
+        .facts > div {
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .facts dt {
+            flex: none;
+        }
+    }
+
+    @media (min-width: 640px) {
+        .section-card {
+            padding: var(--celine-space-lg);
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+        }
+    }
+
+    @media (min-width: 768px) {
+        .section-card {
+            padding: var(--celine-space-xl);
+        }
+
+        .section-title {
+            font-size: 1.125rem;
+        }
+
+        .section-header {
+            margin-bottom: var(--celine-space-lg);
+        }
     }
 </style>

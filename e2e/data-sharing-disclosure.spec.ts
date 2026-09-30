@@ -115,7 +115,8 @@ async function open(page: Page, offers: Offer[], locale = 'en') {
   await expect(page.locator('.loading-card')).toHaveCount(0, { timeout: 30_000 });
 }
 
-const card = (page: Page, title: string) => page.locator('.settings-card', { hasText: title });
+/** One consent offer's row: its checkbox, title and details. */
+const card = (page: Page, title: string) => page.locator('.offer-row', { hasText: title });
 
 /** Everything a member could press, in one selector: the claim is "no control", not "no
  *  checkbox". A page that replaced the switch with a button would still be wrong.
@@ -127,7 +128,7 @@ const PRESSABLE = 'input, button, select, textarea, [role="switch"], [role="chec
 
 /** The disclosure, asserted the way the live spec asserts it — muted, explained, inert. */
 async function expectDisclosedWithoutControl(page: Page, title: string) {
-  const muted = page.locator('.settings-card--muted', { hasText: title });
+  const muted = page.locator('.section-card--muted', { hasText: title });
   await expect(muted).toHaveCount(1);
   await expect(muted).toContainText(
     'This sharing happens under a contract rather than your consent, so there is nothing to choose.'
@@ -146,7 +147,7 @@ async function expectControl(page: Page, title: string, state: 'granted' | 'with
   const consent = card(page, title);
   // Not muted: the muting is the disclosure's, and a page that muted everything would
   // otherwise satisfy the negative half above.
-  await expect(page.locator('.settings-card--muted', { hasText: title })).toHaveCount(0);
+  await expect(page.locator('.section-card--muted', { hasText: title })).toHaveCount(0);
   const control = consent.locator('input[type="checkbox"]');
   await expect(control).toHaveCount(1);
   await expect(control).toBeEnabled();
@@ -157,8 +158,9 @@ async function expectControl(page: Page, title: string, state: 'granted' | 'with
   }
   await expect(control).toBeChecked({ checked: state === 'granted' });
   await expect(control).toHaveJSProperty('indeterminate', false);
-  await expect(consent).toContainText(state === 'granted' ? 'Sharing is on' : 'Sharing is off');
-  await expect(consent).toContainText(
+  await expect(consent).not.toContainText('Sharing is pending');
+  // What turning a choice off costs is said once, under the choices.
+  await expect(page.locator('.sharing-page')).toContainText(
     'Turning this off stops future sharing. It does not affect your membership.'
   );
 }
@@ -179,8 +181,8 @@ test('a non-consent offer is disclosed without a control, beside a consent offer
   // The invariant the live spec asserts, here against an answer that actually contains the
   // offer it can never get: one control per consent offer, and not one more.
   await expect(page.locator('.sharing-page input[type="checkbox"]')).toHaveCount(2);
-  await expect(page.locator('.settings-card--muted')).toHaveCount(1);
-  await expect(page.locator('.settings-card--muted').locator(PRESSABLE)).toHaveCount(0);
+  await expect(page.locator('.section-card--muted')).toHaveCount(1);
+  await expect(page.locator('.section-card--muted').locator(PRESSABLE)).toHaveCount(0);
 });
 
 test('an answer of nothing but non-consent offers renders no control at all', async ({ page }) => {
@@ -193,7 +195,7 @@ test('an answer of nothing but non-consent offers renders no control at all', as
   await expectDisclosedWithoutControl(page, 'Second contract offer');
   await expect(page.locator('.sharing-page input[type="checkbox"]')).toHaveCount(0);
   await expect(page.locator('.sharing-page').locator(PRESSABLE)).toHaveCount(0);
-  await expect(page.locator('.settings-card--muted')).toHaveCount(2);
+  await expect(page.locator('.section-card--muted')).toHaveCount(2);
 });
 
 test('all four states in one answer: three controls, one disclosure', async ({ page }) => {
@@ -207,10 +209,10 @@ test('all four states in one answer: three controls, one disclosure', async ({ p
   await expectDisclosedWithoutControl(page, 'Contract-based offer');
 
   await expect(page.locator('.sharing-page input[type="checkbox"]')).toHaveCount(3);
-  await expect(page.locator('.settings-card--muted')).toHaveCount(1);
+  await expect(page.locator('.section-card--muted')).toHaveCount(1);
   // A pending offer is not evidence of a settled decision, and a disclosure is not evidence
   // of a decision at all: only the granted consent offer carries the record.
-  await expect(page.locator('details.evidence')).toHaveCount(1);
+  await expect(page.locator('.offer-row', { has: page.locator('.evidence') })).toHaveCount(1);
 });
 
 for (const [locale, sentence] of [
@@ -220,7 +222,7 @@ for (const [locale, sentence] of [
 ] as const) {
   test(`the disclosure is written in ${locale}, and still carries no control`, async ({ page }) => {
     await open(page, [GRANTED, CONTRACT], locale);
-    const muted = page.locator('.settings-card--muted', { hasText: 'Contract-based offer' });
+    const muted = page.locator('.section-card--muted', { hasText: 'Contract-based offer' });
     await expect(muted).toContainText(sentence);
     // A missing key renders as the key itself, and does not fail the build.
     await expect(muted).not.toContainText('data_sharing.');

@@ -34,7 +34,15 @@ export type SharingOffer = {
   resolution?: string | null;
   retention?: string | null;
   coverage?: { retrospective?: string | null; prospective?: string | null };
-  recipients?: { controller?: string };
+  /** The party the data goes to, as an owner alias (`controller` is the old spelling). */
+  recipients?: { recipient?: string; controller?: string };
+  /** Offers this one is admitted only together with — an access before its uses. */
+  requires_offers?: string[];
+  /** The recipient's display name, from the community's manifest (onboarding). */
+  recipient_name?: string;
+  /** The community's one switch for every offer, per locale, carried on each
+   *  offer by onboarding; absent when the community words none. */
+  switch?: Record<string, { title: string; label: string }>;
   fallback_text_en?: {
     purpose_label?: string;
     purpose_definition?: string;

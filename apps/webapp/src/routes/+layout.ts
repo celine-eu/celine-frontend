@@ -4,7 +4,10 @@ import type { CommunityMeta, NotificationItem } from '$lib/api';
 import { setupI18n } from '$lib/i18n';
 import { waitLocale } from 'svelte-i18n';
 
-export const load: LayoutLoad = async ({ url, fetch }) => {
+export const load: LayoutLoad = async ({ url, fetch, depends }) => {
+  // `/notifications` marks what it shows as read, then invalidates this for the bell.
+  depends('app:notifications');
+
   let me = null;
   let status = 0;
 

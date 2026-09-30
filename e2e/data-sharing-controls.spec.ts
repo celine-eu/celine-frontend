@@ -43,6 +43,8 @@ type SharingOffer = {
   state?: 'granted' | 'withdrawn' | 'pending';
   fallback_text_en?: { purpose_label?: string };
   text?: Record<string, unknown>;
+  /** The community's one switch, carried on each offer by onboarding. */
+  switch?: Record<string, unknown>;
 };
 
 type DataSharingStatus = {
@@ -183,29 +185,37 @@ test('every consent-based offer is shown with a control that can withdraw it', a
   }
 
   // The count is the invariant's first half: a consent this page cannot take back is one the
-  // member can only ever have granted.
-  const controlled = page.locator('.settings-card', { has: page.locator('input[type="checkbox"]') });
-  await expect(controlled).toHaveCount(consentOffers.length);
+  // member can only ever have granted. One row per consent offer, each with its own control.
+  const rows = page.locator('.offer-row', { has: page.locator('input[type="checkbox"]') });
+  await expect(rows).toHaveCount(consentOffers.length);
 
   for (const offer of consentOffers) {
-    const card = page.locator('.settings-card', { hasText: offerTitle(offer) });
+    // By id, not title: two offers may share a title (one access per recipient).
+    const card = page.locator(`.offer-row[data-offer-id="${offer.id}"]`);
+    await expect(card).toContainText(offerTitle(offer));
     const control = card.locator('input[type="checkbox"]');
     await expect(control).toHaveCount(1);
-    await expect(control).toBeEnabled();
     const state = offer.state ?? (offer.granted ? 'granted' : 'withdrawn');
     if (state === 'pending') {
       // Neither on nor off while the connectors disagree — see data-sharing-pending.spec.ts.
+      await expect(control).toBeEnabled();
       await expect(control).toBeChecked({ indeterminate: true });
       await expect(card).toContainText('Sharing is pending');
       continue;
     }
     await expect(control).toBeChecked({ checked: state === 'granted' });
-    // The control has to say which way it is pointing, and what turning it off costs.
-    await expect(card).toContainText(state === 'granted' ? 'Sharing is on' : 'Sharing is off');
-    await expect(card).toContainText(
-      'Turning this off stops future sharing. It does not affect your membership.'
-    );
+    // Granted is always withdrawable (Art. 7(3)); withdrawn is grantable unless it waits on
+    // another offer, which the row then names.
+    if (state === 'granted') {
+      await expect(control).toBeEnabled();
+    } else if (await control.isDisabled()) {
+      await expect(card).toContainText('Available once you allow');
+    }
   }
+  // What turning a choice off costs is said once, under the choices.
+  await expect(page.locator('.sharing-page')).toContainText(
+    'Turning this off stops future sharing. It does not affect your membership.'
+  );
 });
 
 test('a contract-based offer is disclosed without a control', async ({ page }) => {
@@ -220,14 +230,14 @@ test('a contract-based offer is disclosed without a control', async ({ page }) =
       'NO control cannot be checked against a page that was never asked to render one.',
       'To run: the member\'s community must publish an offer under a non-consent legal',
       'basis (dpv:Contract), and onboarding must merge it into their status. In the',
-      'demo3 dataspace, governance/sharing-offers.yaml publishes four offers and every',
+      'demo3 dataspace, governance/sharing-offers.yaml publishes five offers and every',
       'one of them is dpv:Consent; the dpv:Contract offers live in the connector\'s own',
       'governance-rec/sharing-offers.yaml, which is not what this page is served.',
     ]);
   }
 
   for (const offer of disclosed) {
-    const card = page.locator('.settings-card--muted', { hasText: offerTitle(offer) });
+    const card = page.locator('.section-card--muted', { hasText: offerTitle(offer) });
     await expect(card).toHaveCount(1);
     // Disclosed, not chosen: no switch, no button, nothing to press.
     await expect(card.locator('input, button, select, [role="switch"]')).toHaveCount(0);
@@ -262,8 +272,10 @@ test('no control appears without a consent-based offer behind it', async ({ page
     );
   }
 
+  // One per consent offer, plus the one switch when the community words one.
+  const hasSwitch = consentOffers.some((o) => o.switch);
   await expect(page.locator('.sharing-page input[type="checkbox"]')).toHaveCount(
-    consentOffers.length
+    consentOffers.length + (consentOffers.length && hasSwitch ? 1 : 0)
   );
-  await expect(page.locator('.settings-card--muted input, .settings-card--muted button')).toHaveCount(0);
+  await expect(page.locator('.section-card--muted input, .section-card--muted button')).toHaveCount(0);
 });
