@@ -212,9 +212,9 @@ test('every consent-based offer is shown with a control that can withdraw it', a
       await expect(card).toContainText('Available once you allow');
     }
   }
-  // What turning a choice off costs is said once, under the choices.
+  // What turning a choice off costs — the app, not the membership — is said once, under the choices.
   await expect(page.locator('.sharing-page')).toContainText(
-    'Turning this off stops future sharing. It does not affect your membership.'
+    'without sharing it, the app\'s features cannot work. Turning it off does not affect your membership'
   );
 });
 

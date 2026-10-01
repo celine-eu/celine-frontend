@@ -455,6 +455,8 @@
     "recipients": "Quién puede tratarlos por su cuenta",
     "retention": "Se conservan durante",
     "retry": "Reintentar",
+    "unavailable": "La compartición de datos no está disponible temporalmente, así que ahora mismo no se pueden mostrar ni cambiar tus opciones. Vuelve a intentarlo en unos minutos.",
+    "failed": "Se ha producido un problema con tus opciones de compartición de datos. Vuelve a intentarlo.",
     "sharing_off": "Compartir desactivado",
     "sharing_pending": "Compartir pendiente",
     "pending_description": "Tu decisión ha llegado a algunos de los sistemas que conservan estos datos, pero todavía no a todos, por eso no se muestra ni activado ni desactivado. Al desactivarlo se detiene la compartición en todos ellos.",
@@ -466,6 +468,6 @@
     "subtitle": "Elige qué puede hacer tu comunidad energética con tus datos. Puedes cambiar de opinión en cualquier momento.",
     "text_version": "Versión que se te mostró",
     "title": "Compartir datos",
-    "toggle_description": "Al desactivarlo se detienen las futuras comparticiones. No afecta a tu pertenencia a la comunidad."
+    "toggle_description": "La aplicación funciona con los datos de tu contador: sin compartirlos, sus funciones no pueden utilizarse. Desactivar la compartición no afecta a tu pertenencia a la comunidad."
   }
 }

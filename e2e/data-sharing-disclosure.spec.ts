@@ -159,9 +159,9 @@ async function expectControl(page: Page, title: string, state: 'granted' | 'with
   await expect(control).toBeChecked({ checked: state === 'granted' });
   await expect(control).toHaveJSProperty('indeterminate', false);
   await expect(consent).not.toContainText('Sharing is pending');
-  // What turning a choice off costs is said once, under the choices.
+  // What turning a choice off costs — the app, not the membership — is said once, under the choices.
   await expect(page.locator('.sharing-page')).toContainText(
-    'Turning this off stops future sharing. It does not affect your membership.'
+    'without sharing it, the app\'s features cannot work. Turning it off does not affect your membership'
   );
 }
 

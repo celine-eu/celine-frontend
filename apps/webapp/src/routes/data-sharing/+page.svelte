@@ -18,6 +18,7 @@
      */
     import {
         api,
+        ApiError,
         offerState,
         type DataSharingStatus,
         type SharingOffer,
@@ -29,7 +30,17 @@
     let status = $state<DataSharingStatus | null>(null);
     let events = $state<Record<string, unknown>[]>([]);
     let loading = $state(true);
+    /** An i18n key, never the server's text: that names connectors and
+     *  status codes a member can do nothing with. */
     let err = $state("");
+
+    /** What to tell the member when a call fails; the reason goes to the console. */
+    function failure(e: unknown): string {
+        console.error("data sharing:", e);
+        return e instanceof ApiError && e.status === 503
+            ? "data_sharing.unavailable"
+            : "data_sharing.failed";
+    }
     /** Offer ids with a change in flight, so only that row is disabled. */
     let pending = $state<Record<string, boolean>>({});
 
@@ -208,7 +219,7 @@
                 }
             }
         } catch (e) {
-            err = e instanceof Error ? e.message : String(e);
+            err = failure(e);
         } finally {
             loading = false;
         }
@@ -263,7 +274,7 @@
             }
             await decide(offer.id, grant);
         } catch (e) {
-            err = e instanceof Error ? e.message : String(e);
+            err = failure(e);
         }
     }
 
@@ -282,7 +293,7 @@
                 }
             }
         } catch (e) {
-            err = e instanceof Error ? e.message : String(e);
+            err = failure(e);
         }
     }
 
@@ -375,7 +386,7 @@
     {:else if err}
         <div class="error-banner">
             <Icon name="alert-circle" size={20} />
-            <span>{err}</span>
+            <span>{$t(err)}</span>
         </div>
         <div><Button variant="secondary" onclick={load}>{$t("data_sharing.retry")}</Button></div>
     {:else if !status?.has_identity}

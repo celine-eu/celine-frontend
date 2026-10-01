@@ -474,6 +474,8 @@
     "recipients": "Chi può trattarli per suo conto",
     "retention": "Conservati per",
     "retry": "Riprova",
+    "unavailable": "La condivisione dei dati è momentaneamente non disponibile: al momento non è possibile mostrare o modificare le tue scelte. Riprova tra qualche minuto.",
+    "failed": "Si è verificato un problema con le tue scelte sulla condivisione dei dati. Riprova.",
     "sharing_off": "Condivisione disattivata",
     "sharing_pending": "Condivisione in sospeso",
     "pending_description": "La tua scelta è arrivata ad alcuni dei sistemi che conservano questi dati, ma non ancora a tutti, quindi non è indicata né come attiva né come disattivata. Disattivandola interrompi la condivisione in tutti.",
@@ -485,6 +487,6 @@
     "subtitle": "Scegli cosa la tua comunità energetica può fare con i tuoi dati. Puoi cambiare idea in qualsiasi momento.",
     "text_version": "Versione che ti è stata mostrata",
     "title": "Condivisione dei dati",
-    "toggle_description": "Disattivandola interrompi le condivisioni future. Non influisce sulla tua adesione alla comunità."
+    "toggle_description": "L'app funziona con i dati del tuo contatore: senza condividerli, le sue funzioni non possono essere utilizzate. Disattivare la condivisione non influisce sulla tua adesione alla comunità."
   }
 }

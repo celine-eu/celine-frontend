@@ -474,6 +474,8 @@
     "recipients": "Who may process it for them",
     "retention": "Kept for",
     "retry": "Try again",
+    "unavailable": "Data sharing is temporarily unavailable, so your choices can't be shown or changed right now. Please try again in a few minutes.",
+    "failed": "Something went wrong while handling your data sharing choices. Please try again.",
     "sharing_off": "Sharing is off",
     "sharing_pending": "Sharing is pending",
     "pending_description": "Your choice has reached some of the systems that hold this data, but not all of them yet, so it is shown as neither on nor off. Turning this off stops sharing in all of them.",
@@ -485,6 +487,6 @@
     "subtitle": "Choose what your energy community may do with your data. You can change your mind at any time.",
     "text_version": "Version you were shown",
     "title": "Data sharing",
-    "toggle_description": "Turning this off stops future sharing. It does not affect your membership."
+    "toggle_description": "The app works with your meter data: without sharing it, the app's features cannot work. Turning it off does not affect your membership of the community."
   }
 }

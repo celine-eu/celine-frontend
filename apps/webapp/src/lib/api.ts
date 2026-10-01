@@ -211,6 +211,18 @@ export type Settings = {
   };
 };
 
+/** A non-2xx answer. `message` keeps the raw form for logs and the pages that
+ *  still print it; `status` is what a page decides its own wording on. */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 async function j<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...init,
@@ -227,7 +239,7 @@ async function j<T>(url: string, init?: RequestInit): Promise<T> {
   }
   if (!res.ok) {
     const txt = await res.text().catch(() => '');
-    throw new Error(`${res.status} ${res.statusText}${txt ? `: ${txt}` : ''}`);
+    throw new ApiError(res.status, `${res.status} ${res.statusText}${txt ? `: ${txt}` : ''}`);
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
