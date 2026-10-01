@@ -169,7 +169,7 @@
 
       // Build off-screen ghost container
       const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;background:#fff;color:#1a1a1a;padding:24px;font-family:DM Sans,system-ui,sans-serif;';
+      wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;width:800px;background:#fff;color:#1a1a1a;padding:24px;font-family:DM Sans Variable,DM Sans,system-ui,sans-serif;';
 
       // Section title
       const title = document.createElement('h2');

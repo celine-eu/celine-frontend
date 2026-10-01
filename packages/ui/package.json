@@ -20,5 +20,8 @@
   ],
   "peerDependencies": {
     "svelte": "^5.0.0"
+  },
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.3.0"
   }
 }
