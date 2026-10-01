@@ -92,7 +92,7 @@ task dev:grid
 
 ## apps/community
 
-REC Manager Dashboard. A SvelteKit application for the managers of a renewable energy community: energy overview, devices and data flow, flexibility, gamification, nudging, alerts, members and feedback. It is separate from `apps/webapp`, and follows the deployment and role-gate pattern of `apps/grid`.
+REC Manager Dashboard. A SvelteKit application for the managers of a renewable energy community: energy overview, meters and data flow, flexibility, gamification, nudging, alerts, members and feedback. It is separate from `apps/webapp`, and follows the deployment and role-gate pattern of `apps/grid`.
 
 **Routes:**
 
@@ -101,22 +101,22 @@ REC Manager Dashboard. A SvelteKit application for the managers of a renewable e
 | `/` | REC picker over the RECs `GET /api/me` returned; redirects straight into the only one |
 | `/denied` | No REC managed, a REC that is not yours, or the REC registry unreachable |
 | `/[community]` | Overview for the REC in the path |
-| `/[community]/devices` | Device board and technical detail drawer, by `device_id` only |
+| `/[community]/devices` | Meters (the IoT meters; "Misuratori" / "Medidores"): board and technical detail drawer, by `device_id` only. The path keeps its name |
 | `/[community]/data-flow` | Interval coverage, gaps and pipeline freshness |
 | `/[community]/flexibility` | Flexibility windows and the offered → points pathway |
 | `/[community]/gamification` | Points distribution, anti-gaming flags, device ledgers |
 | `/[community]/nudging` | Read-only nudging metrics |
 | `/[community]/alerts` | Alert inbox with acknowledge, mute and assign |
-| `/[community]/members` | Members by name, with invitation and password-reset sends, the meter dialog and the role and area dialog with its area map |
+| `/[community]/members` | Members by name, with invitation and password-reset sends, the measurements dialog (delivery point, read-only, and meter) and the role and area dialog with its area map |
 | `/[community]/feedback` | Manager-dashboard and participant-dashboard feedback inbox |
 
-**Capabilities:** each REC in `GET /api/me` carries the caller's capabilities, and a section or action the caller has none for is absent rather than offered and refused. The members page needs `members.read`; its actions need `members.invite` (sends), `members.meter` (attach and detach a meter) and `members.edit` (role and area). The BFF enforces every one of them again.
+**Capabilities:** each REC in `GET /api/me` carries the caller's capabilities, and a section or action the caller has none for is absent rather than offered and refused. The members page needs `members.read`; its actions need `members.invite` (sends), `members.meter` (review a member's measurements, attach and detach a meter) and `members.edit` (role and area). The BFF enforces every one of them again.
 
 **Key components:** `AreaMap`, `EnergyChart`, `ExportButtons`, `KpiCard`, `MemberSends`. Outcome codes become sentences in `src/lib/memberSend.ts`, `memberMeter.ts` and `memberProfile.ts`, in `en`, `it` and `es`.
 
 **Map:** the role and area dialog draws a read-only map of the REC's areas with `leaflet` on OpenStreetMap's public tiles ([ADR-0001](decisions/ADR-0001-the-community-area-map-uses-leaflet-and-openstreetmap-tiles.md)). The tile server sees the manager's IP address and the tiles shown; no member data is sent to it.
 
-**Privacy:** member names and a member's sensor ids live in page state only, never in browser storage, a URL or an export. A sensor id is typed as free text in the meter dialog; nothing lists or suggests meters.
+**Privacy:** member names and a member's delivery points (POD) and sensor ids live in page state only, never in browser storage, a URL or an export. The members list shows only whether a member has a POD and a meter. A POD is read-only here (onboarding owns it); a sensor id is typed as free text in the measurements dialog, and nothing lists or suggests meters.
 
 **Backend:** `celine-community` BFF (port 8019). See `apps/community/README.md` for the routes the app reads and what each dialog does.
 

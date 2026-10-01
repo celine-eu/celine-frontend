@@ -348,7 +348,7 @@ test('the confirm step shows area names, not keys', async () => {
   assert.match(line, /to: areaKeyLabel\(editAreas, editConfirm\.area,/);
 });
 
-test('D45: the meter action opens for every member who may hold a meter; attach is offered only to active members', async () => {
+test('D45: the measurements action opens for every member; attach is offered only to active members', async () => {
   const page = await read(PAGE);
 
   assert.match(page, /function openMeter\(member: MemberSummary\) \{[\s\S]*?if \(meterBusy \|\| !meterAccess\(member\)\.open\) return;/);
@@ -362,7 +362,7 @@ test('D45: the meter action opens for every member who may hold a meter; attach 
   for (const locale of LOCALES) {
     assert.match(bundles[locale]['members.meter.inactive_reason'], /\{status\}/, locale);
     assert.match(bundles[locale]['members.meter.attach_inactive'], /\{status\}/, locale);
-    assert.ok(bundles[locale]['members.meter.open_detach'], locale);
+    assert.ok(bundles[locale]['members.meter.open'], locale);
   }
 });
 

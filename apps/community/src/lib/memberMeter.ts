@@ -1,5 +1,10 @@
 /**
- * A manager attaches or detaches a member's meter (celine-community ADR-0003, ADR-0004).
+ * A manager reviews a member's measurements, and attaches or detaches their meter
+ * (celine-community ADR-0003, ADR-0004, ADR-0005).
+ *
+ * Two sources, kept apart: the **delivery point (POD)**, the DSO's grid connection,
+ * read-only here (it is set and corrected through onboarding), and the **meter**, a
+ * REC- or member-provided device, optional. The UI calls both together "measurements".
  *
  * Pure apart from `fetch`, and free of Svelte and `$lib` imports, so `tests/` can load
  * it with Node's type stripping, stub `fetch`, and check the routes, the bodies and
@@ -7,15 +12,18 @@
  *
  * **The sensor id is typed, never offered** (plan D18): nothing here reads meter data
  * to suggest one. The only meters read are those of the one member the dialog is open
- * for. **A name meets a sensor id only in the dialog:** the id travels in request and
- * response bodies, never in a URL; the dialog's read is `cache: 'no-store'`, so the
- * browser's HTTP cache never keeps it; nothing here writes to browser storage; and no
- * outcome sentence contains it, so a message left under a row of the members list
- * does not put the id beside the name.
+ * for.
  *
- * **Detach for every member, attach for active members only** (plan D45, amending
- * D42): a manager can free a meter held by a suspended or inactive member, but only
- * an active member is given one. The BFF refuses the same (`409 member_not_active`).
+ * **A name meets a sensor id or a POD only in the dialog:** both travel in request
+ * and response bodies, never in a URL; the dialog's read is `cache: 'no-store'`, so
+ * the browser's HTTP cache never keeps them; nothing here writes to browser storage;
+ * and no outcome sentence contains either, so a message left under a row of the
+ * members list does not put them beside the name.
+ *
+ * **Every member's measurements can be reviewed; detach for every member, attach for
+ * active members only** (plan D45, amending D42): a manager can free a meter held by a
+ * suspended or inactive member, but only an active member is given one. The BFF
+ * refuses the same (`409 member_not_active`).
  */
 
 import type { OutcomeMessage, Tone, Translate } from './memberSend';
@@ -36,13 +44,26 @@ export type MeterPress = 'read' | 'attach' | 'detach';
 export interface MemberMeter {
   sensorId: string;
   meterType?: string | null;
+  /** The delivery point the meter is linked to, as the registry spells it; `null` when none. */
+  pod?: string | null;
 }
 
-/** `GET …/members/{member_key}/meter`: that one member's meters and nothing else. */
+/** One of the member's delivery points (POD): read-only, the id as the registry has it. */
+export interface MemberDeliveryPoint {
+  id: string;
+  active: boolean;
+}
+
+/** `GET …/members/{member_key}/meter`: that one member's measurements and nothing else. */
 export interface MemberMeters {
   memberKey: string;
   /** What an attach sends when the manager picks no type: from the member's role. */
   defaultMeterType: MeterType;
+  /**
+   * The member's delivery points. Absent from a BFF that predates ADR-0005: the dialog
+   * then shows no POD section and offers no POD link.
+   */
+  deliveryPoints?: MemberDeliveryPoint[];
   meters: MemberMeter[];
 }
 
@@ -70,6 +91,7 @@ export const METER_CODES = [
   'community_not_found',
   'meter_not_found',
   'sensor_id_blank',
+  'pod_not_held',
   'invalid_input',
   'meter_rejected',
   'registry_unavailable',
@@ -90,27 +112,27 @@ const TONES: Record<string, Tone> = {
   sensor_id_blank: 'warning',
 };
 
-/** What the meter action offers a member, from their status and the list's meter flag (D45). */
+/** What the measurements action offers a member, from their status (D45, plan M3). */
 export interface MeterAccess {
-  /** Whether the dialog opens at all: always for an active member, else only when they may hold a meter. */
+  /** Whether the dialog opens: always, so every member's measurements can be reviewed. */
   open: boolean;
   /** Whether the dialog offers an attach: only for an active member. Detach is offered for everyone. */
   attach: boolean;
-  /** The row button's translation key. */
-  label: 'members.meter.open_attach' | 'members.meter.open_manage' | 'members.meter.open_detach';
+  /** The row button's translation key: "Measurements", whatever the member holds. */
+  label: 'members.meter.open';
 }
 
-export function meterAccess(member: { status?: string | null; hasMeter?: boolean | null }): MeterAccess {
+export function meterAccess(member: { status?: string | null }): MeterAccess {
   const active = (member.status ?? '').trim().toLowerCase() === 'active';
-  if (active) {
-    return {
-      open: true,
-      attach: true,
-      label: member.hasMeter === false ? 'members.meter.open_attach' : 'members.meter.open_manage',
-    };
-  }
-  // Not active: nothing to attach, and nothing to detach when the list knows they hold no meter.
-  return { open: member.hasMeter !== false, attach: false, label: 'members.meter.open_detach' };
+  return { open: true, attach: active, label: 'members.meter.open' };
+}
+
+/**
+ * The POD an attach starts with (plan M5): the member's only delivery point when they
+ * have exactly one, else none. The link is optional, and "none" is always offered.
+ */
+export function defaultPod(deliveryPoints: readonly MemberDeliveryPoint[] | null | undefined): string | null {
+  return deliveryPoints && deliveryPoints.length === 1 ? deliveryPoints[0].id : null;
 }
 
 /** An attach's default type: `bidirectional` for a prosumer, `consumption` otherwise. */
@@ -175,10 +197,10 @@ async function call(
   return { response, body };
 }
 
-/** The meters of the one member the dialog is open for. Refusals resolve, they do not throw. */
+/** The measurements of the one member the dialog is open for. Refusals resolve, they do not throw. */
 export async function getMemberMeters(communityKey: string, memberKey: string): Promise<MeterRead> {
   const { response, body } = await call(meterUrl(communityKey, memberKey), {
-    // The answer carries sensor ids: the browser's HTTP cache must not keep it.
+    // The answer carries sensor ids and PODs: the browser's HTTP cache must not keep it.
     cache: 'no-store',
   });
   if (!response) return { ok: false, outcome: { status: 0, code: 'network_error', press: 'read' } };
@@ -186,18 +208,26 @@ export async function getMemberMeters(communityKey: string, memberKey: string): 
   return { ok: false, outcome: { status: response.status, code: meterCodeOf(response.status, body), press: 'read' } };
 }
 
-/** Attach the meter with this typed sensor id. `201 attached` or `200 already_attached`. */
+/**
+ * Attach the meter with this typed sensor id. `201 attached` or `200 already_attached`.
+ * With `pod`, the meter is linked to that one of the member's delivery points; without,
+ * no `pod` is sent and none is linked. A POD the member does not hold is `422 pod_not_held`.
+ */
 export async function attachMeter(
   communityKey: string,
   memberKey: string,
   sensorId: string,
   meterType?: MeterType,
+  pod?: string | null,
 ): Promise<MeterOutcome> {
+  const payload: { sensorId: string; meterType?: MeterType; pod?: string } = { sensorId };
+  if (meterType) payload.meterType = meterType;
+  if (pod) payload.pod = pod;
   const { response, body } = await call(meterUrl(communityKey, memberKey), {
     method: 'PUT',
     cache: 'no-store',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(meterType ? { sensorId, meterType } : { sensorId }),
+    body: JSON.stringify(payload),
   });
   if (!response) return { status: 0, code: 'network_error', press: 'attach' };
   if (response.ok) {

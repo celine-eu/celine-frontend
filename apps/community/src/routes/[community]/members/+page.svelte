@@ -10,6 +10,7 @@
     getMembers,
     sendMemberEmail,
     type CommunityArea,
+    type MemberDeliveryPoint,
     type MemberMeter,
     type MemberSummary,
     type MeterOutcome,
@@ -18,7 +19,7 @@
     type ProfileOutcome,
   } from '$lib/api';
   import { outcomeMessage, type OutcomeMessage, type SendIntent } from '$lib/memberSend';
-  import { METER_TYPES, SENSOR_ID_MAX_LENGTH, defaultMeterType, meterAccess, meterOutcomeMessage, normalizeSensorId } from '$lib/memberMeter';
+  import { METER_TYPES, SENSOR_ID_MAX_LENGTH, defaultMeterType, defaultPod, meterAccess, meterOutcomeMessage, normalizeSensorId } from '$lib/memberMeter';
   import {
     EDITABLE_ROLES,
     areaKeyLabel,
@@ -81,17 +82,25 @@
     }
   }
 
-  // The meter dialog (celine-community ADR-0004). The sensor id is typed, never
-  // offered: no list, no suggestion, no lookup of unattached meters (D18). It lives
-  // in this component's state while the dialog is open and is cleared when it
-  // closes: never in browser storage, never in a URL. The list shows only whether a
-  // member has a meter, and no outcome sentence carries the id.
+  // The measurements dialog (celine-community ADR-0004, ADR-0005): the member's
+  // delivery points (POD), read-only, and their meters. The sensor id is typed, never
+  // offered: no list, no suggestion, no lookup of unattached meters (D18). The POD
+  // and the sensor id live in this component's state while the dialog is open and
+  // are cleared when it closes: never in browser storage, never in a URL. The list
+  // shows only whether a member has a POD and a meter, and no outcome sentence
+  // carries either id.
   const canMeter = $derived(($communityStore?.capabilities ?? []).includes('members.meter'));
 
-  type MeterConfirm = { press: 'attach'; sensorId: string; meterType: MeterType } | { press: 'detach'; sensorId: string };
+  type MeterConfirm =
+    | { press: 'attach'; sensorId: string; meterType: MeterType; pod: string | null }
+    | { press: 'detach'; sensorId: string };
 
   let meterFor = $state<MemberSummary | null>(null);
   let meterList = $state<MemberMeter[]>([]);
+  // `null` when the BFF sent no delivery points (it predates ADR-0005): no POD section.
+  let podList = $state<MemberDeliveryPoint[] | null>(null);
+  // The POD an attach links the meter to; '' is none (M5: optional).
+  let podChoice = $state('');
   let meterReading = $state(false);
   let meterReadFailed = $state(false);
   let sensorInput = $state('');
@@ -111,6 +120,10 @@
     members = members.map((item) => (item.key === memberKey ? { ...item, hasMeter: value } : item));
   }
 
+  function setHasDeliveryPoint(memberKey: string, value: boolean) {
+    members = members.map((item) => (item.key === memberKey ? { ...item, hasDeliveryPoint: value } : item));
+  }
+
   async function readMeters(member: MemberSummary): Promise<boolean> {
     const community = $communityStore;
     if (!community) return false;
@@ -122,11 +135,17 @@
       if (ticket !== meterRead || meterFor?.key !== member.key) return false;
       if (read.ok) {
         meterList = read.meters.meters;
-        if (!sensorInput) meterType = read.meters.defaultMeterType;
+        podList = read.meters.deliveryPoints ?? null;
+        if (!sensorInput) {
+          meterType = read.meters.defaultMeterType;
+          podChoice = defaultPod(podList) ?? '';
+        }
         setHasMeter(member.key, meterList.length > 0);
+        if (podList) setHasDeliveryPoint(member.key, podList.length > 0);
         return true;
       }
       meterList = [];
+      podList = null;
       meterReadFailed = true;
       meterMessage = meterSentence(read.outcome);
       return false;
@@ -143,6 +162,8 @@
     if (meterBusy || !meterAccess(member).open) return;
     meterFor = member;
     meterList = [];
+    podList = null;
+    podChoice = '';
     sensorInput = '';
     meterType = defaultMeterType(member.role);
     meterConfirm = null;
@@ -155,6 +176,8 @@
     meterRead++;
     meterFor = null;
     meterList = [];
+    podList = null;
+    podChoice = '';
     sensorInput = '';
     meterConfirm = null;
     meterMessage = null;
@@ -169,7 +192,8 @@
       return;
     }
     meterMessage = null;
-    meterConfirm = { press: 'attach', sensorId, meterType };
+    // "None" sends no `pod`; a POD the member does not hold is the BFF's `pod_not_held`.
+    meterConfirm = { press: 'attach', sensorId, meterType, pod: podChoice || null };
   }
 
   function askDetach(meter: MemberMeter) {
@@ -188,13 +212,14 @@
     try {
       const outcome =
         request.press === 'attach'
-          ? await attachMeter(community.key, member.key, request.sensorId, request.meterType)
+          ? await attachMeter(community.key, member.key, request.sensorId, request.meterType, request.pod)
           : await detachMeter(community.key, member.key, request.sensorId);
       const message = meterSentence(outcome);
       meterMessage = message;
       meterOutcomes = { ...meterOutcomes, [member.key]: message };
       if (outcome.code === 'attached' || outcome.code === 'already_attached') {
         sensorInput = '';
+        podChoice = defaultPod(podList) ?? '';
         setHasMeter(member.key, true);
       }
       if (outcome.code === 'attached' || outcome.code === 'detached' || outcome.code === 'meter_not_found') {
@@ -322,6 +347,17 @@
     return $_('members.has_meter_unknown');
   }
 
+  // Yes or no, never which POD (M7).
+  function deliveryPointFlag(member: MemberSummary): string {
+    if (member.hasDeliveryPoint === true) return $_('members.has_meter_yes');
+    if (member.hasDeliveryPoint === false) return $_('members.has_meter_no');
+    return $_('members.has_meter_unknown');
+  }
+
+  function flagClass(value: boolean | null | undefined): string {
+    return value === true ? 'yes' : value === false ? 'no' : 'unknown';
+  }
+
   function displayName(member: MemberSummary): string {
     return member.name ?? member.key;
   }
@@ -391,7 +427,7 @@
     {:else}
       <div class="table-scroll">
         <table>
-          <thead><tr><th>{$_('members.name')}</th><th>{$_('members.key')}</th><th>{$_('members.role')}</th><th>{$_('members.area')}</th><th>{$_('members.status')}</th><th>{$_('members.has_meter')}</th>{#if canInvite || canEdit}<th>{$_('members.actions')}</th>{/if}</tr></thead>
+          <thead><tr><th>{$_('members.name')}</th><th>{$_('members.key')}</th><th>{$_('members.role')}</th><th>{$_('members.area')}</th><th>{$_('members.status')}</th><th>{$_('members.measurements')}</th>{#if canInvite || canEdit}<th>{$_('members.actions')}</th>{/if}</tr></thead>
           <tbody>
             {#each members as member (member.key)}
               <tr>
@@ -401,7 +437,8 @@
                 <td>{member.area}</td>
                 <td><span class={`tag status-${member.status}`}>{statusLabel(member.status)}</span></td>
                 <td class="meter">
-                  <span class={`tag meter-${member.hasMeter === true ? 'yes' : member.hasMeter === false ? 'no' : 'unknown'}`} title={member.hasMeter == null ? $_('members.has_meter_unknown_hint') : undefined}>{meterFlag(member)}</span>
+                  <span class={`tag meter-${flagClass(member.hasDeliveryPoint)}`} title={member.hasDeliveryPoint == null ? $_('members.has_delivery_point_unknown_hint') : undefined}>{$_('members.measurements_delivery_point')}: {deliveryPointFlag(member)}</span>
+                  <span class={`tag meter-${flagClass(member.hasMeter)}`} title={member.hasMeter == null ? $_('members.has_meter_unknown_hint') : undefined}>{$_('members.measurements_meter')}: {meterFlag(member)}</span>
                   {#if canMeter}
                     {@const access = meterAccess(member)}
                     <button class="send secondary" disabled={meterBusy || !access.open} title={access.attach ? undefined : $_('members.meter.inactive_reason', { values: { status: statusLabel(member.status) } })} onclick={() => openMeter(member)}>{$_(access.label)}</button>
@@ -465,23 +502,36 @@
 
       {#if meterConfirm}
         <h3>{$_(meterConfirm.press === 'attach' ? 'members.meter.confirm_attach_title' : 'members.meter.confirm_detach_title', { values: { member: displayName(meterFor) } })}</h3>
-        <p><code>{meterConfirm.sensorId}</code>{#if meterConfirm.press === 'attach'} · {$_(`members.meter.type.${meterConfirm.meterType}`)}{/if}</p>
+        <p><code>{meterConfirm.sensorId}</code>{#if meterConfirm.press === 'attach'} · {$_(`members.meter.type.${meterConfirm.meterType}`)} · {#if meterConfirm.pod}{$_('members.measurements_delivery_point')} <code>{meterConfirm.pod}</code>{:else}{$_('members.meter.no_linked_pod')}{/if}{/if}</p>
         <p>{$_(meterConfirm.press === 'attach' ? 'members.meter.confirm_attach_body' : 'members.meter.confirm_detach_body')}</p>
         <div class="dialog-actions">
           <button class="send secondary" disabled={meterBusy} onclick={() => (meterConfirm = null)}>{$_('members.meter.back')}</button>
           <button class="send" disabled={meterBusy} onclick={confirmMeter}>{meterBusy ? $_('members.meter.working') : $_('members.meter.confirm')}</button>
         </div>
       {:else}
-        <h3>{$_('members.meter.current')}</h3>
         {#if meterReading}
           <p>{$_('members.meter.loading')}</p>
         {:else if !meterReadFailed}
+          {#if podList}
+            <h3>{$_('members.meter.delivery_points')}</h3>
+            {#if podList.length === 0}
+              <p>{$_('members.meter.delivery_points_none')}</p>
+            {:else}
+              <ul class="meters pods">
+                {#each podList as point}
+                  <li><code>{point.id}</code>{#if !point.active}<span>{$_('members.meter.delivery_point_inactive')}</span>{/if}</li>
+                {/each}
+              </ul>
+              <p class="hint">{$_('members.meter.delivery_points_hint')}</p>
+            {/if}
+          {/if}
+          <h3>{$_('members.meter.current')}</h3>
           {#if meterList.length === 0}
             <p>{$_('members.meter.none')}</p>
           {:else}
             <ul class="meters">
               {#each meterList as meter}
-                <li><code>{meter.sensorId}</code>{#if meter.meterType}<span>{$_(`members.meter.type.${meter.meterType}`, { default: meter.meterType })}</span>{/if}<button class="send secondary" disabled={meterBusy} onclick={() => askDetach(meter)}>{$_('members.meter.detach')}</button></li>
+                <li><code>{meter.sensorId}</code>{#if meter.meterType}<span>{$_(`members.meter.type.${meter.meterType}`, { default: meter.meterType })}</span>{/if}{#if podList}<span>{#if meter.pod}{$_('members.measurements_delivery_point')} <code>{meter.pod}</code>{:else}{$_('members.meter.no_linked_pod')}{/if}</span>{/if}<button class="send secondary" disabled={meterBusy} onclick={() => askDetach(meter)}>{$_('members.meter.detach')}</button></li>
               {/each}
             </ul>
           {/if}
@@ -491,6 +541,10 @@
           <form class="attach" onsubmit={(event) => { event.preventDefault(); askAttach(); }}>
             <label><span>{$_('members.meter.sensor_id')}</span><input bind:value={sensorInput} maxlength={SENSOR_ID_MAX_LENGTH} autocomplete="off" spellcheck="false" autocapitalize="off" /></label>
             <label><span>{$_('members.meter.meter_type')}</span><select bind:value={meterType}>{#each METER_TYPES as value}<option {value}>{$_(`members.meter.type.${value}`)}</option>{/each}</select></label>
+            {#if podList && podList.length > 0}
+              <label class="pod"><span>{$_('members.meter.pod')}</span><select bind:value={podChoice}><option value="">{$_('members.meter.pod_option_none')}</option>{#each podList as point}<option value={point.id}>{point.id}</option>{/each}</select></label>
+              <p class="hint">{$_('members.meter.pod_hint')}</p>
+            {/if}
             <p class="hint">{$_('members.meter.sensor_id_hint')}</p>
             <div class="dialog-actions">
               <button type="button" class="send secondary" disabled={meterBusy} onclick={closeMeter}>{$_('members.meter.close')}</button>
@@ -586,7 +640,7 @@
   .edit-dialog { width:min(92vw,640px); max-height:92vh; overflow-y:auto; } .profile { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; margin-top:.6rem; } .profile .hint, .profile .dialog-actions { grid-column:1 / -1; }
   .read-only { display:grid; gap:.3rem; align-content:start; } .read-only span { color:var(--community-muted); font-size:.61rem; font-weight:700; } .read-only strong { font-size:.75rem; } .read-only .hint { margin:0; }
   .changes { margin:.3rem 0; padding-left:1.1rem; font-size:.72rem; } .warning { margin-top:.6rem; padding:.55rem .75rem; border-radius:9px; background:var(--community-warning-soft); } .warning p { color:var(--community-warning); }
-  .attach { display:grid; grid-template-columns:2fr 1fr; gap:.55rem; margin-top:.9rem; } .attach .hint, .attach .dialog-actions { grid-column:1 / -1; }
+  .attach { display:grid; grid-template-columns:2fr 1fr; gap:.55rem; margin-top:.9rem; } .attach .hint, .attach .dialog-actions, .attach .pod { grid-column:1 / -1; }
   .state { min-height:280px; display:grid; place-content:center; justify-items:center; gap:.6rem; color:var(--community-muted); text-align:center; }.state p { margin:0; }.state.error strong { color:var(--community-danger); font-size:1.5rem; }.state.error button { padding:.5rem .8rem; background:var(--community-primary); color:white; }.spinner { width:25px; height:25px; border:3px solid var(--community-border); border-top-color:var(--community-primary); border-radius:50%; animation:spin .8s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
   @media(max-width:650px){.page-wrap{padding:1.1rem .8rem 5rem}.filters{grid-template-columns:1fr}.page-heading{align-items:flex-start;flex-direction:column}.pagination{flex-wrap:wrap}}

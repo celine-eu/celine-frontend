@@ -9,6 +9,7 @@ import {
   SENSOR_ID_MAX_LENGTH,
   attachMeter,
   defaultMeterType,
+  defaultPod,
   detachMeter,
   getMemberMeters,
   meterAccess,
@@ -36,8 +37,10 @@ function translator(locale) {
   };
 }
 
-// A fixture id, never a real one.
+// Fixture ids, never real ones.
 const SENSOR = 'ex-sensor-00001';
+const POD = 'IT001E00000001';
+const OTHER_POD = 'IT001E00000002';
 const METER_URL = '/api/communities/example-rec/members/ex-00001/meter';
 
 /** Replace `fetch` with a recorder answering `answer`, and give the module a `window`. */
@@ -303,37 +306,187 @@ test('the sensor id is never stored in the browser, and appears only in the dial
   // Outside the dialog, the markup says yes or no and never shows a sensor id.
   const markup = page.slice(page.indexOf('</script>'));
   const outsideDialog = markup.replace(/\{#if meterFor\}[\s\S]*?\n\{\/if\}/, '');
-  assert.doesNotMatch(outsideDialog, /sensorId|sensorInput|meterList|meterConfirm/);
+  assert.doesNotMatch(outsideDialog, /sensorId|sensorInput|meterList|meterConfirm|podList|podChoice|meter\.pod|point\.id/);
   assert.match(outsideDialog, /meterFlag\(member\)/);
   // Closing the dialog clears what was typed and read.
   const close = page.match(/function closeMeter\(\)[\s\S]*?\n  \}/)?.[0] ?? '';
   assert.match(close, /meterList = \[\];/);
+  assert.match(close, /podList = null;/);
+  assert.match(close, /podChoice = '';/);
   assert.match(close, /sensorInput = '';/);
   assert.match(close, /meterConfirm = null;/);
 });
 
-test('the list says yes, no or unknown in every locale', async () => {
+test('M7: the Measurements column says yes, no or unknown for the POD and the meter, in every locale', async () => {
   for (const locale of LOCALES) {
-    for (const key of ['members.has_meter', 'members.has_meter_yes', 'members.has_meter_no', 'members.has_meter_unknown']) {
+    for (const key of [
+      'members.measurements',
+      'members.measurements_delivery_point',
+      'members.measurements_meter',
+      'members.has_meter_yes',
+      'members.has_meter_no',
+      'members.has_meter_unknown',
+      'members.has_meter_unknown_hint',
+      'members.has_delivery_point_unknown_hint',
+    ]) {
       assert.ok(bundles[locale][key], `${locale} ${key}`);
     }
     assert.notEqual(bundles[locale]['members.has_meter_yes'], bundles[locale]['members.has_meter_unknown']);
   }
+  assert.equal(bundles.it['members.measurements'], 'Misure');
+  assert.equal(bundles.es['members.measurements'], 'Medidas');
   const page = await read(PAGE);
+  assert.match(page, /<th>\{\$_\('members\.measurements'\)\}<\/th>/);
   assert.match(page, /member\.hasMeter === true[\s\S]*?member\.hasMeter === false[\s\S]*?has_meter_unknown/);
+  assert.match(page, /member\.hasDeliveryPoint === true[\s\S]*?member\.hasDeliveryPoint === false[\s\S]*?has_meter_unknown/);
+  assert.match(page, /deliveryPointFlag\(member\)/);
 });
 
-test('D45: an active member can be given a meter; anyone who may hold one can have it detached', () => {
-  assert.deepEqual(meterAccess({ status: 'active', hasMeter: false }), { open: true, attach: true, label: 'members.meter.open_attach' });
-  assert.deepEqual(meterAccess({ status: 'active', hasMeter: true }), { open: true, attach: true, label: 'members.meter.open_manage' });
-  assert.deepEqual(meterAccess({ status: 'active', hasMeter: null }), { open: true, attach: true, label: 'members.meter.open_manage' });
-  for (const status of ['pending', 'suspended', 'inactive']) {
-    // A meter the list says they hold, or may hold, can still be freed.
-    assert.deepEqual(meterAccess({ status, hasMeter: true }), { open: true, attach: false, label: 'members.meter.open_detach' }, status);
-    assert.deepEqual(meterAccess({ status, hasMeter: null }), { open: true, attach: false, label: 'members.meter.open_detach' }, status);
-    // Nothing to detach and nothing to attach: the button stays disabled.
-    assert.equal(meterAccess({ status, hasMeter: false }).open, false, status);
+test('M3, D45: every member can be reviewed; only an active member can be given a meter', () => {
+  for (const hasMeter of [true, false, null]) {
+    assert.deepEqual(meterAccess({ status: 'active', hasMeter }), { open: true, attach: true, label: 'members.meter.open' });
   }
+  for (const status of ['pending', 'suspended', 'inactive']) {
+    // The dialog opens to review the POD and free a meter, but offers no attach.
+    for (const hasMeter of [true, false, null]) {
+      assert.deepEqual(meterAccess({ status, hasMeter }), { open: true, attach: false, label: 'members.meter.open' }, status);
+    }
+  }
+});
+
+test('M1: the button and the dialog say Measurements, and no locale says contatore, contador or smart meter', () => {
+  assert.equal(bundles.it['members.meter.open'], 'Misure');
+  assert.equal(bundles.en['members.meter.open'], 'Measurements');
+  assert.equal(bundles.es['members.meter.open'], 'Medidas');
+  assert.equal(bundles.it['members.meter.dialog_title'], 'Misure di {member}');
+  assert.equal(bundles.it['members.meter.delivery_points'], 'Punto di prelievo (POD)');
+  assert.equal(bundles.es['members.meter.delivery_points'], 'Punto de suministro (POD)');
+  assert.equal(bundles.en['members.meter.delivery_points'], 'Delivery point (POD)');
+  assert.equal(bundles.it['members.meter.current'], 'Misuratore');
+  assert.equal(bundles.es['members.meter.current'], 'Medidor');
+  for (const locale of LOCALES) {
+    for (const [key, value] of Object.entries(bundles[locale])) {
+      assert.doesNotMatch(value, /contator|contador|smart[ -]?meter/i, `${locale} ${key}`);
+    }
+    for (const key of ['members.meter.open_attach', 'members.meter.open_manage', 'members.meter.open_detach', 'members.has_meter']) {
+      assert.equal(bundles[locale][key], undefined, `${locale} ${key} is gone`);
+    }
+  }
+});
+
+test('M2: the device wording on the overview, the devices page and the alert source says meter', () => {
+  assert.equal(bundles.it['overview.meters'], 'Stato misuratori');
+  assert.equal(bundles.it['devices.meter_status'], 'Stato misuratore');
+  assert.equal(bundles.it['alert_source.meter-health'], 'Misuratori');
+  assert.equal(bundles.it['population.unregistered'], 'Misuratori non registrati');
+  assert.equal(bundles.es['overview.meters'], 'Estado de medidores');
+  assert.equal(bundles.es['alert_source.meter-health'], 'Medidores');
+});
+
+test('M2 (requester, 2026-10-01): the pages that show IoT meters call them meters, in every locale', async () => {
+  const expected = {
+    'nav.devices': ['Misuratori', 'Meters', 'Medidores'],
+    'devices.title': ['Misuratori della comunità', 'Community meters', 'Medidores de la comunidad'],
+    'population.devices': ['Misuratori monitorati', 'Monitored meters', 'Medidores monitorizados'],
+    'devices.meter_id': ['ID misuratore', 'Meter ID', 'ID de medidor'],
+  };
+  for (const [key, values] of Object.entries(expected)) {
+    ['it', 'en', 'es'].forEach((locale, index) => assert.equal(bundles[locale][key], values[index], `${locale} ${key}`));
+  }
+  // The devices page, its overview card and the navigation carry no "device" word for the meter.
+  const pageKeys = Object.keys(bundles.en).filter(
+    (key) => key === 'nav.devices' || key === 'population.devices' || key.startsWith('devices.') || key.startsWith('device_engagement.'),
+  );
+  for (const locale of LOCALES) {
+    for (const key of pageKeys) {
+      // `device_id` is the technical field the privacy note names, not UI wording.
+      const text = bundles[locale][key].replace(/device_id/g, '');
+      assert.doesNotMatch(text, /\bdevices?\b|dispositiv/i, `${locale} ${key}`);
+    }
+  }
+  const devices = await read('src/routes/[community]/devices/+page.svelte');
+  assert.doesNotMatch(devices, />Device ID</);
+  assert.equal(devices.match(/\$_\('devices\.meter_id'\)/g)?.length, 2);
+  // The route path stays `/devices`; only its label changes.
+  const layout = await read('src/routes/[community]/+layout.svelte');
+  assert.match(layout, /path: '\/devices', label: 'nav\.devices'/);
+});
+
+test('M5: the only POD of a member is preselected; with none or several, none is', () => {
+  assert.equal(defaultPod([{ id: POD, active: true }]), POD);
+  assert.equal(defaultPod([]), null);
+  assert.equal(defaultPod([{ id: POD, active: true }, { id: OTHER_POD, active: true }]), null);
+  assert.equal(defaultPod(undefined), null);
+});
+
+test('M5: an attach with a POD sends it as chosen; "none" sends no pod', async () => {
+  let calls = stubFetch({ status: 201, body: { outcome: 'attached', sensorId: SENSOR, meterType: 'consumption' } });
+  await attachMeter('example-rec', 'ex-00001', SENSOR, 'consumption', POD);
+  assert.deepEqual(JSON.parse(calls[0].init.body), { sensorId: SENSOR, meterType: 'consumption', pod: POD });
+  assert.ok(!calls[0].url.includes(POD));
+
+  for (const none of [null, undefined, '']) {
+    calls = stubFetch({ status: 201, body: { outcome: 'attached' } });
+    await attachMeter('example-rec', 'ex-00001', SENSOR, 'consumption', none);
+    assert.deepEqual(JSON.parse(calls[0].init.body), { sensorId: SENSOR, meterType: 'consumption' }, String(none));
+  }
+});
+
+test('M6: a POD the member does not hold reads as its own sentence, naming no POD', async () => {
+  stubFetch({ status: 422, body: { detail: { code: 'pod_not_held' } } });
+  const outcome = await attachMeter('example-rec', 'ex-00001', SENSOR, 'consumption', OTHER_POD);
+  assert.deepEqual(outcome, { status: 422, code: 'pod_not_held', press: 'attach' });
+  for (const locale of LOCALES) {
+    const message = meterOutcomeMessage(outcome, translator(locale));
+    assert.equal(message.text, bundles[locale]['members.meter.outcome.pod_not_held'], locale);
+    assert.doesNotMatch(message.text, /\{\w+\}/, locale);
+    assert.ok(!message.text.includes(OTHER_POD), locale);
+    assert.equal(message.tone, 'error');
+    assert.equal(message.retry, false);
+  }
+});
+
+test("M3: the dialog's read carries the member's PODs and each meter's link", async () => {
+  const read = {
+    memberKey: 'ex-00001',
+    defaultMeterType: 'consumption',
+    deliveryPoints: [{ id: POD, active: true }],
+    meters: [{ sensorId: SENSOR, meterType: 'consumption', pod: POD }],
+  };
+  stubFetch({ status: 200, body: read });
+  assert.deepEqual(await getMemberMeters('example-rec', 'ex-00001'), { ok: true, meters: read });
+});
+
+test('M3, M9: the POD section is read-only, independent of the meters, and hidden when the BFF sends none', async () => {
+  const page = await read(PAGE);
+  const dialog = page.match(/\{#if meterFor\}[\s\S]*?\n\{\/if\}/)?.[0] ?? '';
+
+  // Shown only when the BFF sent delivery points; a BFF without them leaves `podList` null.
+  assert.match(page, /podList = read\.meters\.deliveryPoints \?\? null;/);
+  const section = dialog.match(/\{#if podList\}\s*<h3>\{\$_\('members\.meter\.delivery_points'\)\}<\/h3>[\s\S]*?\n {10}\{\/if\}/)?.[0] ?? '';
+  assert.ok(section, 'POD section');
+  // POD only: the empty sentence points to onboarding (M9); the section shows ids and nothing to press.
+  assert.match(section, /members\.meter\.delivery_points_none/);
+  assert.doesNotMatch(section, /<button|<input|<select|onclick/);
+  // The meter section follows, whether or not there is a POD.
+  assert.match(dialog, /\{\/if\}\s*<h3>\{\$_\('members\.meter\.current'\)\}<\/h3>\s*\{#if meterList\.length === 0\}/);
+  // POD + meter: each meter shows its linked POD, or that it has none.
+  const list = dialog.match(/\{#each meterList as meter\}[\s\S]*?\{\/each\}/)?.[0] ?? '';
+  assert.match(list, /meter\.pod[\s\S]*?members\.meter\.no_linked_pod/);
+  for (const locale of LOCALES) {
+    assert.match(bundles[locale]['members.meter.delivery_points_none'], /onboarding/i, locale);
+    assert.ok(bundles[locale]['members.meter.none'], locale);
+  }
+});
+
+test('M5: the attach form offers the POD select with "none", preselected from the only POD', async () => {
+  const page = await read(PAGE);
+  const form = page.match(/<form class="attach"[\s\S]*?<\/form>/)?.[0] ?? '';
+
+  assert.match(form, /\{#if podList && podList\.length > 0\}[\s\S]*?<select bind:value=\{podChoice\}><option value="">\{\$_\('members\.meter\.pod_option_none'\)\}<\/option>\{#each podList as point\}/);
+  assert.match(page, /podChoice = defaultPod\(podList\) \?\? '';/);
+  assert.match(page, /meterConfirm = \{ press: 'attach', sensorId, meterType, pod: podChoice \|\| null \};/);
+  assert.match(page, /attachMeter\(community\.key, member\.key, request\.sensorId, request\.meterType, request\.pod\)/);
 });
 
 test('D45: the BFF refusing to attach to a member who is not active reads as its own sentence', async () => {

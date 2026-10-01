@@ -98,7 +98,7 @@
       <label class="search"><span>{$_('devices.search')}</span><input bind:value={search} placeholder="IT001E…" /></label>
       <label><span>{$_('devices.meter_status')}</span><select bind:value={status}><option value="">{$_('common.all')}</option><option value="reporting">{$_('meters.reporting')}</option><option value="degraded">{$_('meters.degraded')}</option><option value="silent">{$_('meters.silent')}</option></select></label>
       <label><span>{$_('devices.engagement')}</span><select bind:value={engagement}><option value="">{$_('common.all')}</option><option value="active">{$_('devices.active')}</option><option value="dormant">{$_('devices.dormant')}</option><option value="never-activated">{$_('devices.never_activated')}</option></select></label>
-      <label><span>{$_('common.sort')}</span><select bind:value={sort}><option value="gap_minutes">{$_('devices.gap')}</option><option value="last_seen">{$_('devices.last_seen')}</option><option value="coverage_percent">{$_('devices.coverage')}</option><option value="points_30d">{$_('devices.points')}</option><option value="device_id">Device ID</option></select></label>
+      <label><span>{$_('common.sort')}</span><select bind:value={sort}><option value="gap_minutes">{$_('devices.gap')}</option><option value="last_seen">{$_('devices.last_seen')}</option><option value="coverage_percent">{$_('devices.coverage')}</option><option value="points_30d">{$_('devices.points')}</option><option value="device_id">{$_('devices.meter_id')}</option></select></label>
       <button type="submit">{$_('common.apply')}</button>
     </form>
 
@@ -111,7 +111,7 @@
     {:else}
       <div class="table-scroll">
         <table>
-          <thead><tr><th>Device ID</th><th>{$_('devices.last_seen')}</th><th>{$_('devices.gap')}</th><th>{$_('devices.coverage')}</th><th>{$_('devices.points')}</th><th>{$_('devices.engagement')}</th><th>{$_('devices.meter_status')}</th><th></th></tr></thead>
+          <thead><tr><th>{$_('devices.meter_id')}</th><th>{$_('devices.last_seen')}</th><th>{$_('devices.gap')}</th><th>{$_('devices.coverage')}</th><th>{$_('devices.points')}</th><th>{$_('devices.engagement')}</th><th>{$_('devices.meter_status')}</th><th></th></tr></thead>
           <tbody>
             {#each board.items as device}
               <tr>

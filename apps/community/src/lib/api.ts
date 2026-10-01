@@ -5,6 +5,7 @@ export {
   attachMeter,
   detachMeter,
   getMemberMeters,
+  type MemberDeliveryPoint,
   type MemberMeter,
   type MemberMeters,
   type MeterOutcome,
@@ -453,7 +454,7 @@ export interface AlertsResponse {
 /**
  * A REC member as the registry lists them. The members page is the one place a
  * participant's name is shown, and the BFF sends nothing else about them: no
- * address, no account id, no delivery point.
+ * address, no account id, and no delivery point id (only whether there is one).
  */
 export interface MemberSummary {
   key: string;
@@ -467,6 +468,11 @@ export interface MemberSummary {
    * could not read the community's meters; the list is served all the same.
    */
   hasMeter?: boolean | null;
+  /**
+   * Whether the registry records a delivery point (POD) for the member: yes or no,
+   * never which. `null` or absent when the BFF cannot tell.
+   */
+  hasDeliveryPoint?: boolean | null;
 }
 
 export interface MembersPage {

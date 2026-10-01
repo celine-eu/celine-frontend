@@ -24,7 +24,7 @@ expects:
 - `GET /api/communities/{community_key}/members` for `/[community]/members`, shown only with
   `members.read`;
 - `GET`, `PUT` and `DELETE /api/communities/{community_key}/members/{member_key}/meter` for the
-  meter dialog, offered only with `members.meter`;
+  measurements dialog, offered only with `members.meter`;
 - `PATCH /api/communities/{community_key}/members/{member_key}` (`{role?, area?}`),
   `GET /api/communities/{community_key}/areas` and `GET …/areas/shapes` for the edit dialog and its
   area map, offered only with `members.edit`.
@@ -42,13 +42,14 @@ the nav and the page rather than offered and then refused by the BFF. `/denied` 
 three ways in: managing no REC, asking for a REC that is not yours, and the REC registry being
 unreachable — the last of which is temporary and says so.
 
-The `/[community]/devices` page provides search, filters, pagination and a technical detail drawer. The
+The `/[community]/devices` page (**Meters**) provides search, filters, pagination and a technical detail drawer. The
 `/[community]/data-flow` page shows 15-minute interval coverage, detected gaps and the latest pipeline state.
 Both views deliberately expose only `device_id`, never participant identity.
 
 `/[community]/members` is the one page that shows participants by name: name, key, role, area,
-status and whether the member has a meter (yes, no, or unknown when the BFF could not read the
-community's meters), read from the REC registry through the BFF. The list never shows a sensor id. The names live in the page's state only. They
+status, and a **Measurements** column with two flags: whether the member has a delivery point
+(POD) and whether they have a meter (each yes, no, or unknown when the BFF could not tell), read from
+the REC registry through the BFF. The list never shows a POD or a sensor id. The names live in the page's state only. They
 are not stored in the browser and not exported. A member whose registry name is just their key is
 shown by key with "no name on record". Search narrows one registry page at a time, and "Load more"
 fetches the next.
@@ -61,24 +62,45 @@ three locales: the link's validity comes from `lifespanSeconds`, and a cooldown'
 "Sent emails" tab lists past presses from the BFF's audit rows, filterable by member key, sender,
 email, outcome and date.
 
-With `members.meter`, each member has a meter button that opens the meter dialog (`celine-community`
-ADR-0004). **Detach is offered for every member; attach only for active members** (plan D45), so a
-manager can free a meter still held by a suspended or inactive member. The BFF enforces the same and
-answers `member_not_active` to an attach for anyone else:
+Two measurement sources are kept apart in every word the dashboard uses:
 
-- An active member's button is **Attach meter** (or **Attach or detach meter** when they may already
-  hold one). A member who is not active gets **Detach meter**, and the dialog lists their meters
-  without the attach form, saying why. When the list knows such a member holds no meter, the button
-  is disabled and says why.
+| Term (EN) | IT | ES | What it is |
+|---|---|---|---|
+| **Delivery point (POD)** | Punto di prelievo (POD) | Punto de suministro (POD) | The DSO's grid connection. Read-only here; set and corrected through onboarding |
+| **Meter** | Misuratore | Medidor | A REC- or member-provided device (IoT, say). Optional |
+| **Measurements** | Misure | Medidas | Both, together: the column, the button and the dialog |
 
-- The dialog reads that one member's meters (`GET …/meter`) and shows their sensor ids, each with
-  **Detach**. This is the only place a name meets a sensor id.
+"Contatore" and "smart meter" are not used. Wherever the dashboard shows the IoT meters (by
+`device_id`), it calls them meters, never devices: the navigation entry and the page at
+`/[community]/devices` are **Meters** (Misuratori / Medidores), with a **Meter ID** column, and so
+are the overview's "Monitored meters" and meter health, and the alert source. The route path stays
+`/devices`, as does the BFF's `/api/…/devices`. Flexibility and gamification keep their own
+wording: their "devices" count participants in a campaign or a points ledger, identified by
+`device_id`, not meters as measurement sources.
+
+With `members.meter`, every member has a **Measurements** button that opens the measurements dialog
+(`celine-community` ADR-0004, ADR-0005). Every member's measurements can be reviewed. **Detach is
+offered for every member; attach only for active members** (plan D45), so a manager can free a meter
+still held by a suspended or inactive member. The BFF enforces the same and answers
+`member_not_active` to an attach for anyone else; for a member who is not active the dialog shows
+no attach form, and says why.
+
+- The dialog reads that one member's measurements (`GET …/meter`). It has two independent sections:
+  - **Delivery point (POD)**: the member's POD ids, read-only, an inactive one marked. With none, it
+    says the POD is entered through onboarding, where an operator checks it. The dashboard never
+    edits a POD. The section is hidden when the BFF sends no `deliveryPoints` (an older BFF).
+  - **Meter**: each meter's sensor id, type and linked POD, with **Detach**. With none, it says a
+    meter is optional. A member with a POD and no meter is the normal case.
+- This dialog is the only place a name meets a POD or a sensor id.
 - A new meter's sensor id is **typed as free text**. There is no picker, no suggestion list and no
   lookup of unattached meters: an unattached meter belongs to no REC, so any list would show one
   REC's manager another's meters. The registry's answer is the only check. The field takes at most
   122 characters (`SENSOR_ID_MAX_LENGTH`), so the registry key `meter-<id>` fits its 128.
 - The meter type is a select of the registry's vocabulary. It defaults from the role: `bidirectional`
   for a prosumer, `consumption` otherwise.
+- **Linked POD** is an optional select of the member's own PODs, with "none". It is preselected when
+  the member has exactly one; "none" sends no `pod`. A POD the member does not hold is the BFF's
+  `pod_not_held`.
 - **Attach** and **Detach** ask for confirmation, and nothing is sent until the manager confirms.
   Only one request is in flight at a time. A blank id is refused before any request.
 - The BFF's code becomes a sentence through `src/lib/memberMeter.ts`, in the three locales:
@@ -89,14 +111,15 @@ answers `member_not_active` to an attach for anyone else:
     one this member holds for a different sensor id; nothing changed, and an administrator is told;
   - `asset_key_too_long`: the id is too long for the registry;
   - `member_not_active`: the member is not active, so nothing was attached;
+  - `pod_not_held`: the POD is not one of the member's, so nothing was attached;
   - an unanswered registry, which asks the manager to reopen the dialog and check;
   - a missing registry grant, which is a configuration problem and not a refusal of the manager;
   - an unknown code, shown raw.
-- The sensor id is never stored in the browser:
-  - it lives in the dialog's state and is cleared when the dialog closes;
-  - it travels in request bodies, never in a URL;
+- The sensor id and the POD are never stored in the browser:
+  - they live in the dialog's state and are cleared when the dialog closes;
+  - they travel in request and response bodies, never in a URL;
   - the dialog's read is `cache: 'no-store'`;
-  - no outcome sentence contains it.
+  - no outcome sentence contains either.
 
 With `members.edit`, each **active** member has **Edit**, which opens the role and area dialog
 (`celine-community` ADR-0003). For a member who is not active the button is disabled and says why;

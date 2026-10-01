@@ -196,8 +196,13 @@ test('members are listed by name, and by nothing else that identifies them', asy
   // Fields, not words: the page does send an email, it never reads an address.
   const fields = /^\s*(userId|user_id|did|email|deliveryPoints?|fiscalCode|taxCode|phone)\??:/im;
   assert.doesNotMatch(summary.replace(/\/\*\*[\s\S]*?\*\//g, ''), fields);
-  const reads = /\.(userId|user_id|did|email|deliveryPoints?|fiscalCode|taxCode|phone)\b/i;
-  assert.doesNotMatch(page.replace(/<!--[\s\S]*?-->|\/\/.*$/gm, ''), reads);
+  const reads = /\.(userId|user_id|did|email|fiscalCode|taxCode|phone)\b/i;
+  const code = page.replace(/<!--[\s\S]*?-->|\/\/.*$/gm, '');
+  assert.doesNotMatch(code, reads);
+  // ADR-0005: a member's delivery points are read in one place only, the measurements
+  // dialog's own read; the list carries a yes/no flag, never a POD.
+  assert.deepEqual(code.match(/\.deliveryPoints?\b/gi), ['.deliveryPoints']);
+  assert.match(code, /podList = read\.meters\.deliveryPoints \?\? null;/);
 });
 
 test('a member whose registry name only repeats the key reads as having no name', async () => {
