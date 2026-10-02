@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.25.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.24.0...grid-v0.25.0) (2026-10-02)
+
+### Features
+
+* add data sharing banner ([dc4e723](https://github.com/celine-eu/celine-frontend/commit/dc4e72324ee90b74fc7c9a163a69da5f175d5297))
+* add data sharing withdrawal ([928e404](https://github.com/celine-eu/celine-frontend/commit/928e404b97ef078660633fff98c6fdb0b223d8c7))
+* add member email registration ([1b890bd](https://github.com/celine-eu/celine-frontend/commit/1b890bd116f60d793aade18940b30d3c1a068524))
+* add meter association ([7f39abc](https://github.com/celine-eu/celine-frontend/commit/7f39abc4d8c10c4f167e218e392ac8d29d461610))
+* add meter assocition and area mapping ([b84f897](https://github.com/celine-eu/celine-frontend/commit/b84f897638ff5b5cb550fe6856e135e827d6b3a1))
+* add playwright tests ([39a6819](https://github.com/celine-eu/celine-frontend/commit/39a68196af4d11631257b63492b63ab52747b276))
+* **ai-assistant:** added assistant note on AI generated contents (for AI Act art. 50 compliance) ([0c26810](https://github.com/celine-eu/celine-frontend/commit/0c2681010439e4809757f7cbd193d40eef4433aa))
+* **community:** add delivery point and meters ui ([6f7524f](https://github.com/celine-eu/celine-frontend/commit/6f7524f755e51c40b3088a8f3872845b0c5431be))
+* drop google fonts deps, review ai assistant wording ([80faac9](https://github.com/celine-eu/celine-frontend/commit/80faac98f0c639a3975874992e68be0230157895))
+* **grid:** layer menu, satellite basemap, 8 h slider, risk table, tree-strike and thermal layers; show risk load errors ([d890363](https://github.com/celine-eu/celine-frontend/commit/d8903631fb2abeabb357cbaa5cc4dd98bffb4416))
+* improve data sharing ui, add tests ([188f250](https://github.com/celine-eu/celine-frontend/commit/188f250b25c9db7fc890062ba4b292631e935570))
+* review per community access levels and organization matching ([55bc322](https://github.com/celine-eu/celine-frontend/commit/55bc322ff949bcada80a525bb13e322b15d5c1f4))
+* review sharing interface, update i18n ([9f7de7a](https://github.com/celine-eu/celine-frontend/commit/9f7de7a3d9a7c1c3e3795fc866068aadfa0c0ed2))
+* track sharing offer versioning ([7c81c8b](https://github.com/celine-eu/celine-frontend/commit/7c81c8b4af1954695f2df55a89efd62c8eabd1b0))
+* update sharing refs ([8e639a7](https://github.com/celine-eu/celine-frontend/commit/8e639a7626b37b91e195e2ffc58ae41c21a780da))
+
+### Bug Fixes
+
+* improve data sharing page presentation ([639ed00](https://github.com/celine-eu/celine-frontend/commit/639ed00cb8c28ea54a1a0ce90c3bdede9b6be70b))
+* mark notifications read on page open ([ac12308](https://github.com/celine-eu/celine-frontend/commit/ac123088c843232914afcf77011fac6ca2eac62c))
+* review translatins for AI generated contents ([f7f1db7](https://github.com/celine-eu/celine-frontend/commit/f7f1db7779074115c965923cf0300e563e7e0b18))
+* **webapp:** add /healthz for container probes ([21af5f9](https://github.com/celine-eu/celine-frontend/commit/21af5f9da2b4238c3af35fb81855dd5417bf23bf))
+* **webapp:** forward access token in server-side fetch ([4f6ecc5](https://github.com/celine-eu/celine-frontend/commit/4f6ecc552b286a041c798355afa8e86b5b79f4bb))
+* **webapp:** server-side fetch sends the session cookie only ([70c27bc](https://github.com/celine-eu/celine-frontend/commit/70c27bc612c42265ee46cc24af6be6c3ada80689))
+
+### Documentation
+
+* fix layout wording ([6926913](https://github.com/celine-eu/celine-frontend/commit/6926913a90119753c0566a7409629712b5e40c96))
+
 ## [0.24.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.23.0...grid-v0.24.0) (2026-07-24)
 
 ### Features
