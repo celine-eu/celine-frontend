@@ -1,16 +1,29 @@
 <script lang="ts">
-    import { api } from "$lib/api";
+    import { page } from "$app/state";
+    import { api, type LegalDocument } from "$lib/api";
     import { Button, Icon } from "@celine-eu/ui";
     import { t } from "svelte-i18n";
 
     let err = $state("");
     let submitting = $state(false);
 
+    // With a legal host: the community's own documents that need accepting, each in its
+    // version. Without one: this app's /privacy and /terms, as before.
+    const documents = $derived<LegalDocument[] | null>(
+        page.data.me?.legal_documents ? page.data.me.legal_documents.filter((d: LegalDocument) => d.required) : null,
+    );
+    const fallbackTitle: Record<string, string> = {
+        terms: "accept_terms.legal_terms",
+        privacy: "accept_terms.privacy_policy",
+    };
+
     async function accept() {
         err = "";
         submitting = true;
         try {
-            await api.acceptTerms();
+            await api.acceptTerms(
+                documents?.map((d) => ({ document: d.document, version: d.version ?? null })),
+            );
             window.location.href = "/";
         } catch (e) {
             err = e instanceof Error ? e.message : String(e);
@@ -29,8 +42,19 @@
     <div class="terms-card">
         <div class="terms-content">
             <ul class="terms-list">
-                <li><a href="/privacy">{$t('accept_terms.privacy_policy')}</a></li>
-                <li><a href="/terms">{$t('accept_terms.legal_terms')}</a></li>
+                {#if documents}
+                    {#each documents as doc (doc.document)}
+                        <li>
+                            <a href={doc.url} target="_blank" rel="noopener">
+                                {doc.title || $t(fallbackTitle[doc.document] ?? doc.document)}
+                            </a>
+                            {#if doc.version}<span class="terms-version">v{doc.version}</span>{/if}
+                        </li>
+                    {/each}
+                {:else}
+                    <li><a href="/privacy">{$t('accept_terms.privacy_policy')}</a></li>
+                    <li><a href="/terms">{$t('accept_terms.legal_terms')}</a></li>
+                {/if}
             </ul>
             <p class="terms-note">{$t('accept_terms.note')}</p>
         </div>
@@ -69,6 +93,12 @@
         font-size: 0.9375rem;
         color: var(--celine-text-secondary);
         margin: 0;
+    }
+
+    .terms-version {
+        margin-left: var(--celine-space-xs);
+        font-size: 0.8125rem;
+        color: var(--celine-text-secondary);
     }
 
     .terms-card {

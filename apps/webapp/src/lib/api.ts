@@ -1,11 +1,22 @@
 // Webapp API client
 
+/** A document of the member's community the terms gate shows (with a legal host). */
+export type LegalDocument = {
+  document: string;
+  url: string;
+  version?: string | null;
+  title?: string | null;
+  required: boolean;
+};
+
 export type Me = {
   user: { sub: string; email?: string; name?: string };
   has_smart_meter: boolean;
   terms_required: boolean;
   policy_version: string;
   accepted_policy_version?: string | null;
+  /** Null: the deployment-wide policy gate, with this app's own /privacy and /terms. */
+  legal_documents?: LegalDocument[] | null;
   simple_mode: boolean;
   font_scale: number;
   notification_permission: 'default' | 'granted' | 'denied';
@@ -481,7 +492,8 @@ export const api = {
     j<{ ok: true }>(`/api/notifications/${id}/read`, { method: 'POST' }),
   notificationMarkAllRead: () =>
     j<{ ok: true }>('/api/notifications/read-all', { method: 'POST' }),
-  acceptTerms: () => j<{ ok: true }>('/api/terms/accept', { method: 'POST', body: JSON.stringify({ accept: true }) }),
+  acceptTerms: (documents?: { document: string; version?: string | null }[]) =>
+    j<{ ok: true }>('/api/terms/accept', { method: 'POST', body: JSON.stringify({ accept: true, documents }) }),
   markOnboardingSeen: (page_key: string) =>
     j<{ ok: true }>('/api/onboarding/seen', { method: 'POST', body: JSON.stringify({ page_key }) }),
   settingsGet: (lang?: string) => j<Settings>(lang ? `/api/settings?lang=${encodeURIComponent(lang)}` : '/api/settings'),
