@@ -7,7 +7,12 @@
 
   // Get conversation_id from URL if present
   const conversationId = $derived($page.url.searchParams.get('conversation_id'));
-  const privacyPolicyUrl = env.PUBLIC_PRIVACY_POLICY_URL || '/privacy';
+  // This app knows no community, so it cannot link one community's notice: the
+  // deployment's explicit setting wins; otherwise the legal host's privacy page, which
+  // lists every community's notice; otherwise `/privacy` as before.
+  const legalBase = (env.PUBLIC_LEGAL_BASE_URL || '').replace(/\/+$/, '');
+  const privacyPolicyUrl =
+    env.PUBLIC_PRIVACY_POLICY_URL || (legalBase ? `${legalBase}/privacy/` : '/privacy');
 </script>
 
 <svelte:head>

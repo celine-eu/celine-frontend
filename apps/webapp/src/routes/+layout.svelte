@@ -245,6 +245,14 @@
           <span class="footer-sep">·</span>
           <a href={data.community.privacy_url} class="footer-link" target="_blank" rel="noopener">{$t('layout.privacy')}</a>
         {/if}
+        {#if data.community.statute_url}
+          <span class="footer-sep">·</span>
+          <a href={data.community.statute_url} class="footer-link" target="_blank" rel="noopener">{$t('layout.statute')}</a>
+        {/if}
+        {#if data.community.regulations_url}
+          <span class="footer-sep">·</span>
+          <a href={data.community.regulations_url} class="footer-link" target="_blank" rel="noopener">{$t('layout.regulations')}</a>
+        {/if}
       </div>
     </footer>
   {/if}

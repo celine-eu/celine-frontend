@@ -12,7 +12,11 @@
   let hasConversation = $state(false);
   const conversationId = $derived(page.url.searchParams.get("conversation_id"));
   const initialPrompt = $derived(page.url.searchParams.get("prompt") ?? "");
-  const privacyPolicyUrl = env.PUBLIC_PRIVACY_POLICY_URL || "/privacy";
+  // The member's own community's privacy notice (the BFF resolves it, legal host
+  // included); then the deployment's explicit setting; then this app's `/privacy` page.
+  const privacyPolicyUrl = $derived(
+    page.data.community?.privacy_url || env.PUBLIC_PRIVACY_POLICY_URL || "/privacy",
+  );
 
   function closePanels() {
     showHistory = false;

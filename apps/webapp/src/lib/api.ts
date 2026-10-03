@@ -258,6 +258,8 @@ export type CommunityMeta = {
   website?: string | null;
   terms_url?: string | null;
   privacy_url?: string | null;
+  statute_url?: string | null;
+  regulations_url?: string | null;
 };
 
 export type WeatherCurrent = {
