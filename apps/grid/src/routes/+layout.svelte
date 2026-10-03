@@ -82,6 +82,7 @@
 
     <nav class="app-nav">
       <a href="/" class:active={$page.url.pathname === '/'}>{$_('nav.map')}</a>
+      <a href="/table" class:active={$page.url.pathname.startsWith('/table')}>{$_('nav.table')}</a>
       <a href="/management" class:active={$page.url.pathname.startsWith('/management')}>
         {$_('nav.management')}
       </a>

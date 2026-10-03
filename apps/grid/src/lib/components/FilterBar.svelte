@@ -1,6 +1,8 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
   import AutocompleteSelect from './AutocompleteSelect.svelte';
+  import TimeSlider from './TimeSlider.svelte';
+  import type { Slot } from '$lib/timeWindows';
 
   type DataMode = 'forecast' | 'nowcasting';
 
@@ -12,6 +14,7 @@
     units: string[];
     municipalities: string[];
     selectedDate: string;
+    selectedSlot: Slot | null;
     selectedSubstations: string[];
     selectedSecondarySubstations: string[];
     selectedLines: string[];
@@ -29,6 +32,7 @@
       risk: string[];
     }) => void;
     ondatechange: (date: string) => void;
+    onslotchange: (slot: Slot | null) => void;
     onmodechange: (mode: DataMode) => void;
     onexport: (type: 'wind' | 'heat') => void;
     onshare: () => void;
@@ -42,6 +46,7 @@
     units = [],
     municipalities = [],
     selectedDate = '',
+    selectedSlot = null,
     selectedSubstations = $bindable([]),
     selectedSecondarySubstations = $bindable([]),
     selectedLines = $bindable([]),
@@ -52,6 +57,7 @@
     maxDate = '',
     onchange,
     ondatechange,
+    onslotchange,
     onmodechange,
     onexport,
     onshare,
@@ -231,6 +237,10 @@
               onclick={() => ondatechange(tomorrowStr)}
             >{$_('filter.tomorrow')}</button>
           </div>
+        </div>
+        <div class="filter-group">
+          <span class="filter-label">{$_('filter.window')}</span>
+          <TimeSlider slot={selectedSlot} onchange={onslotchange} />
         </div>
         {/if}
 

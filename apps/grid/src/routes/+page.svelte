@@ -1,5 +1,6 @@
 <script lang="ts">
   import { replaceState } from '$app/navigation';
+  import { browser } from '$app/environment';
   import { onMount } from 'svelte';
   import { _ } from 'svelte-i18n';
   import maplibregl from 'maplibre-gl';
@@ -9,6 +10,15 @@
   const { data }: { data: PageData } = $props();
 
   import FilterBar from '$lib/components/FilterBar.svelte';
+  import LayerMenu from '$lib/components/LayerMenu.svelte';
+  import { layers, loadLayers, persistLayers } from '$lib/stores/layers.svelte';
+  import { riskColorExpr, esc, TREE_TIER_COLORS, jointColorExpr } from '$lib/mapPaint';
+  import { shouldShowUnmodelledSuffix, thermalTierKey } from '$lib/thermal';
+  import { indexRisks, mergeRisksIntoFeatures, fetchRisksOrError } from '$lib/risks';
+  import { nearestSpan, strikeKmBreakdown } from '$lib/treeStrike';
+  import { popupRow, popupTitle, popupCallout, cabinaPopupRows, cabinaLabel } from '$lib/popup';
+  import { resolveStyle, isImagery, type StyleKey } from '$lib/mapStyles';
+  import { parseSlot, type Slot } from '$lib/timeWindows';
 
   import {
     getFilters,
@@ -16,15 +26,21 @@
     getTileIndex,
     getRisks,
     getRisksNow,
+    getRisks8h,
+    getTreeStrikeSpans,
     type FeatureCollection,
     type GeoFeature,
     type GridFilters,
     type GridShapeProperties,
     type GridRisk,
     type TileInfo,
+    type TreeStrikeSpanProperties,
   } from '$lib/api';
 
   type DataMode = 'forecast' | 'nowcasting';
+
+  // Restore the persisted layer menu before any effect can persist the defaults.
+  if (browser) loadLayers();
 
   // ---------------------------------------------------------------------------
   // Network ID
@@ -36,22 +52,17 @@
   // ---------------------------------------------------------------------------
   let mapContainer: HTMLDivElement;
   let map: maplibregl.Map | null = null;
-  let activeMapStyle = $state('');
+  let activeMapStyle = $state<StyleKey | ''>('');
   let currentPopup: maplibregl.Popup | null = null;
   let hoveredFeatureId: number | null = null;
   let hoveredSourceId: string | null = null;
-
-  let showOverheadBare = $state(true);
-  let showOverheadInsulated = $state(true);
-  let showUndergroundCable = $state(true);
-  let showCabine = $state(true);
-  let showTreeStrike = $state(false);
 
   let loading = $state(false);
   let loadError = $state<string | null>(null);
 
   let dataMode = $state<DataMode>('forecast');
   let filterDates = $state<string[]>([]);
+  let filterSlot = $state<Slot | null>(null); // null = daily view
   let filterSubstations = $state<string[]>([]);
   let filterSecondarySubstations = $state<string[]>([]);
   let filterLines = $state<string[]>([]);
@@ -76,34 +87,28 @@
   // ---------------------------------------------------------------------------
   // Conductor-type layer config
   // ---------------------------------------------------------------------------
-  const UNIFORM_GREY = '#6b7280';
-
+  // Each conductor layer is coloured by exactly one risk vector:
+  // overhead lines by wind, underground cables by heat.
   const LINE_LAYER_DEFS = [
-    { sourceId: 'overhead-bare',      layerId: 'lines-overhead-bare',      dash: undefined as number[] | undefined },
-    { sourceId: 'overhead-insulated', layerId: 'lines-overhead-insulated', dash: [2, 4] },
-    { sourceId: 'underground-cable',  layerId: 'lines-underground-cable',  dash: [8, 4] },
+    { sourceId: 'overhead-bare',      layerId: 'lines-overhead-bare',      vector: 'wind' as const, dash: undefined as number[] | undefined },
+    { sourceId: 'overhead-insulated', layerId: 'lines-overhead-insulated', vector: 'wind' as const, dash: [2, 4] },
+    { sourceId: 'underground-cable',  layerId: 'lines-underground-cable',  vector: 'heat' as const, dash: [8, 4] },
   ] as const;
 
-  const TREE_TIER_COLORS: Record<string, string> = {
-    low: '#fed7aa',
-    mid: '#f97316',
-    high: '#9a3412',
-  };
+  const onImagery = () => activeMapStyle !== '' && isImagery(activeMapStyle);
 
-  const TREE_STRIKE_LAYER_DEFS = [
-    { sourceId: 'overhead-bare',      layerId: 'tree-strike-overhead-bare' },
-    { sourceId: 'overhead-insulated', layerId: 'tree-strike-overhead-insulated' },
-  ] as const;
+  // Tree-strike exposure overlay: the analysis spans (own geometry, ~100 m), drawn
+  // under the conductor layers. Exposure only — wind escalation stays on the tratte.
+  const TREE_STRIKE_LAYER_ID = 'tree-strike-spans';
 
-  function addTreeStrikeLayer(sourceId: string, layerId: string, visible: boolean) {
-    if (!map || map.getLayer(layerId)) return;
+  function addTreeStrikeSpansLayer(visible: boolean) {
+    if (!map || map.getLayer(TREE_STRIKE_LAYER_ID)) return;
     map.addLayer({
-      id: layerId,
+      id: TREE_STRIKE_LAYER_ID,
       type: 'line',
-      source: sourceId,
-      filter: ['has', 'strike_tree_tier'],
+      source: 'tree-strike-spans',
       paint: {
-        'line-color': ['match', ['get', 'strike_tree_tier'],
+        'line-color': ['match', ['get', 'tier'],
           'high', TREE_TIER_COLORS.high,
           'mid',  TREE_TIER_COLORS.mid,
           'low',  TREE_TIER_COLORS.low,
@@ -114,6 +119,15 @@
       },
       layout: { 'line-cap': 'round', 'line-join': 'round', visibility: visible ? 'visible' : 'none' },
     });
+    map.on('click', TREE_STRIKE_LAYER_ID, (e) => {
+      if (!map || !e.features?.[0]) return;
+      // a conductor line on top wins the click
+      const onLine = map.queryRenderedFeatures(e.point, { layers: LINE_LAYER_DEFS.map((d) => d.layerId).filter((id) => map!.getLayer(id)) });
+      if (onLine.length) return;
+      showSpanPopup(e.lngLat, e.features[0].properties as Record<string, unknown>);
+    });
+    map.on('mouseenter', TREE_STRIKE_LAYER_ID, () => { if (map) map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', TREE_STRIKE_LAYER_ID, () => { if (map) map.getCanvas().style.cursor = ''; });
   }
 
   function emptyFC(): FeatureCollection { return { type: 'FeatureCollection', features: [] }; }
@@ -139,6 +153,7 @@
     const params = new URLSearchParams();
     if (dataMode === 'nowcasting') params.set('mode', 'nowcasting');
     if (filterDates[0]) params.set('date', filterDates[0]);
+    if (filterSlot !== null) params.set('slot', String(filterSlot));
     filterSubstations.forEach((v) => params.append('substation', v));
     filterSecondarySubstations.forEach((v) => params.append('secondary', v));
     filterLines.forEach((v) => params.append('line', v));
@@ -159,6 +174,7 @@
     return {
       mode: (p.get('mode') === 'nowcasting' ? 'nowcasting' : 'forecast') as DataMode,
       date: p.get('date') ?? undefined,
+      slot: parseSlot(p.get('slot')),
       substations: p.getAll('substation'),
       secondarySubstations: p.getAll('secondary'),
       lines: p.getAll('line'),
@@ -261,26 +277,11 @@
     hoveredSourceId = null;
   }
 
-  function addLineLayer(sourceId: string, layerId: string, visible: boolean, dashArray?: number[]) {
+  function addLineLayer(sourceId: string, layerId: string, visible: boolean, riskEnabled: boolean, dashArray?: number[]) {
     if (!map || map.getLayer(layerId)) return;
 
     const paint: Record<string, unknown> = {
-      'line-color': [
-        'case',
-        ['boolean', ['feature-state', 'hover'], false],
-        // hovered
-        ['match', ['get', 'risk_level'],
-          'ALERT',   '#D00000',
-          'WARNING', '#F7D000',
-          '#16a34a',
-        ],
-        // default
-        ['match', ['get', 'risk_level'],
-          'ALERT',   '#D00000',
-          'WARNING', '#F7D000',
-          UNIFORM_GREY,
-        ],
-      ],
+      'line-color': riskColorExpr(riskEnabled, onImagery()),
       'line-width': [
         'case',
         ['boolean', ['feature-state', 'hover'], false],
@@ -303,7 +304,7 @@
 
     map.on('click', layerId, (e) => {
       if (!map || !e.features?.[0]) return;
-      showLinePopup(e.lngLat, e.features[0].properties as Record<string, unknown>);
+      showLinePopup(e.lngLat, e.features[0].properties as Record<string, unknown>, e.point);
     });
 
     map.on('mouseenter', layerId, (e) => {
@@ -347,6 +348,45 @@
     map.on('mouseleave', layerId, () => { if (map) map.getCanvas().style.cursor = ''; });
   }
 
+  const JOINTS_LAYER_ID = 'joints-points';
+
+  /** Thermal joints layer, drawn last so it sits above every line layer. */
+  function addJointsLayer(visible: boolean) {
+    if (!map || map.getLayer(JOINTS_LAYER_ID)) return;
+    map.addLayer({
+      id: JOINTS_LAYER_ID,
+      type: 'circle',
+      source: 'joints',
+      paint: {
+        'circle-radius': ['case', ['boolean', ['feature-state', 'hover'], false], 6, 4],
+        'circle-color': jointColorExpr(layers.heatRisk, onImagery()),
+        'circle-opacity': 0.95,
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 1.5,
+      },
+      layout: { visibility: visible ? 'visible' : 'none' },
+    });
+    map.on('click', JOINTS_LAYER_ID, (e) => {
+      if (!map || !e.features?.[0]) return;
+      showJointPopup(e.lngLat, e.features[0].properties as Record<string, unknown>);
+    });
+    map.on('mouseenter', JOINTS_LAYER_ID, (e) => {
+      if (!map) return;
+      map.getCanvas().style.cursor = 'pointer';
+      if (e.features?.[0]) {
+        clearHover();
+        hoveredFeatureId = e.features[0].id as number;
+        hoveredSourceId = 'joints';
+        map.setFeatureState({ source: 'joints', id: hoveredFeatureId }, { hover: true });
+      }
+    });
+    map.on('mouseleave', JOINTS_LAYER_ID, () => {
+      if (!map) return;
+      map.getCanvas().style.cursor = '';
+      clearHover();
+    });
+  }
+
   function addCabineLabelsLayer(visible = true) {
     if (!map || map.getLayer('cabine-labels')) return;
     const isDark =
@@ -360,11 +400,8 @@
       source: 'cabine',
       minzoom: 12,
       layout: {
-        'text-field': ['concat',
-          ['coalesce', ['get', 'name'], ''], ' - ', ['coalesce', ['get', 'label_id'], ''],
-          '\nLMT: ', ['coalesce', ['get', 'line_name'], ['get', 'asset_key']],
-          '\nCP: ', ['coalesce', ['get', 'parent_substation_name'], '-'],
-        ],
+        // Only "code - name" on the map; everything else on click (DSO request).
+        'text-field': ['get', 'cabina_label'],
         'text-size': 10,
         'text-offset': [0, 1.8],
         'text-anchor': 'top',
@@ -372,11 +409,13 @@
         'text-allow-overlap': false,
         visibility: visible ? 'visible' : 'none',
       },
-      paint: {
-        'text-color': isDark ? '#e2e8f0' : '#374151',
-        'text-halo-color': isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-        'text-halo-width': 1.5,
-      },
+      paint: onImagery()
+        ? { 'text-color': '#ffffff', 'text-halo-color': 'rgba(0, 0, 0, 0.9)', 'text-halo-width': 1.5 }
+        : {
+            'text-color': isDark ? '#e2e8f0' : '#374151',
+            'text-halo-color': isDark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+            'text-halo-width': 1.5,
+          },
     });
   }
 
@@ -388,13 +427,21 @@
   // ---------------------------------------------------------------------------
   // Popup / Tooltip
   // ---------------------------------------------------------------------------
-  function popupRow(label: string, value: unknown, filterType?: string): string {
-    if (value === null || value === undefined || value === '') return '';
-    const v = typeof value === 'number' ? value.toFixed(2).replace(/\.?0+$/, '') : String(value);
-    const valHtml = filterType
-      ? `<a href="#" data-filter-type="${filterType}" data-filter-value="${v}" style="font-weight:500;color:#0d9488;cursor:pointer;text-decoration:none">${v}</a>`
-      : `<span style="font-weight:500">${v}</span>`;
-    return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:12px"><span style="color:#64748b">${label}</span>${valHtml}</div>`;
+  /** "22.1 °C (P90 21.5)": the 7-day soil mean alongside the P90 threshold it is compared against. */
+  function formatSoilRow(mean: unknown, p90: unknown): string {
+    const m = typeof mean === 'number' ? mean : Number(mean);
+    if (!Number.isFinite(m)) return '';
+    const p = typeof p90 === 'number' ? p90 : Number(p90);
+    const p90Str = Number.isFinite(p) ? ` (P90 ${p.toFixed(1)})` : '';
+    return `${m.toFixed(1)} °C${p90Str}`;
+  }
+
+  /** Thermal tier label, flagged "non modellato" when the tier was defaulted rather than measured. */
+  function thermalTierLabel(tier: unknown, modelled: unknown): string {
+    const t = thermalTierKey(tier);
+    const label = $_(`thermal_tier.${t}`, { default: t });
+    // The 'unmodelled' tier's own label already says "not modelled"; do not duplicate the suffix.
+    return shouldShowUnmodelledSuffix(modelled, tier) ? `${label} (${$_('panel.thermal_unmodelled')})` : label;
   }
 
   function handlePopupFilterClick(e: Event) {
@@ -429,7 +476,23 @@
     currentPopup?.getElement()?.addEventListener('click', handlePopupFilterClick);
   }
 
-  function showLinePopup(lngLat: maplibregl.LngLat, props: Record<string, unknown>) {
+  /** "2.3 km high · 1.7 km mid · 0.5 km low" */
+  function formatStrikeKm(props: Record<string, unknown>): string {
+    return strikeKmBreakdown(props)
+      .map(({ tier, km }) => `${km.toFixed(km < 1 ? 2 : 1)} km ${$_(`tree_tier.${tier}`, { default: tier }).toLowerCase()}`)
+      .join(' · ');
+  }
+
+  /** Tier of the tree-strike span under the clicked pixel, if one runs within 8 px of it. */
+  function strikeTierAt(point: maplibregl.Point | undefined): string | null {
+    if (!map || !point || !treeStrikeData.features.length) return null;
+    const m = map;
+    const span = nearestSpan(treeStrikeData.features, (ll) => m.project(ll), point, 8);
+    const tier = span?.properties.tier;
+    return typeof tier === 'string' ? tier : null;
+  }
+
+  function showLinePopup(lngLat: maplibregl.LngLat, props: Record<string, unknown>, point?: maplibregl.Point) {
     if (!map) return;
     currentPopup?.remove();
 
@@ -439,8 +502,8 @@
     const conductorType = String(props.conductor_type ?? '');
     const isHeat = conductorType === 'underground_cable';
 
-    let html = `<div style="font-weight:700;font-size:13px;margin-bottom:6px;border-bottom:1px solid #e2e8f0;padding-bottom:6px">${lineName}</div>`;
-    html += `<div style="margin-bottom:8px"><span style="background:${riskColors[riskLevel] ?? '#808080'};color:#fff;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700">${riskLevel}</span></div>`;
+    let html = popupTitle(lineName);
+    html += `<div style="margin-bottom:8px"><span style="background:${riskColors[riskLevel] ?? '#808080'};color:#fff;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700">${esc(riskLevel)}</span></div>`;
     html += popupRow($_('panel.conductor_type'), $_(`conductor.${conductorType}`, { default: conductorType }));
     html += popupRow($_('panel.substation_name'), props.parent_substation_name, 'substation');
     html += popupRow($_('panel.operational_unit'), props.operational_unit);
@@ -451,19 +514,57 @@
       html += popupRow($_('panel.temp_max_c'), props.temp_max_c);
       html += popupRow($_('panel.p90_threshold'), props.p90_threshold);
       html += popupRow($_('panel.consecutive_heat_days'), props.consecutive_heat_days);
+      html += popupRow($_('panel.heat_status'), props.heat_status ? $_(`heat_status.${props.heat_status}`, { default: String(props.heat_status) }) : null);
+      html += popupRow($_('panel.soil7_mean_c'), formatSoilRow(props.soil7_mean_c, props.soil7_p90_c) || null);
+      html += popupRow($_('panel.soil_asof_date'), props.soil_asof_date);
+      html += popupRow($_('panel.thermal_tier'), thermalTierLabel(props.thermal_tier, props.thermal_modelled));
+      html += popupRow($_('panel.thermal_margin_c'), props.thermal_margin_c);
+      html += popupRow($_('panel.thermal_theta_max_c'), props.thermal_theta_max_c);
+      html += popupRow($_('panel.thermal_insulation'), props.thermal_insulation);
+      if (props.escalated_by_thermal === true || props.escalated_by_thermal === 'true') {
+        html += popupCallout($_('panel.escalated_by_thermal'));
+      }
     } else {
       html += popupRow($_('panel.gust_excess'), props.gust_excess);
       html += popupRow($_('panel.wind_speed_max'), props.wind_speed_max);
       html += popupRow($_('panel.wind_gusts_max'), props.wind_gusts_max);
       if (props.strike_tree_tier) {
-        html += popupRow($_('panel.strike_tree_tier'), $_(`tree_tier.${props.strike_tree_tier}`, { default: String(props.strike_tree_tier) }));
-        html += popupRow($_('panel.strike_density_per_km'), props.strike_density_per_km);
+        // The tratta tier is the worst of its fragments; say so, and show the
+        // tier of the span actually under the cursor next to the km per tier.
+        const here = strikeTierAt(point);
+        if (here) html += popupRow($_('panel.strike_tier_here'), $_(`tree_tier.${here}`, { default: here }));
+        html += popupRow($_('panel.strike_tree_tier_worst'), $_(`tree_tier.${props.strike_tree_tier}`, { default: String(props.strike_tree_tier) }));
+        html += popupRow($_('panel.strike_km_breakdown'), formatStrikeKm(props) || null);
+        html += popupRow($_('panel.strike_density_per_km_avg'), props.strike_density_per_km);
       }
       if (props.escalated_by_tree_strike === true || props.escalated_by_tree_strike === 'true') {
-        html += `<div style="margin-top:6px;background:#fef2f2;border:1px solid #D00000;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;color:#D00000">${$_('panel.escalated_by_tree_strike')}</div>`;
+        html += popupCallout($_('panel.escalated_by_tree_strike'));
       }
     }
 
+    currentPopup = new maplibregl.Popup({ closeOnClick: true, maxWidth: '280px' })
+      .setLngLat(lngLat)
+      .setHTML(html)
+      .addTo(map);
+    attachPopupLinks();
+  }
+
+  function showSpanPopup(lngLat: maplibregl.LngLat, props: Record<string, unknown>) {
+    if (!map) return;
+    currentPopup?.remove();
+    const p = props as unknown as TreeStrikeSpanProperties;
+    const tier = String(p.tier ?? '');
+    let html = popupTitle(`${$_('panel.span')} — ${p.line_name ?? '—'}`);
+    html += `<div style="margin-bottom:8px"><span style="background:${TREE_TIER_COLORS[tier] ?? '#808080'};color:#fff;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700">${esc($_(`tree_tier.${tier}`, { default: tier }))}</span></div>`;
+    html += popupRow($_('panel.line_mt'), p.line_name, 'line');
+    html += popupRow($_('panel.conductor_type'), $_(`conductor.${p.conductor_type}`, { default: p.conductor_type ?? '' }));
+    html += popupRow($_('panel.substation_name'), p.parent_substation_name, 'substation');
+    html += popupRow($_('panel.operational_unit'), p.operational_unit);
+    html += popupRow($_('panel.municipality'), p.municipality, 'municipality');
+    html += popupRow($_('panel.strike_density_per_km'), p.strike_density_km);
+    html += popupRow($_('panel.n_strike'), p.n_strike);
+    html += popupRow($_('panel.strike_tree_multiplier'), p.multiplier);
+    html += popupRow($_('panel.length_m'), p.length_m);
     currentPopup = new maplibregl.Popup({ closeOnClick: true, maxWidth: '280px' })
       .setLngLat(lngLat)
       .setHTML(html)
@@ -476,15 +577,51 @@
     currentPopup?.remove();
 
     const cabName = String(props.name ?? '—');
-    const lineName = props.line_name
-      ?? secondarySubIndex.get(cabName)?.lineNames[0]
-      ?? null;
-    let html = `<div style="font-weight:700;font-size:13px;margin-bottom:6px;border-bottom:1px solid #e2e8f0;padding-bottom:6px">${cabName}</div>`;
-    html += popupRow($_('panel.code'), props.label_id ?? props.asset_key);
-    html += popupRow($_('panel.line_mt'), lineName, 'line');
-    html += popupRow($_('panel.primary_substation'), props.parent_substation_name, 'substation');
-    html += popupRow($_('panel.operational_unit'), props.operational_unit);
+    // Only the six fields the DSO asked for (see cabinaPopupRows).
+    const withLine = {
+      ...props,
+      line_name: props.line_name ?? secondarySubIndex.get(cabName)?.lineNames[0] ?? null,
+    };
+    let html = popupTitle(cabinaLabel(withLine) || cabName);
+    for (const row of cabinaPopupRows(withLine)) html += popupRow($_(row.key), row.value, row.filter);
+
+    currentPopup = new maplibregl.Popup({ closeOnClick: true, maxWidth: '280px' })
+      .setLngLat(lngLat)
+      .setHTML(html)
+      .addTo(map);
+    attachPopupLinks();
+  }
+
+  function showJointPopup(lngLat: maplibregl.LngLat, props: Record<string, unknown>) {
+    if (!map) return;
+    currentPopup?.remove();
+
+    const jointId = String(props.asset_key ?? props.segment_id ?? '-');
+    const riskLevel = props.risk_level ? String(props.risk_level) : null;
+    const riskColors: Record<string, string> = { ALERT: '#D00000', WARNING: '#F7D000', NORMAL: '#00A000' };
+
+    let html = popupTitle(`${$_('panel.joint')} ${jointId}`);
+    if (riskLevel) {
+      html += `<div style="margin-bottom:8px"><span style="background:${riskColors[riskLevel] ?? '#808080'};color:#fff;padding:2px 10px;border-radius:99px;font-size:11px;font-weight:700">${esc(riskLevel)}</span></div>`;
+    }
+    html += popupRow($_('panel.thermal_tier'), thermalTierLabel(props.thermal_tier, props.thermal_modelled));
+    html += popupRow($_('panel.thermal_insulation'), props.thermal_insulation);
+    html += popupRow($_('panel.anno_posa'), props.anno_posa);
+    html += popupRow($_('panel.technology'), props.technology);
+    html += popupRow($_('panel.thermal_margin_c'), props.thermal_margin_c);
+    html += popupRow($_('panel.m_r_critico'), props.m_r_critico);
+    html += popupRow($_('panel.thermal_theta_max_c'), props.thermal_theta_max_c);
+    html += popupRow($_('panel.is_asphalt'), props.is_asphalt);
     html += popupRow($_('panel.municipality'), props.municipality, 'municipality');
+
+    if (riskLevel) {
+      html += popupRow($_('panel.heat_status'), props.heat_status ? $_(`heat_status.${props.heat_status}`, { default: String(props.heat_status) }) : null);
+      html += popupRow($_('panel.soil7_mean_c'), formatSoilRow(props.soil7_mean_c, props.soil7_p90_c) || null);
+      html += popupRow($_('panel.soil_asof_date'), props.soil_asof_date);
+      if (props.escalated_by_thermal === true || props.escalated_by_thermal === 'true') {
+        html += popupCallout($_('panel.escalated_by_thermal'));
+      }
+    }
 
     currentPopup = new maplibregl.Popup({ closeOnClick: true, maxWidth: '280px' })
       .setLngLat(lngLat)
@@ -494,39 +631,46 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Map style (dark / light)
+  // Map style (dark / light / satellite)
   // ---------------------------------------------------------------------------
-  const STYLE_DARK = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
-  const STYLE_LIGHT = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
-
-  function currentStyleUrl(): string {
-    const dark =
+  function isDarkTheme(): boolean {
+    return (
       document.documentElement.classList.contains('dark') ||
       (!document.documentElement.classList.contains('light') &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches);
-    return dark ? STYLE_DARK : STYLE_LIGHT;
+        window.matchMedia('(prefers-color-scheme: dark)').matches)
+    );
+  }
+
+  function currentStyle() {
+    return resolveStyle(layers.basemap, isDarkTheme());
   }
 
   function restoreLayers() {
     if (!map) return;
+    // the exposure overlay goes in first so every conductor layer draws above it
+    upsertGeoJsonSource('tree-strike-spans', treeStrikeData);
+    addTreeStrikeSpansLayer(layers.treeStrike);
     if (overheadBareData.features.length) {
       upsertGeoJsonSource('overhead-bare', overheadBareData);
-      addTreeStrikeLayer('overhead-bare', 'tree-strike-overhead-bare', showTreeStrike);
-      addLineLayer('overhead-bare', 'lines-overhead-bare', showOverheadBare);
+      addLineLayer('overhead-bare', 'lines-overhead-bare', layers.overheadBare, layers.windRisk);
     }
     if (overheadInsulatedData.features.length) {
       upsertGeoJsonSource('overhead-insulated', overheadInsulatedData);
-      addTreeStrikeLayer('overhead-insulated', 'tree-strike-overhead-insulated', showTreeStrike);
-      addLineLayer('overhead-insulated', 'lines-overhead-insulated', showOverheadInsulated, [2, 4]);
+      addLineLayer('overhead-insulated', 'lines-overhead-insulated', layers.overheadInsulated, layers.windRisk, [2, 4]);
     }
     if (undergroundCableData.features.length) {
       upsertGeoJsonSource('underground-cable', undergroundCableData);
-      addLineLayer('underground-cable', 'lines-underground-cable', showUndergroundCable, [8, 4]);
+      addLineLayer('underground-cable', 'lines-underground-cable', layers.undergroundCable, layers.heatRisk, [8, 4]);
     }
     if (cabineData.features.length) {
       upsertGeoJsonSource('cabine', cabineData);
-      addCircleLayer('cabine', 'cabine-points', showCabine);
-      addCabineLabelsLayer(showCabine);
+      addCircleLayer('cabine', 'cabine-points', layers.cabine);
+      addCabineLabelsLayer(layers.cabine);
+    }
+    // joints go in last so they draw above every line layer
+    if (jointsData.features.length) {
+      upsertGeoJsonSource('joints', jointsData);
+      addJointsLayer(layers.joints);
     }
     updateLayerFilters();
   }
@@ -538,10 +682,12 @@
   let overheadInsulatedData: FeatureCollection = emptyFC();
   let undergroundCableData: FeatureCollection = emptyFC();
   let cabineData: FeatureCollection = emptyFC();
+  let jointsData: FeatureCollection = emptyFC();
 
   let baseOverheadBareData: FeatureCollection = emptyFC();
   let baseOverheadInsulatedData: FeatureCollection = emptyFC();
   let baseUndergroundCableData: FeatureCollection = emptyFC();
+  let baseJointsData: FeatureCollection = emptyFC();
 
   let shapesLoaded = false;
 
@@ -549,6 +695,9 @@
   let tileIndex: TileInfo[] = [];
   let loadedTileIds = new Set<string>();
   let loadedSegmentIds = new Set<string>();
+  let loadedJointIds = new Set<string>();
+  let loadedSpanIds = new Set<string>();
+  let treeStrikeData: FeatureCollection = { type: 'FeatureCollection', features: [] };
   let tilesReady = false;
   let tileLoadInProgress = false;
   let currentRisks: GridRisk[] = [];
@@ -593,9 +742,10 @@
     return tMinLng <= ne.lng && tMaxLng >= sw.lng && tMinLat <= ne.lat && tMaxLat >= sw.lat;
   }
 
-  function categorizeFeature(f: GeoFeature): 'bare' | 'insulated' | 'underground' | 'substation' | null {
+  function categorizeFeature(f: GeoFeature): 'bare' | 'insulated' | 'underground' | 'substation' | 'joint' | null {
     if (!f.geometry) return null;
     const p = f.properties as unknown as GridShapeProperties;
+    if (p.asset_type === 'joint') return 'joint';
     if (p.asset_type === 'substation') return 'substation';
     switch (p.conductor_type) {
       case 'overhead_insulated': return 'insulated';
@@ -621,8 +771,15 @@
     newTileIds.forEach((id) => loadedTileIds.add(id));
 
     let fc: FeatureCollection;
+    let spansFc: FeatureCollection = emptyFC();
     try {
-      fc = await getShapes(NETWORK_ID, undefined, newTileIds);
+      [fc, spansFc] = await Promise.all([
+        getShapes(NETWORK_ID, undefined, newTileIds),
+        getTreeStrikeSpans(NETWORK_ID, newTileIds).catch((err) => {
+          console.warn('[grid] Tree-strike spans unavailable for tiles:', err);
+          return emptyFC();
+        }),
+      ]);
     } catch (err) {
       newTileIds.forEach((id) => loadedTileIds.delete(id));
       console.error('[grid] Failed to load tiles:', err);
@@ -634,15 +791,24 @@
     const insulated: GeoFeature[] = [];
     const underground: GeoFeature[] = [];
     const substations: GeoFeature[] = [];
+    const joints: GeoFeature[] = [];
 
     for (const f of fc.features) {
       const p = f.properties as unknown as GridShapeProperties;
+      const cat = categorizeFeature(f);
+
+      if (cat === 'joint') {
+        if (loadedJointIds.has(p.segment_id)) continue;
+        loadedJointIds.add(p.segment_id);
+        joints.push({ ...f, properties: { ...p, risk_level: 'NORMAL', risk_color_hex: null } });
+        continue;
+      }
+
       if (loadedSegmentIds.has(p.segment_id)) continue;
       loadedSegmentIds.add(p.segment_id);
 
       const base = { ...f, properties: { ...p, risk_level: 'NORMAL', risk_color_hex: null } };
-      const cat = categorizeFeature(f);
-      if (cat === 'substation') substations.push(base);
+      if (cat === 'substation') substations.push({ ...base, properties: { ...base.properties, cabina_label: cabinaLabel(p as unknown as Record<string, unknown>) } });
       else if (cat === 'insulated') insulated.push(base);
       else if (cat === 'underground') underground.push(base);
       else if (cat === 'bare') bare.push(base);
@@ -652,6 +818,19 @@
     baseOverheadInsulatedData = { type: 'FeatureCollection', features: [...baseOverheadInsulatedData.features, ...insulated] };
     baseUndergroundCableData = { type: 'FeatureCollection', features: [...baseUndergroundCableData.features, ...underground] };
     cabineData = { type: 'FeatureCollection', features: [...cabineData.features, ...substations] };
+    baseJointsData = { type: 'FeatureCollection', features: [...baseJointsData.features, ...joints] };
+
+    const spans: GeoFeature[] = [];
+    for (const f of spansFc.features) {
+      const id = String((f.properties as unknown as TreeStrikeSpanProperties).span_id ?? '');
+      if (!id || loadedSpanIds.has(id)) continue;
+      loadedSpanIds.add(id);
+      spans.push(f);
+    }
+    if (spans.length) {
+      treeStrikeData = { type: 'FeatureCollection', features: [...treeStrikeData.features, ...spans] };
+      upsertGeoJsonSource('tree-strike-spans', treeStrikeData);
+    }
 
     if (currentRisks.length) {
       applyRisks(currentRisks);
@@ -659,9 +838,11 @@
       overheadBareData = baseOverheadBareData;
       overheadInsulatedData = baseOverheadInsulatedData;
       undergroundCableData = baseUndergroundCableData;
+      jointsData = baseJointsData;
       upsertGeoJsonSource('overhead-bare', overheadBareData);
       upsertGeoJsonSource('overhead-insulated', overheadInsulatedData);
       upsertGeoJsonSource('underground-cable', undergroundCableData);
+      upsertGeoJsonSource('joints', jointsData);
     }
     upsertGeoJsonSource('cabine', cabineData);
 
@@ -680,7 +861,7 @@
     if (substations.length) secondarySubIndex = new Map(secondarySubIndex);
 
     if (!hasFit) {
-      fitToData(overheadBareData, overheadInsulatedData, undergroundCableData, cabineData);
+      fitToData(overheadBareData, overheadInsulatedData, undergroundCableData, cabineData, jointsData);
     }
 
     updateLayerFilters();
@@ -697,18 +878,20 @@
       console.warn('[grid] Tile index unavailable, falling back to full load:', err);
     }
 
-    // Set up empty sources + layers once
+    // Set up empty sources + layers once (overlay first, so it draws under the lines)
+    upsertGeoJsonSource('tree-strike-spans', emptyFC());
+    addTreeStrikeSpansLayer(layers.treeStrike);
     upsertGeoJsonSource('overhead-bare', emptyFC());
-    addTreeStrikeLayer('overhead-bare', 'tree-strike-overhead-bare', showTreeStrike);
-    addLineLayer('overhead-bare', 'lines-overhead-bare', showOverheadBare);
+    addLineLayer('overhead-bare', 'lines-overhead-bare', layers.overheadBare, layers.windRisk);
     upsertGeoJsonSource('overhead-insulated', emptyFC());
-    addTreeStrikeLayer('overhead-insulated', 'tree-strike-overhead-insulated', showTreeStrike);
-    addLineLayer('overhead-insulated', 'lines-overhead-insulated', showOverheadInsulated, [2, 4]);
+    addLineLayer('overhead-insulated', 'lines-overhead-insulated', layers.overheadInsulated, layers.windRisk, [2, 4]);
     upsertGeoJsonSource('underground-cable', emptyFC());
-    addLineLayer('underground-cable', 'lines-underground-cable', showUndergroundCable, [8, 4]);
+    addLineLayer('underground-cable', 'lines-underground-cable', layers.undergroundCable, layers.heatRisk, [8, 4]);
     upsertGeoJsonSource('cabine', emptyFC());
-    addCircleLayer('cabine', 'cabine-points', showCabine);
-    addCabineLabelsLayer(showCabine);
+    addCircleLayer('cabine', 'cabine-points', layers.cabine);
+    addCabineLabelsLayer(layers.cabine);
+    upsertGeoJsonSource('joints', emptyFC());
+    addJointsLayer(layers.joints);
 
     shapesLoaded = true;
 
@@ -723,17 +906,20 @@
           const p = f.properties as unknown as GridShapeProperties;
           const base = { ...f, properties: { ...p, risk_level: 'NORMAL', risk_color_hex: null } };
           const cat = categorizeFeature(f);
-          if (cat === 'substation') cabineData.features.push(base);
+          if (cat === 'substation') cabineData.features.push({ ...base, properties: { ...base.properties, cabina_label: cabinaLabel(p as unknown as Record<string, unknown>) } });
           else if (cat === 'insulated') baseOverheadInsulatedData.features.push(base);
           else if (cat === 'underground') baseUndergroundCableData.features.push(base);
           else if (cat === 'bare') baseOverheadBareData.features.push(base);
+          else if (cat === 'joint') baseJointsData.features.push(base);
         }
         overheadBareData = baseOverheadBareData;
         overheadInsulatedData = baseOverheadInsulatedData;
         undergroundCableData = baseUndergroundCableData;
+        jointsData = baseJointsData;
         upsertGeoJsonSource('overhead-bare', overheadBareData);
         upsertGeoJsonSource('overhead-insulated', overheadInsulatedData);
         upsertGeoJsonSource('underground-cable', undergroundCableData);
+        upsertGeoJsonSource('joints', jointsData);
         upsertGeoJsonSource('cabine', cabineData);
 
         const subIdx = new Map<string, { parent: string; lineNames: string[] }>();
@@ -749,7 +935,7 @@
           }
         }
         secondarySubIndex = subIdx;
-        fitToData(overheadBareData, overheadInsulatedData, undergroundCableData, cabineData);
+        fitToData(overheadBareData, overheadInsulatedData, undergroundCableData, cabineData, jointsData);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error('[grid] Failed to load shapes:', msg);
@@ -761,29 +947,21 @@
   }
 
   function applyRisks(risks: GridRisk[]) {
-    const byId = new Map<string, GridRisk>();
-    for (const r of risks) byId.set(r.segment_id, r);
+    // Overhead layers take the wind vector, the underground layer the heat vector,
+    // so a segment carrying both rows is never overwritten by the "wrong" one.
+    const byKey = indexRisks(risks);
 
-    function recolor(base: FeatureCollection): FeatureCollection {
-      if (!byId.size) return base;
-      return {
-        type: 'FeatureCollection',
-        features: base.features.map((f) => {
-          const r = byId.get((f.properties as unknown as GridShapeProperties).segment_id);
-          if (!r) return f;
-          return { ...f, properties: { ...f.properties, risk_level: r.risk_level, risk_color_hex: r.risk_color_hex, ...r.metrics as object } };
-        }),
-      };
-    }
-
-    overheadBareData = recolor(baseOverheadBareData);
+    overheadBareData = mergeRisksIntoFeatures(baseOverheadBareData, byKey, 'wind');
     upsertGeoJsonSource('overhead-bare', overheadBareData);
 
-    overheadInsulatedData = recolor(baseOverheadInsulatedData);
+    overheadInsulatedData = mergeRisksIntoFeatures(baseOverheadInsulatedData, byKey, 'wind');
     upsertGeoJsonSource('overhead-insulated', overheadInsulatedData);
 
-    undergroundCableData = recolor(baseUndergroundCableData);
+    undergroundCableData = mergeRisksIntoFeatures(baseUndergroundCableData, byKey, 'heat');
     upsertGeoJsonSource('underground-cable', undergroundCableData);
+
+    jointsData = mergeRisksIntoFeatures(baseJointsData, byKey, 'heat');
+    upsertGeoJsonSource('joints', jointsData);
   }
 
   async function loadAllData() {
@@ -795,16 +973,26 @@
       return;
     }
 
-    let risks: GridRisk[];
-    if (dataMode === 'nowcasting') {
-      risks = await getRisksNow(NETWORK_ID).catch(() => [] as GridRisk[]);
-    } else {
-      const f = buildFilters();
-      risks = await getRisks(f).catch(() => [] as GridRisk[]);
-    }
+    const f = buildFilters();
+    const result = await fetchRisksOrError(() =>
+      dataMode === 'nowcasting'
+        ? getRisksNow(NETWORK_ID)
+        // intra-day view: same rows as /risks for the selected 8-hour window
+        : filterSlot !== null
+          ? getRisks8h({ ...f, slots: [filterSlot] })
+          : getRisks(f),
+    );
 
-    currentRisks = risks;
-    applyRisks(risks);
+    if (result.ok) {
+      currentRisks = result.risks;
+    } else {
+      // Never apply an empty list as if valid: show the network with no risk
+      // levels (neutral, not "all normal") and surface the error banner.
+      console.error('[grid] Failed to load risks:', result.error);
+      currentRisks = [];
+      loadError = result.error;
+    }
+    applyRisks(currentRisks);
     updateLayerFilters();
     loading = false;
   }
@@ -850,18 +1038,26 @@
       }
     }
 
-    // Tree-strike underlay filter — same topology/risk conditions as the conductor
-    // layers above, always ANDed with the base `has strike_tree_tier` filter so the
-    // underlay never loses its own scoping when the active filters are cleared
-    // (lineFilter alone would go to `null`, which would remove all filtering,
-    // including the has-property guard the layer's `filter` was created with).
-    const treeStrikeFilter: unknown = lineConditions.length
-      ? ['all', ['has', 'strike_tree_tier'], ...lineConditions]
-      : ['has', 'strike_tree_tier'];
-    for (const def of TREE_STRIKE_LAYER_DEFS) {
-      if (map.getLayer(def.layerId)) {
-        map.setFilter(def.layerId, treeStrikeFilter as maplibregl.FilterSpecification);
-      }
+    // Tree-strike spans — same topology filters as the conductor layers (no risk level:
+    // exposure is static). Spans carry line_name rather than asset_key.
+    const spanConditions: unknown[] = [];
+    if (filterSubstations.length) {
+      spanConditions.push(['in', ['get', 'parent_substation_name'], ['literal', filterSubstations]]);
+    }
+    if (filterLines.length) {
+      spanConditions.push(['in', ['get', 'line_name'], ['literal', filterLines]]);
+    }
+    if (filterUnits.length) {
+      spanConditions.push(['in', ['get', 'operational_unit'], ['literal', filterUnits]]);
+    }
+    if (filterMunicipalities.length) {
+      spanConditions.push(['in', ['get', 'municipality'], ['literal', filterMunicipalities]]);
+    }
+    if (map.getLayer(TREE_STRIKE_LAYER_ID)) {
+      map.setFilter(
+        TREE_STRIKE_LAYER_ID,
+        (spanConditions.length ? ['all', ...spanConditions] : null) as maplibregl.FilterSpecification | null
+      );
     }
 
     // Cabine filter — same filters as lines (except risk), plus secondary name
@@ -892,6 +1088,21 @@
     if (map.getLayer('cabine-labels')) {
       map.setFilter('cabine-labels', cabineFilter as maplibregl.FilterSpecification | null);
     }
+
+    // Joints carry no line/unit/substation attributes: only municipality and risk level apply.
+    const jointConditions: unknown[] = [];
+    if (filterMunicipalities.length) {
+      jointConditions.push(['in', ['get', 'municipality'], ['literal', filterMunicipalities]]);
+    }
+    if (filterRisk.length) {
+      jointConditions.push(['in', ['get', 'risk_level'], ['literal', filterRisk]]);
+    }
+    if (map.getLayer(JOINTS_LAYER_ID)) {
+      map.setFilter(
+        JOINTS_LAYER_ID,
+        (jointConditions.length ? ['all', ...jointConditions] : null) as maplibregl.FilterSpecification | null
+      );
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -916,6 +1127,13 @@
     loadAllData();
   }
 
+  function onSlotChange(slot: Slot | null) {
+    if (slot === filterSlot) return;
+    filterSlot = slot;
+    syncUrl();
+    loadAllData();
+  }
+
   function onModeChange(newMode: DataMode) {
     if (newMode === dataMode) return;
     dataMode = newMode;
@@ -926,22 +1144,48 @@
   // ---------------------------------------------------------------------------
   // Layer visibility reactivity
   // ---------------------------------------------------------------------------
-  $effect(() => { setLayerVisibility('lines-overhead-bare', showOverheadBare); });
-  $effect(() => { setLayerVisibility('lines-overhead-insulated', showOverheadInsulated); });
-  $effect(() => { setLayerVisibility('lines-underground-cable', showUndergroundCable); });
+  $effect(() => { setLayerVisibility('lines-overhead-bare', layers.overheadBare); });
+  $effect(() => { setLayerVisibility('lines-overhead-insulated', layers.overheadInsulated); });
+  $effect(() => { setLayerVisibility('lines-underground-cable', layers.undergroundCable); });
   $effect(() => {
-    setLayerVisibility('cabine-points', showCabine);
-    setLayerVisibility('cabine-labels', showCabine);
+    setLayerVisibility('cabine-points', layers.cabine);
+    setLayerVisibility('cabine-labels', layers.cabine);
   });
-  $effect(() => { for (const def of TREE_STRIKE_LAYER_DEFS) setLayerVisibility(def.layerId, showTreeStrike); });
+  $effect(() => { setLayerVisibility(TREE_STRIKE_LAYER_ID, layers.treeStrike); });
+  $effect(() => { setLayerVisibility(JOINTS_LAYER_ID, layers.joints); });
 
+  // Risk colouring on/off — repaint, geometry stays visible.
+  $effect(() => {
+    const wind = layers.windRisk;
+    const heat = layers.heatRisk;
+    const imagery = onImagery();
+    if (!map) return;
+    for (const def of LINE_LAYER_DEFS) {
+      if (!map.getLayer(def.layerId)) continue;
+      map.setPaintProperty(def.layerId, 'line-color', riskColorExpr(def.vector === 'wind' ? wind : heat, imagery));
+    }
+    if (map.getLayer(JOINTS_LAYER_ID)) {
+      map.setPaintProperty(JOINTS_LAYER_ID, 'circle-color', jointColorExpr(heat, imagery));
+    }
+  });
+
+  // Persist the menu state whenever any toggle changes.
+  $effect(() => {
+    JSON.stringify({ ...layers });
+    persistLayers();
+  });
+
+  // Basemap follows the theme (auto) or the explicit satellite choice.
   $effect(() => {
     $themeOverride;
+    layers.basemap;
     if (!map) return;
-    const newStyle = currentStyleUrl();
-    if (newStyle !== activeMapStyle) {
-      activeMapStyle = newStyle;
-      map.setStyle(newStyle);
+    const next = currentStyle();
+    if (next.key !== activeMapStyle) {
+      activeMapStyle = next.key;
+      // diff:false forces a full style reload so `style.load` fires and
+      // restoreLayers() re-adds our sources/layers on top of the new basemap.
+      map.setStyle(next.style, { diff: false });
     }
   });
 
@@ -949,13 +1193,13 @@
   // Mount
   // ---------------------------------------------------------------------------
   onMount(() => {
-    const initialStyle = currentStyleUrl();
-    activeMapStyle = initialStyle;
+    const initialStyle = currentStyle();
+    activeMapStyle = initialStyle.key;
 
     const mapState = readUrlMapState();
     map = new maplibregl.Map({
       container: mapContainer,
-      style: initialStyle,
+      style: initialStyle.style,
       center: mapState ? [mapState.lng, mapState.lat] : [0, 40],
       zoom: mapState?.zoom ?? 2,
     });
@@ -977,6 +1221,7 @@
       if (urlFilters.units.length) filterUnits = urlFilters.units;
       if (urlFilters.municipalities.length) filterMunicipalities = urlFilters.municipalities;
       if (urlFilters.risk.length) filterRisk = urlFilters.risk;
+      filterSlot = urlFilters.slot;
 
       const todayStr = new Date().toISOString().slice(0, 10);
       const dateFromUrl = urlFilters.date;
@@ -1017,6 +1262,7 @@
       units={availUnits}
       municipalities={availMunicipalities}
       selectedDate={selectedDate}
+      selectedSlot={filterSlot}
       {minDate}
       {maxDate}
       bind:selectedSubstations={filterSubstations}
@@ -1027,6 +1273,7 @@
       bind:selectedRisk={filterRisk}
       onchange={applyFilters}
       ondatechange={onDateChange}
+      onslotchange={onSlotChange}
       onmodechange={onModeChange}
       onexport={(type) => {
         if (type === 'wind') {
@@ -1040,44 +1287,7 @@
     />
 
     <div class="map-area">
-      <!-- Layer toggles -->
-      <div class="layer-controls">
-        <label class="layer-toggle">
-          <input type="checkbox" bind:checked={showOverheadBare} />
-          <span class="swatch swatch-line-solid"></span>
-          {$_('conductor.overhead_bare')}
-        </label>
-        <label class="layer-toggle">
-          <input type="checkbox" bind:checked={showOverheadInsulated} />
-          <span class="swatch swatch-line-dotted"></span>
-          {$_('conductor.overhead_insulated')}
-        </label>
-        <label class="layer-toggle">
-          <input type="checkbox" bind:checked={showUndergroundCable} />
-          <span class="swatch swatch-line-dashed"></span>
-          {$_('conductor.underground_cable')}
-        </label>
-        <label class="layer-toggle">
-          <input type="checkbox" bind:checked={showCabine} />
-          <span class="swatch swatch-dot" style:background="#1E88E5"></span>
-          {$_('layer.cabine')}
-        </label>
-        <label class="layer-toggle">
-          <input type="checkbox" bind:checked={showTreeStrike} />
-          <span class="swatch swatch-line-solid" style:background="#9a3412"></span>
-          {$_('layer.tree_strike')}
-        </label>
-        {#if showTreeStrike}
-          <div class="tree-strike-legend">
-            {#each ['low', 'mid', 'high'] as tier}
-              <span class="legend-item">
-                <span class="swatch swatch-dot" style:background={TREE_TIER_COLORS[tier]}></span>
-                {$_(`tree_tier.${tier}`)}
-              </span>
-            {/each}
-          </div>
-        {/if}
-      </div>
+      <LayerMenu />
 
       <div class="map-container" bind:this={mapContainer}></div>
 
@@ -1223,78 +1433,6 @@
     to { transform: rotate(360deg); }
   }
 
-  /* Layer toggles — top-right overlay */
-  .layer-controls {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    background: var(--celine-bg-elevated, rgba(255, 255, 255, 0.95));
-    border: 1px solid var(--celine-border, #e2e8f0);
-    border-radius: 8px;
-    padding: 0.5rem 0.75rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-    z-index: 10;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  }
-
-  .layer-toggle {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--celine-text, #1e293b);
-    cursor: pointer;
-  }
-
-  .layer-toggle input[type='checkbox'] {
-    width: 14px;
-    height: 14px;
-    cursor: pointer;
-    accent-color: var(--celine-primary, #0d9488);
-  }
-
-  .swatch {
-    width: 18px;
-    height: 4px;
-    border-radius: 2px;
-    display: inline-block;
-    flex-shrink: 0;
-  }
-
-  .swatch-line-solid {
-    background: #6b7280;
-  }
-
-  .swatch-line-dotted {
-    background: repeating-linear-gradient(90deg, #6b7280 0 2px, transparent 2px 5px);
-    height: 4px;
-  }
-
-  .swatch-line-dashed {
-    background: repeating-linear-gradient(90deg, #6b7280 0 6px, transparent 6px 10px);
-    height: 4px;
-  }
-
-  .swatch.swatch-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-
-  .tree-strike-legend {
-    display: flex;
-    gap: 10px;
-    padding: 2px 8px 4px;
-    font-size: 11px;
-  }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
   /* MapLibre popup styling */
   :global(.maplibregl-popup-content) {
     padding: 12px 14px;
@@ -1302,6 +1440,27 @@
     font-family: inherit;
     font-size: 12px;
     color: var(--celine-text, #1e293b);
+    background: var(--celine-bg-elevated, #ffffff);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  }
+  /* MapLibre paints the tip white; follow the popup background in dark mode too. */
+  :global(.maplibregl-popup-anchor-top .maplibregl-popup-tip),
+  :global(.maplibregl-popup-anchor-top-left .maplibregl-popup-tip),
+  :global(.maplibregl-popup-anchor-top-right .maplibregl-popup-tip) {
+    border-bottom-color: var(--celine-bg-elevated, #ffffff);
+  }
+  :global(.maplibregl-popup-anchor-bottom .maplibregl-popup-tip),
+  :global(.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip),
+  :global(.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip) {
+    border-top-color: var(--celine-bg-elevated, #ffffff);
+  }
+  :global(.maplibregl-popup-anchor-left .maplibregl-popup-tip) {
+    border-right-color: var(--celine-bg-elevated, #ffffff);
+  }
+  :global(.maplibregl-popup-anchor-right .maplibregl-popup-tip) {
+    border-left-color: var(--celine-bg-elevated, #ffffff);
+  }
+  :global(.maplibregl-popup-close-button) {
+    color: var(--celine-text-muted, #64748b);
   }
 </style>
