@@ -6,7 +6,7 @@
 
   let query = $state('');
 
-  // A realm admin can hold every REC on the deployment; an organization-scoped
+  // A platform admin can hold every REC on the deployment; an organization-scoped
   // manager never reaches this page with more than one. The filter earns its
   // place for the first and is invisible to the second.
   const showFilter = $derived(data.communities.length > 8);

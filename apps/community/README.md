@@ -33,9 +33,9 @@ expects:
 
 The REC is a route parameter, so every dashboard page lives under `/[community]/…`. `/` is the
 picker over the RECs `GET /api/me` returned; with exactly one it redirects straight into it, which
-is the common case. A manager of several REC organizations, or a realm administrator, gets the
-picker. Nothing reads the REC from the session, so a reload, a bookmark and a shared link all open
-the REC they name.
+is the common case. A manager of several REC organizations, or a holder of the `platform-admin`
+realm role, gets the picker. Nothing reads the REC from the session, so a reload, a bookmark and a
+shared link all open the REC they name.
 
 Each REC carries its capabilities, and a section or action the caller has none for is absent from
 the nav and the page rather than offered and then refused by the BFF. `/denied` distinguishes the

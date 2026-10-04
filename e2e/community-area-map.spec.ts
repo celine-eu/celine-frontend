@@ -61,7 +61,7 @@ async function stub(page: Page, shapes: unknown[]): Promise<string[]> {
           name: 'Example Manager',
           locale: 'en',
           organizations: [],
-          realmGroups: [],
+          platformRoles: [],
           scopes: [],
           communities: [
             { key: REC, name: 'Example REC', capabilities: ['community.read', 'members.read', 'members.edit'] },

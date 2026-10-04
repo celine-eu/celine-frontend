@@ -58,8 +58,13 @@ export interface Me {
   locale?: string;
   /** Every Keycloak organization the caller belongs to. Diagnostic, not a grant. */
   organizations: string[];
-  /** A realm `admins` or `managers` badge is what makes `communities` the whole registry. */
-  realmGroups: string[];
+  /**
+   * The caller's platform roles: Keycloak realm roles (`realm_access.roles`), never a group.
+   * `platform-admin` is the only platform-wide grant and what makes `communities` the whole
+   * registry; organization groups count only inside their own REC. Diagnostic, not a grant:
+   * the BFF has already decided `communities`, and the UI gates on capabilities, not on this.
+   */
+  platformRoles: string[];
   communities: CommunityAccess[];
   scopes: string[];
 }
