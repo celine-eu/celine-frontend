@@ -24,6 +24,13 @@ export {
   type ProfileOutcome,
 } from './memberProfile';
 
+export {
+  releaseMember,
+  type MemberReleased,
+  type ReleaseOutcome,
+  type ReleaseStep,
+} from './memberRelease';
+
 export { getAreaShapes, type AreaShape, type AreaShapes, type ShapesRead } from './areaMap';
 
 export type Period = 'today' | '7d' | '30d';
@@ -42,7 +49,8 @@ export type Capability =
   | 'members.read'
   | 'members.invite'
   | 'members.meter'
-  | 'members.edit';
+  | 'members.edit'
+  | 'members.release';
 
 export interface CommunityAccess {
   key: string;

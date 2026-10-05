@@ -8,6 +8,7 @@
     getCommunityAreas,
     getMemberMeters,
     getMembers,
+    releaseMember,
     sendMemberEmail,
     type CommunityArea,
     type MemberDeliveryPoint,
@@ -32,6 +33,7 @@
     profileOutcomeMessage,
     warningKeys,
   } from '$lib/memberProfile';
+  import { confirmsMember, releaseView, type ReleaseView } from '$lib/memberRelease';
   import { communityStore } from '$lib/stores';
   import MemberSends from '$lib/components/MemberSends.svelte';
   import AreaMap from '$lib/components/AreaMap.svelte';
@@ -341,6 +343,53 @@
     }
   }
 
+  // Release (celine-community `members.release`): REC admins only, which `/api/me`
+  // reports to them alone. The admin types the member key before anything is sent;
+  // the answer lists onboarding's steps, and a partial release offers "Release
+  // again", which is safe because the release is idempotent.
+  const canRelease = $derived(($communityStore?.capabilities ?? []).includes('members.release'));
+
+  let releaseFor = $state<MemberSummary | null>(null);
+  let releaseTyped = $state('');
+  let releaseBusy = $state(false);
+  let releaseResult = $state<ReleaseView | null>(null);
+
+  const releaseConfirmed = $derived(releaseFor ? confirmsMember(releaseTyped, releaseFor.key) : false);
+
+  function openRelease(member: MemberSummary) {
+    if (releaseBusy) return;
+    releaseFor = member;
+    releaseTyped = '';
+    releaseResult = null;
+  }
+
+  function closeRelease() {
+    if (releaseBusy) return;
+    releaseFor = null;
+    releaseTyped = '';
+    releaseResult = null;
+  }
+
+  // The typed key is the decision; "Release again" repeats it for the same member.
+  async function confirmRelease() {
+    const community = $communityStore;
+    const member = releaseFor;
+    if (!community || !member || releaseBusy) return;
+    if (!releaseResult && !confirmsMember(releaseTyped, member.key)) return;
+    releaseBusy = true;
+    try {
+      const outcome = await releaseMember(community.key, member.key);
+      const view = releaseView(outcome, displayName(member), (key, options) => $_(key, options));
+      releaseResult = view;
+      if (view.released) {
+        // The row follows the registry: a released member is inactive.
+        members = members.map((item) => (item.key === member.key ? { ...item, status: 'inactive' } : item));
+      }
+    } finally {
+      releaseBusy = false;
+    }
+  }
+
   function meterFlag(member: MemberSummary): string {
     if (member.hasMeter === true) return $_('members.has_meter_yes');
     if (member.hasMeter === false) return $_('members.has_meter_no');
@@ -427,7 +476,7 @@
     {:else}
       <div class="table-scroll">
         <table>
-          <thead><tr><th>{$_('members.name')}</th><th>{$_('members.key')}</th><th>{$_('members.role')}</th><th>{$_('members.area')}</th><th>{$_('members.status')}</th><th>{$_('members.measurements')}</th>{#if canInvite || canEdit}<th>{$_('members.actions')}</th>{/if}</tr></thead>
+          <thead><tr><th>{$_('members.name')}</th><th>{$_('members.key')}</th><th>{$_('members.role')}</th><th>{$_('members.area')}</th><th>{$_('members.status')}</th><th>{$_('members.measurements')}</th>{#if canInvite || canEdit || canRelease}<th>{$_('members.actions')}</th>{/if}</tr></thead>
           <tbody>
             {#each members as member (member.key)}
               <tr>
@@ -445,7 +494,7 @@
                     {#if meterOutcomes[member.key]}<p class={`outcome ${meterOutcomes[member.key].tone}`} role="status">{meterOutcomes[member.key].text}</p>{/if}
                   {/if}
                 </td>
-                {#if canInvite || canEdit}
+                {#if canInvite || canEdit || canRelease}
                   <td class="actions">
                     <div class="buttons">
                       {#if canEdit}
@@ -458,6 +507,9 @@
                           <button class="send" disabled={sending || member.status !== 'active'} onclick={() => ask(member, 'invitation')}>{$_('members.send_invitation')}</button>
                           <button class="send secondary" disabled={sending || member.status !== 'active'} onclick={() => ask(member, 'password_reset')}>{$_('members.reset_password')}</button>
                         </span>
+                      {/if}
+                      {#if canRelease}
+                        <button class="send danger" disabled={releaseBusy} onclick={() => openRelease(member)}>{$_('members.release.open')}</button>
                       {/if}
                     </div>
                     {#if canEdit && editOutcomes[member.key]}<p class={`outcome ${editOutcomes[member.key].tone}`} role="status">{editOutcomes[member.key].text}</p>{/if}
@@ -489,6 +541,55 @@
         <button class="send secondary" disabled={sending} onclick={() => (pending = null)}>{$_('members.cancel')}</button>
         <button class="send" disabled={sending} onclick={confirmSend}>{sending ? $_('members.sending') : $_('members.confirm')}</button>
       </div>
+    </div>
+  </div>
+{/if}
+
+{#if releaseFor}
+  <div class="dialog-backdrop">
+    <div class="dialog release-dialog" role="dialog" aria-modal="true" aria-labelledby="release-dialog-title">
+      <h2 id="release-dialog-title">{$_('members.release.dialog_title', { values: { member: displayName(releaseFor) } })}</h2>
+      <p><code>{releaseFor.key}</code></p>
+
+      {#if releaseResult}
+        <p class={`outcome ${releaseResult.tone}`} role="status">{releaseResult.headline}</p>
+        {#if releaseResult.steps.length}
+          <ol class="steps">
+            {#each releaseResult.steps as line}
+              <li class={`step ${line.tone}`} data-code={line.code}>
+                <div><strong>{line.title}</strong><span class={`tag step-${line.tone}`}>{line.statusLabel}</span></div>
+                <p>{line.text}</p>
+              </li>
+            {/each}
+          </ol>
+        {/if}
+        {#if releaseResult.again}<p class="hint">{$_('members.release.again_hint')}</p>{/if}
+        <div class="dialog-actions">
+          <button class="send secondary" disabled={releaseBusy} onclick={closeRelease}>{$_('members.release.close')}</button>
+          {#if releaseResult.again}
+            <button class="send danger" disabled={releaseBusy} onclick={confirmRelease}>{releaseBusy ? $_('members.release.working') : $_('members.release.again')}</button>
+          {/if}
+        </div>
+      {:else}
+        <p>{$_('members.release.intro')}</p>
+        <ul class="effects">
+          <li>{$_('members.release.effect_share')}</li>
+          <li>{$_('members.release.effect_credential')}</li>
+          <li>{$_('members.release.effect_login')}</li>
+          <li>{$_('members.release.effect_inactive')}</li>
+        </ul>
+        <div class="warning" role="note">
+          <p>{$_('members.release.retention')}</p>
+          <p>{$_('members.release.rejoin')}</p>
+        </div>
+        <form class="release" onsubmit={(event) => { event.preventDefault(); void confirmRelease(); }}>
+          <label><span>{$_('members.release.type_key', { values: { key: releaseFor.key } })}</span><input bind:value={releaseTyped} autocomplete="off" spellcheck="false" autocapitalize="off" /></label>
+          <div class="dialog-actions">
+            <button type="button" class="send secondary" disabled={releaseBusy} onclick={closeRelease}>{$_('members.release.cancel')}</button>
+            <button type="submit" class="send danger" disabled={releaseBusy || !releaseConfirmed}>{releaseBusy ? $_('members.release.working') : $_('members.release.confirm')}</button>
+          </div>
+        </form>
+      {/if}
     </div>
   </div>
 {/if}
@@ -639,6 +740,9 @@
   .meters { margin:.3rem 0; padding:0; list-style:none; display:grid; gap:.35rem; } .meters li { display:flex; align-items:center; gap:.5rem; font-size:.7rem; } .meters li span { color:var(--community-muted); } .meters li button { margin-left:auto; }
   .edit-dialog { width:min(92vw,640px); max-height:92vh; overflow-y:auto; } .profile { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; margin-top:.6rem; } .profile .hint, .profile .dialog-actions { grid-column:1 / -1; }
   .read-only { display:grid; gap:.3rem; align-content:start; } .read-only span { color:var(--community-muted); font-size:.61rem; font-weight:700; } .read-only strong { font-size:.75rem; } .read-only .hint { margin:0; }
+  .send.danger { background:var(--community-danger); color:var(--community-surface); }
+  .release-dialog { width:min(92vw,520px); max-height:92vh; overflow-y:auto; } .effects { margin:.3rem 0; padding-left:1.1rem; font-size:.72rem; color:var(--community-muted); line-height:1.5; } .release { display:grid; gap:.55rem; margin-top:.9rem; }
+  .steps { margin:.6rem 0; padding:0; list-style:none; display:grid; gap:.45rem; } .step { padding:.5rem .65rem; border:1px solid var(--community-border); border-radius:9px; } .step div { display:flex; justify-content:space-between; align-items:center; gap:.5rem; font-size:.7rem; } .step p { margin:.25rem 0 0; } .tag.step-success { color:var(--community-success); background:var(--community-primary-soft); } .tag.step-warning { color:var(--community-warning); background:var(--community-warning-soft); } .tag.step-error { color:var(--community-danger); background:var(--community-danger-soft); }
   .changes { margin:.3rem 0; padding-left:1.1rem; font-size:.72rem; } .warning { margin-top:.6rem; padding:.55rem .75rem; border-radius:9px; background:var(--community-warning-soft); } .warning p { color:var(--community-warning); }
   .attach { display:grid; grid-template-columns:2fr 1fr; gap:.55rem; margin-top:.9rem; } .attach .hint, .attach .dialog-actions, .attach .pod { grid-column:1 / -1; }
   .state { min-height:280px; display:grid; place-content:center; justify-items:center; gap:.6rem; color:var(--community-muted); text-align:center; }.state p { margin:0; }.state.error strong { color:var(--community-danger); font-size:1.5rem; }.state.error button { padding:.5rem .8rem; background:var(--community-primary); color:white; }.spinner { width:25px; height:25px; border:3px solid var(--community-border); border-top-color:var(--community-primary); border-radius:50%; animation:spin .8s linear infinite; }

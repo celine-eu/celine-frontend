@@ -28,6 +28,8 @@ expects:
 - `PATCH /api/communities/{community_key}/members/{member_key}` (`{role?, area?}`),
   `GET /api/communities/{community_key}/areas` and `GET …/areas/shapes` for the edit dialog and its
   area map, offered only with `members.edit`.
+- `POST /api/communities/{community_key}/members/{member_key}/release` for the release dialog,
+  offered only with `members.release` (a REC's admins and platform admins, never its managers).
 
 ## Which REC is on screen
 
@@ -120,6 +122,17 @@ no attach form, and says why.
   - they travel in request and response bodies, never in a URL;
   - the dialog's read is `cache: 'no-store'`;
   - no outcome sentence contains either.
+
+With `members.release`, which `GET /api/me` reports to a REC's admins only, each member has
+**Release member**. The dialog says what happens in plain words: the member's data sharing is
+withdrawn, their dataspace credential revoked, their login removed from this community and the
+member marked inactive; nothing is deleted, records are kept for the retention period, and the
+person can then join another community. Nothing is sent until the admin types the member key. The
+answer lists onboarding's four steps (data sharing, dataspace credential, login, membership), each
+with its status and a sentence for its code; a code the dashboard does not know reads as a generic
+sentence for its status. A `partial` release, or a refusal retrying can fix, offers **Release
+again**: the release is idempotent, and steps already done stay done. A released member's row is
+shown inactive.
 
 With `members.edit`, each **active** member has **Edit**, which opens the role and area dialog
 (`celine-community` ADR-0003). For a member who is not active the button is disabled and says why;

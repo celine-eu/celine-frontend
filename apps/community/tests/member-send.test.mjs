@@ -115,8 +115,8 @@ test('the buttons exist only with members.invite', async () => {
   const page = await read('src/routes/[community]/members/+page.svelte');
 
   assert.match(page, /includes\('members\.invite'\)/);
-  // The actions cell is shared with the edit action; the email buttons stay behind canInvite.
-  assert.match(page, /\{#if canInvite \|\| canEdit\}\s*<td class="actions">/);
+  // The actions cell is shared with the edit and release actions; the email buttons stay behind canInvite.
+  assert.match(page, /\{#if canInvite \|\| canEdit \|\| canRelease\}\s*<td class="actions">/);
   assert.match(page, /\{#if canInvite\}\s*<span class="buttons"[^>]*>\s*<button class="send"[^>]*onclick=\{\(\) => ask\(member, 'invitation'\)\}/);
   assert.equal(page.match(/ask\(member, 'invitation'\)/g)?.length, 1);
 });

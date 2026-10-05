@@ -297,8 +297,8 @@ test('the edit action exists only with members.edit', async () => {
   assert.match(page, /includes\('members\.edit'\)/);
   assert.match(page, /\{#if canEdit\}\s*<span class="buttons"[^>]*>\s*<button[^>]*onclick=\{\(\) => openEdit\(member\)\}/);
   assert.equal(page.match(/openEdit\(member\)/g)?.length, 1);
-  // The actions column appears for either capability.
-  assert.match(page, /\{#if canInvite \|\| canEdit\}<th>/);
+  // The actions column appears for any of the member actions.
+  assert.match(page, /\{#if canInvite \|\| canEdit \|\| canRelease\}<th>/);
 });
 
 test('edit confirmation is the decision, the warning is shown before it, and one press is in flight', async () => {
