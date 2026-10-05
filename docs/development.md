@@ -78,6 +78,26 @@ task build:roi
 task build:grid
 ```
 
+## Content-Security-Policy
+
+Every app sends its own `Content-Security-Policy` header, configured in `kit.csp` of its
+`svelte.config.js` with `mode: 'nonce'`. Pages are rendered on request (adapter-node, none
+prerendered), so each response gets a fresh nonce: SvelteKit puts it on its inline bootstrap
+and in `script-src`, and `%sveltekit.nonce%` puts it on any inline script of `app.html` (the
+theme script). `script-src` never allows `'unsafe-inline'`. An inline script added to
+`app.html` needs `nonce="%sveltekit.nonce%"`, or the browser refuses it.
+
+- webapp, assistant, community: the whole policy (default `'self'`, `data:`/`blob:` images,
+  community's OpenStreetMap tiles, `object-src 'none'`, `frame-ancestors 'none'`).
+- grid, roi: the script directives only (grid: MapLibre's `blob:` worker); the other
+  directives are still a Report-Only trial sent by the ingress.
+- `style-src` keeps `'unsafe-inline'`: Svelte renders `style=` attributes and Leaflet and
+  MapLibre set inline styles.
+
+The deployment's ingress sends no `Content-Security-Policy` for these hosts, since it would
+replace the app's (infra, README "Security headers"). `vite dev` sends the same policy, so a
+refused script shows up in development. `e2e/content-security-policy.spec.ts` checks each app.
+
 ## Docker
 
 ```bash

@@ -8,7 +8,7 @@
   <link rel="icon" href="%sveltekit.assets%/favicon.png" />
   <title>Grid Resilience</title>
   <!-- Inline theme init — runs before paint to prevent flash of wrong theme -->
-  <script>
+  <script nonce="%sveltekit.nonce%">
     (function () {
       try {
         var t = localStorage.getItem('celine-theme');
