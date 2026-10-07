@@ -91,45 +91,6 @@ export interface FeatureCollection {
 }
 
 // ---------------------------------------------------------------------------
-// Wind endpoints
-// ---------------------------------------------------------------------------
-
-export const getWindMap = (f: GridFilters) =>
-  j<FeatureCollection>(gridUrl(f.networkId, '/wind/map', filtersToParams(f)));
-
-export const getWindBosco = (f: GridFilters) =>
-  j<FeatureCollection>(gridUrl(f.networkId, '/wind/bosco', filtersToParams(f)));
-
-export interface AlertDistributionItem {
-  risk_level: string;
-  events: number;
-}
-
-export const getWindAlertDistribution = (f: GridFilters) =>
-  j<AlertDistributionItem[]>(gridUrl(f.networkId, '/wind/alert-distribution', filtersToParams(f)));
-
-export interface TrendItem {
-  date: string;
-  value: number | null;
-}
-
-export const getWindTrend = (networkId: string) =>
-  j<TrendItem[]>(gridUrl(networkId, '/wind/trend'));
-
-// ---------------------------------------------------------------------------
-// Heat endpoints
-// ---------------------------------------------------------------------------
-
-export const getHeatMap = (f: GridFilters) =>
-  j<FeatureCollection>(gridUrl(f.networkId, '/heat/map', filtersToParams(f)));
-
-export const getHeatAlertDistribution = (f: GridFilters) =>
-  j<AlertDistributionItem[]>(gridUrl(f.networkId, '/heat/alert-distribution', filtersToParams(f)));
-
-export const getHeatTrend = (networkId: string) =>
-  j<TrendItem[]>(gridUrl(networkId, '/heat/trend'));
-
-// ---------------------------------------------------------------------------
 // Filter metadata — topology dimension values for autocomplete + network extent
 // ---------------------------------------------------------------------------
 
