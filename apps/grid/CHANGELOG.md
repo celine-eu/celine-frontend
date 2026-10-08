@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.26.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.25.0...grid-v0.26.0) (2026-10-08)
+
+### Features
+
+* add legal gate ([c32d125](https://github.com/celine-eu/celine-frontend/commit/c32d1254838b93a0f4d936fcc8785c8f8b09054b))
+* **community:** release member dialog with typed confirmation and per-step results ([a09ede7](https://github.com/celine-eu/celine-frontend/commit/a09ede7bd95324b24793016134a0c1a816d3eec8))
+* **csp:** apps send their own Content-Security-Policy with a per-request nonce, no inline scripts allowed ([59a2138](https://github.com/celine-eu/celine-frontend/commit/59a2138c699b5be62f941476d25cc13448196d3f))
+* hook legal pages ([0fee6f2](https://github.com/celine-eu/celine-frontend/commit/0fee6f210afd1744054fe0f5635942b6b941e122))
+
 ## [0.25.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.24.0...grid-v0.25.0) (2026-10-02)
 
 ### Features
