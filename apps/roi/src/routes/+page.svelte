@@ -6,17 +6,34 @@
   import { FeedbackWidget } from '@celine-eu/ui';
   import { SUPPORTED, LOCALE_LABELS, setLocale } from '$lib/i18n';
   import { collectFeedbackDiagnostics } from '$lib/feedback';
-  import { getFeedbackCommunities, submitFeedback } from '$lib/feedbackApi';
+  import {
+    FeedbackUnauthorizedError,
+    getFeedbackCommunities,
+    submitFeedback,
+    type FeedbackSubmission,
+  } from '$lib/feedbackApi';
 
   let theme = $state('light');
   let feedbackCommunities = $state<string[]>([]);
 
   onMount(() => {
     theme = document.documentElement.getAttribute('data-theme') ?? 'light';
+    // Feedback is offered only to a visitor who already has an SSO session; the calculator
+    // never waits for this, and an anonymous visitor (`[]`) is never sent to sign in.
     void getFeedbackCommunities()
       .then((communities) => (feedbackCommunities = communities))
       .catch((error) => console.warn('ROI feedback communities unavailable', error));
   });
+
+  async function sendFeedback(payload: FeedbackSubmission): Promise<unknown> {
+    try {
+      return await submitFeedback(payload);
+    } catch (error) {
+      // The widget shows the message of a rejected submit.
+      if (error instanceof FeedbackUnauthorizedError) throw new Error($t('feedback.sessionExpired'));
+      throw error;
+    }
+  }
 
   function toggleTheme() {
     theme = theme === 'dark' ? 'light' : 'dark';
@@ -79,7 +96,7 @@
       success: $t('feedback.success'),
     }}
     collectContext={collectFeedbackDiagnostics}
-    submitFeedback={submitFeedback}
+    submitFeedback={sendFeedback}
   />
 {/if}
 

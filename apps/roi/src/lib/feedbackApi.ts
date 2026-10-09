@@ -8,12 +8,20 @@ export type FeedbackSubmission = {
   screenshot?: FeedbackScreenshot | null;
 };
 
+/**
+ * The feedback API answered `401`: the visitor has no SSO session, or it expired. The ROI is
+ * public and never prompts for sign-in, so this is never answered with a redirect.
+ */
+export class FeedbackUnauthorizedError extends Error {
+  constructor() {
+    super('No session for feedback');
+    this.name = 'FeedbackUnauthorizedError';
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, init);
-  if (response.status === 401) {
-    window.location.assign(`/oauth2/start?rd=${encodeURIComponent(window.location.href)}`);
-    throw new Error('Authentication required');
-  }
+  if (response.status === 401) throw new FeedbackUnauthorizedError();
   if (!response.ok) {
     let detail = `HTTP ${response.status}`;
     try {
@@ -27,9 +35,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+/** The communities the signed-in visitor may give feedback to; `[]` for an anonymous visitor. */
 export async function getFeedbackCommunities(): Promise<string[]> {
-  const result = await request<{ communities: string[] }>('/api/v1/feedback/communities');
-  return result.communities;
+  try {
+    const result = await request<{ communities: string[] }>('/api/v1/feedback/communities');
+    return result.communities;
+  } catch (error) {
+    if (error instanceof FeedbackUnauthorizedError) return [];
+    throw error;
+  }
 }
 
 export async function submitFeedback(payload: FeedbackSubmission): Promise<unknown> {

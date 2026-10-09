@@ -17,7 +17,8 @@
     "currentSelection": "Selezione corrente",
     "close": "Chiudi",
     "submit": "Invia",
-    "success": "Feedback inviato correttamente."
+    "success": "Feedback inviato correttamente.",
+    "sessionExpired": "La tua sessione è scaduta. Accedi di nuovo alla piattaforma per inviare il feedback."
   },
   "step1": {
     "title": "Seleziona posizione",

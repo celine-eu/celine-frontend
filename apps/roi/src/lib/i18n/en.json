@@ -17,7 +17,8 @@
     "currentSelection": "Current selection",
     "close": "Close",
     "submit": "Send",
-    "success": "Feedback sent successfully."
+    "success": "Feedback sent successfully.",
+    "sessionExpired": "Your session has expired. Sign in again on the platform to send feedback."
   },
   "step1": {
     "title": "Select location",

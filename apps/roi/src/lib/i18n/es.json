@@ -17,7 +17,8 @@
     "currentSelection": "Selección actual",
     "close": "Cerrar",
     "submit": "Enviar",
-    "success": "Comentario enviado correctamente."
+    "success": "Comentario enviado correctamente.",
+    "sessionExpired": "Tu sesión ha caducado. Vuelve a iniciar sesión en la plataforma para enviar tu comentario."
   },
   "step1": {
     "title": "Seleccionar ubicación",
