@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.30.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.29.0...roi-v0.30.0) (2026-10-09)
+
+### Bug Fixes
+
+* **roi:** anonymous visitors are never redirected; feedback only with an existing session ([1a1a329](https://github.com/celine-eu/celine-frontend/commit/1a1a329d692bda31687bc5ea7a49e990d5e1b1ac))
+
 ## [0.29.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.28.0...roi-v0.29.0) (2026-10-08)
 
 ### Features
