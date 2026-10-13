@@ -8,7 +8,11 @@ ENV CI=true
 
 COPY . .
 RUN pnpm install --frozen-lockfile --prod=false
-RUN pnpm -F @celine-eu/community build
+# Build in production mode. NODE_ENV=development above is for `pnpm install` (dev
+# dependencies); left on for the build, Vite emits a development bundle whose client
+# chunks read a different `__sveltekit_*` global than the server writes, and every
+# page using `$env/dynamic/public` fails with "reading 'env'" in the browser.
+RUN NODE_ENV=production pnpm -F @celine-eu/community build
 RUN pnpm deploy --legacy --filter @celine-eu/community --prod /out
 
 FROM node:22-alpine AS runner

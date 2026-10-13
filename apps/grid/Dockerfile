@@ -14,7 +14,11 @@ COPY . .
 RUN pnpm install --frozen-lockfile --prod=false
 
 # Build
-RUN pnpm -F @celine-eu/grid build
+# Build in production mode. NODE_ENV=development above is for `pnpm install` (dev
+# dependencies); left on for the build, Vite emits a development bundle whose client
+# chunks read a different `__sveltekit_*` global than the server writes, and every
+# page using `$env/dynamic/public` fails with "reading 'env'" in the browser.
+RUN NODE_ENV=production pnpm -F @celine-eu/grid build
 
 # Deploy standalone runtime bundle
 RUN pnpm deploy --legacy --filter @celine-eu/grid --prod /out
