@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.42.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.41.0...webapp-v0.42.0) (2026-10-13)
+
+### Bug Fixes
+
+* **docker:** build every app with NODE_ENV=production ([d971973](https://github.com/celine-eu/celine-frontend/commit/d971973fc993d109787ddca9d0c2bcd7b7eec5a0))
+* **roi:** anonymous visitors are never redirected; feedback only with an existing session ([1a1a329](https://github.com/celine-eu/celine-frontend/commit/1a1a329d692bda31687bc5ea7a49e990d5e1b1ac))
+
 ## [0.41.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.40.0...webapp-v0.41.0) (2026-10-08)
 
 ### Features
