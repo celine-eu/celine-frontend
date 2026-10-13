@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.31.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.30.0...roi-v0.31.0) (2026-10-13)
+
+### Bug Fixes
+
+* **docker:** build every app with NODE_ENV=production ([d971973](https://github.com/celine-eu/celine-frontend/commit/d971973fc993d109787ddca9d0c2bcd7b7eec5a0))
+
 ## [0.30.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.29.0...roi-v0.30.0) (2026-10-09)
 
 ### Bug Fixes
