@@ -376,6 +376,11 @@
     overflow-x: hidden;
   }
 
+  /* The feedback trigger sits in the same corner as the popover, above the tour layer. */
+  :global(body.tour-active [data-feedback-widget-root]) {
+    display: none;
+  }
+
   .tour-layer {
     position: fixed;
     inset: 0;
