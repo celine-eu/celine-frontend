@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.29.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.28.0...grid-v0.29.0) (2026-10-17)
+
 ## [0.28.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.27.0...grid-v0.28.0) (2026-10-17)
 
 ### Features
