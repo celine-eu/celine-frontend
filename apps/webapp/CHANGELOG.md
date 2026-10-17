@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.44.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.43.0...webapp-v0.44.0) (2026-10-17)
+
 ## [0.43.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.42.0...webapp-v0.43.0) (2026-10-17)
 
 ### Features
