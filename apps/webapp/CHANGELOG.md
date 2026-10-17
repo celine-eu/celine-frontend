@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.43.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.42.0...webapp-v0.43.0) (2026-10-17)
+
+### Features
+
+* **webapp:** accept-terms shows each declaration as its own box ([d1e4905](https://github.com/celine-eu/celine-frontend/commit/d1e4905a2d08c125362006e91ea0acebf1ba7081))
+
+### Bug Fixes
+
+* feedback button ([f689da1](https://github.com/celine-eu/celine-frontend/commit/f689da1f931da1c6e889f8ecc56f80810671eae4))
+
 ## [0.42.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.41.0...webapp-v0.42.0) (2026-10-13)
 
 ### Bug Fixes
