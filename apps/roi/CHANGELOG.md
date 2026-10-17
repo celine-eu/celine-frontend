@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.33.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.32.0...roi-v0.33.0) (2026-10-17)
+
 ## [0.32.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.31.0...roi-v0.32.0) (2026-10-17)
 
 ### Features
