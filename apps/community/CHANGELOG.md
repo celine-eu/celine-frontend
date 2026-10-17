@@ -1,5 +1,7 @@
 # Changelog
 
+## [0.5.0](https://github.com/celine-eu/celine-frontend/compare/community-v0.4.0...community-v0.5.0) (2026-10-17)
+
 ## [0.4.0](https://github.com/celine-eu/celine-frontend/compare/community-v0.3.0...community-v0.4.0) (2026-10-17)
 
 ### Features
