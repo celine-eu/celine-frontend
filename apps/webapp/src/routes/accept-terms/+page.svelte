@@ -14,15 +14,27 @@
     );
     const fallbackTitle: Record<string, string> = {
         terms: "accept_terms.legal_terms",
+        terms_clauses: "accept_terms.legal_terms",
         privacy: "accept_terms.privacy_policy",
     };
+
+    // A document with a declaration is accepted by ticking its own box, in the text's own
+    // words: never ticked in advance, and ticking one never ticks another. The specific
+    // approval of the terms' clauses is a separate act (Art. 1341(2) c.c.), so it is one of
+    // these, and the server refuses an acceptance that does not name it.
+    let ticked = $state<Record<string, boolean>>({});
+    const declared = $derived(documents?.filter((d) => d.declaration) ?? []);
+    const plain = $derived(documents?.filter((d) => !d.declaration) ?? []);
+    const allTicked = $derived(declared.every((d) => ticked[d.document]));
 
     async function accept() {
         err = "";
         submitting = true;
         try {
             await api.acceptTerms(
-                documents?.map((d) => ({ document: d.document, version: d.version ?? null })),
+                documents
+                    ?.filter((d) => !d.declaration || ticked[d.document])
+                    .map((d) => ({ document: d.document, version: d.version ?? null })),
             );
             window.location.href = "/";
         } catch (e) {
@@ -43,7 +55,7 @@
         <div class="terms-content">
             <ul class="terms-list">
                 {#if documents}
-                    {#each documents as doc (doc.document)}
+                    {#each plain as doc (doc.document)}
                         <li>
                             <a href={doc.url} target="_blank" rel="noopener">
                                 {doc.title || $t(fallbackTitle[doc.document] ?? doc.document)}
@@ -56,6 +68,18 @@
                     <li><a href="/terms">{$t('accept_terms.legal_terms')}</a></li>
                 {/if}
             </ul>
+            {#each declared as doc (doc.document)}
+                <label class="terms-declaration">
+                    <input type="checkbox" bind:checked={ticked[doc.document]} />
+                    <span>
+                        {doc.declaration}
+                        <a href={doc.url} target="_blank" rel="noopener">
+                            {doc.title || $t(fallbackTitle[doc.document] ?? doc.document)}
+                        </a>
+                        {#if doc.version}<span class="terms-version">v{doc.version}</span>{/if}
+                    </span>
+                </label>
+            {/each}
             <p class="terms-note">{$t('accept_terms.note')}</p>
         </div>
 
@@ -66,7 +90,7 @@
             </div>
         {/if}
 
-        <Button variant="primary" onclick={accept} disabled={submitting}>
+        <Button variant="primary" onclick={accept} disabled={submitting || !allTicked}>
             {submitting ? $t('accept_terms.saving') : $t('accept_terms.accept')}
         </Button>
     </div>
@@ -122,6 +146,30 @@
     }
 
     .terms-list a {
+        color: var(--celine-primary);
+        text-decoration: underline;
+    }
+
+    .terms-declaration {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--celine-space-sm);
+        margin: 0 0 var(--celine-space-md);
+        font-size: 0.9375rem;
+        color: var(--celine-text);
+        line-height: 1.4;
+        cursor: pointer;
+    }
+
+    .terms-declaration input {
+        width: 1.125rem;
+        height: 1.125rem;
+        margin-top: 0.125rem;
+        flex-shrink: 0;
+        accent-color: var(--celine-primary);
+    }
+
+    .terms-declaration a {
         color: var(--celine-primary);
         text-decoration: underline;
     }

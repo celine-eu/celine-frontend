@@ -10,7 +10,9 @@ const WEBAPP_URL = process.env.E2E_WEBAPP_URL ?? 'http://webapp.celine.localhost
 
 type Me = {
   terms_required: boolean;
-  legal_documents?: { document: string; url: string; version?: string | null; required: boolean }[] | null;
+  legal_documents?:
+    | { document: string; url: string; version?: string | null; required: boolean; declaration?: string | null }[]
+    | null;
 };
 
 async function me(page: import('@playwright/test').Page): Promise<Me> {
@@ -29,14 +31,27 @@ test("the gate shows the community's documents, and accepting them lets the memb
     await page.goto(`${WEBAPP_URL}/accept-terms`);
 
     // Each required document, linked where the legal host serves it, in a new tab.
-    for (const doc of required) {
+    for (const doc of required.filter((d) => !d.declaration)) {
       const link = page.locator(`.terms-list a[href="${doc.url}"]`);
       await expect(link).toHaveCount(1);
       await expect(link).toHaveAttribute('target', '_blank');
     }
+    // A document with a declaration (the terms, the approval of their clauses) has its own
+    // box, in the text's words, unticked: the button waits for every one of them.
+    const button = page.getByRole('button', { name: /Accetto e continuo|I accept and continue|Acepto y continúo/ });
+    const declared = required.filter((d) => d.declaration);
+    for (const doc of declared) {
+      const box = page.locator('label.terms-declaration', { hasText: doc.declaration! }).locator('input');
+      await expect(box).not.toBeChecked();
+    }
+    if (declared.length) {
+      await expect(button).toBeDisabled();
+      for (const doc of declared) {
+        await page.locator('label.terms-declaration', { hasText: doc.declaration! }).locator('input').check();
+      }
+    }
     // The button acts only once the page is hydrated, and a click before that does nothing;
     // click until the acceptance is actually sent.
-    const button = page.getByRole('button', { name: /Accetto e continuo|I accept and continue|Acepto y continúo/ });
     let accepted: import('@playwright/test').Response | undefined;
     await expect(async () => {
       [accepted] = await Promise.all([

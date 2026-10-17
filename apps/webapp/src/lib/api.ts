@@ -7,6 +7,10 @@ export type LegalDocument = {
   version?: string | null;
   title?: string | null;
   required: boolean;
+  /** What the member declares, in the text's own words, beside its own unticked box: the
+   *  terms' general acceptance, or the specific approval of their clauses
+   *  (`terms_clauses`, a separate act). Absent: the document is accepted by the button. */
+  declaration?: string | null;
 };
 
 export type Me = {
