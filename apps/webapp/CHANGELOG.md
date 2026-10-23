@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.45.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.44.0...webapp-v0.45.0) (2026-10-23)
+
+### Features
+
+* **webapp:** installable as a PWA, named after the member's community ([7aafb53](https://github.com/celine-eu/celine-frontend/commit/7aafb53ff819559a43226258c64583078c891390))
+
 ## [0.44.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.43.0...webapp-v0.44.0) (2026-10-17)
 
 ## [0.43.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.42.0...webapp-v0.43.0) (2026-10-17)
