@@ -49,6 +49,8 @@ REC participant webapp. A full SvelteKit application for community members, incl
 
 **Layout:** The root layout loads `GET /api/me` (redirecting to `/accept-terms` when terms are required, except on `/privacy`, `/terms` and `/accept-terms`), then the community and unread notifications. There is no floating assistant widget: `AskAssistantButton`s on `/` and `/suggestions` navigate to `/assistant?prompt=…`.
 
+**Installable (PWA):** `/manifest.webmanifest` is a server route, not a static file: the installed app is named after the member's community (`GET /api/community`, falling back to `REC`). `app.html` links it with `crossorigin="use-credentials"`, because behind oauth2-proxy an anonymous fetch gets the login redirect. Icons in `static/icons/` are cropped from the CELINE logo on celineproject.eu. There is no offline caching: `static/sw.js` only handles push and is registered only when a member enables push.
+
 **Backend:** `celine-webapp` BFF (port 8014)
 
 **Environment:**

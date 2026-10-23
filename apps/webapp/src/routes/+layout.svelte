@@ -108,6 +108,8 @@
 
 <svelte:head>
   <title>{data.community?.name ?? 'REC'} Webapp</title>
+  <!-- iOS names a home-screen app from this, not from the manifest -->
+  <meta name="apple-mobile-web-app-title" content={data.community?.name ?? 'REC'} />
 </svelte:head>
 
 <div class="app-shell" class:app-shell--fixed={isAssistantPage}>
