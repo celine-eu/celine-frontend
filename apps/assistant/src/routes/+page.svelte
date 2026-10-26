@@ -30,6 +30,7 @@
     enableCitations={true}
     conversationId={conversationId}
     {privacyPolicyUrl}
+    allowedLinkOrigins={legalBase ? [legalBase] : []}
     onConversationChange={(id) => {
       // Update URL without reload
       const url = new URL(window.location.href);

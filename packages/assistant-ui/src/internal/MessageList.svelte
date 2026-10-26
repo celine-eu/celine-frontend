@@ -2,6 +2,7 @@
   import { tick } from 'svelte';
   import { Icon } from '@celine-eu/ui';
   import Markdown from './Markdown.svelte';
+  import { citedUrlsOf } from './answerLinks.js';
   import type { Snippet } from 'svelte';
   import type { Message, Suggestion } from '../types.js';
   import { t } from 'svelte-i18n';
@@ -13,9 +14,11 @@
     showSources?: boolean;
     assistantLoading?: boolean;
     toolIndicators?: Snippet;
+    /** Platform hosts links in answers may point to, besides the page's own origin. */
+    linkOrigins?: string[];
   }
 
-  let { messages = [], suggestions = [], onSuggestionClick, showSources = true, assistantLoading = false, toolIndicators }: Props = $props();
+  let { messages = [], suggestions = [], onSuggestionClick, showSources = true, assistantLoading = false, toolIndicators, linkOrigins = [] }: Props = $props();
 
   let scroller: HTMLDivElement | null = $state(null);
 
@@ -64,7 +67,7 @@
               <span class="dot"></span>
             </div>
           {:else if m.role === 'assistant'}
-            <Markdown text={m.content} />
+            <Markdown text={m.content} platformOrigins={linkOrigins} citedUrls={citedUrlsOf(m.sources)} />
           {:else}
             <div class="content">{m.content}</div>
           {/if}
@@ -104,7 +107,7 @@
                   <li>
                     <div class="source-title">{s.title ?? s.source}</div>
                     <div class="source-text">
-                      <Markdown text={s.text} />
+                      <Markdown text={s.text} platformOrigins={linkOrigins} citedUrls={citedUrlsOf(m.sources)} />
                     </div>
                   </li>
                 {/each}

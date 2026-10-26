@@ -87,10 +87,13 @@ and in `script-src`, and `%sveltekit.nonce%` puts it on any inline script of `ap
 theme script). `script-src` never allows `'unsafe-inline'`. An inline script added to
 `app.html` needs `nonce="%sveltekit.nonce%"`, or the browser refuses it.
 
-- webapp, assistant, community: the whole policy (default `'self'`, `data:`/`blob:` images,
-  community's OpenStreetMap tiles, `object-src 'none'`, `frame-ancestors 'none'`).
-- grid, roi: the script directives only (grid: MapLibre's `blob:` worker); the other
-  directives are still a Report-Only trial sent by the ingress.
+- webapp, assistant, community, roi: the whole policy (default `'self'`, `data:`/`blob:`
+  images, community's OpenStreetMap tiles, `object-src 'none'`, `base-uri 'self'`,
+  `form-action 'self'`, `frame-ancestors 'none'`). roi names each outside host it loads, with
+  no wildcard: the `a`/`b`/`c` OpenStreetMap tile hosts and the static map as images,
+  Nominatim as a fetch.
+- grid: the script directives only (MapLibre's `blob:` worker); the other directives are
+  still a Report-Only trial sent by the ingress.
 - `style-src` keeps `'unsafe-inline'`: Svelte renders `style=` attributes and Leaflet and
   MapLibre set inline styles.
 

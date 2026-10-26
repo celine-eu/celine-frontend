@@ -1,27 +1,22 @@
 <script lang="ts">
-  import DOMPurify from 'dompurify';
-  import { marked } from 'marked';
+  import { renderAnswer } from './answerLinks.js';
 
   interface Props {
     text: string;
+    /** Platform hosts whose links stay clickable, besides the page's own origin. */
+    platformOrigins?: string[];
+    /** Source URLs cited by the same answer; links to exactly these stay clickable. */
+    citedUrls?: string[];
   }
 
-  let { text = '' }: Props = $props();
+  let { text = '', platformOrigins = [], citedUrls = [] }: Props = $props();
 
-  marked.setOptions({
-    gfm: true,
-    breaks: true,
-  });
-
-  const rendered = $derived(marked.parse(text ?? ''));
   const html = $derived(
-    typeof rendered === 'string'
-      ? DOMPurify.sanitize(rendered, {
-          USE_PROFILES: { html: true },
-          ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-          ADD_ATTR: ['target', 'rel'],
-        })
-      : ''
+    renderAnswer(text ?? '', {
+      origin: typeof window === 'undefined' ? undefined : window.location.origin,
+      platformOrigins,
+      citedUrls,
+    })
   );
 </script>
 

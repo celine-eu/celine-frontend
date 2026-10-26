@@ -15,7 +15,7 @@ Standalone full-page AI assistant application. Provides a single-route SvelteKit
 | Variable | Default | Description |
 |---|---|---|
 | `PUBLIC_PRIVACY_POLICY_URL` | `/privacy` | Privacy policy linked from the AI notice under the chat input. This app has no `/privacy` route, so set it in any deployment where that path is not served by another app on the same host |
-| `PUBLIC_LEGAL_BASE_URL` | — | The legal host. When `PUBLIC_PRIVACY_POLICY_URL` is unset, the AI notice links `<PUBLIC_LEGAL_BASE_URL>/privacy/`, the page listing every community's privacy notice (this app does not know the user's community) |
+| `PUBLIC_LEGAL_BASE_URL` | — | The legal host. When `PUBLIC_PRIVACY_POLICY_URL` is unset, the AI notice links `<PUBLIC_LEGAL_BASE_URL>/privacy/`, the page listing every community's privacy notice (this app does not know the user's community). Links to this host in assistant answers stay clickable |
 
 **Dev:**
 ```bash

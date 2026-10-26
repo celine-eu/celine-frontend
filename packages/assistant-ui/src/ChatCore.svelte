@@ -30,11 +30,16 @@
     conversationId: initialConversationId = null,
     initialPrompt = "",
     privacyPolicyUrl = "/privacy",
+    allowedLinkOrigins = [],
     onConversationChange,
     onError,
     onClose,
     onPanelsClose,
   }: ChatCoreProps = $props();
+
+  // Links in answers stay clickable only to the page's origin, these platform hosts and
+  // the sources an answer cites; the privacy link's host is a platform host by definition.
+  const linkOrigins = $derived([privacyPolicyUrl, ...allowedLinkOrigins]);
 
   // API client
   const api: AssistantApi = createAssistantApi(untrack(() => apiBaseUrl));
@@ -463,6 +468,7 @@
     onSuggestionClick={(text) => { input = text; send(); }}
     showSources={includeCitations}
     assistantLoading={busy}
+    {linkOrigins}
   >
     {#snippet toolIndicators()}
       {#if activeTools.length > 0}

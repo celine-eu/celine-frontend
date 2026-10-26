@@ -76,6 +76,7 @@ AI assistant chat interface. Provides a full chat experience that can be embedde
 | `initialContext` | `AssistantContext` | none | Pre-load assistant context |
 | `initialPrompt` | `string` | none | Pre-fill the composer |
 | `privacyPolicyUrl` | `string` | `/privacy` | Privacy policy linked from the AI notice |
+| `allowedLinkOrigins` | `string[]` | `[]` | Platform hosts that links in answers may point to (origins or absolute URLs; the origin counts) |
 
 The composer always shows a one-line AI notice (EU AI Act Art. 50): answers are
 AI-generated and can be wrong, identity documents should not be uploaded,
@@ -83,6 +84,15 @@ and a link to `privacyPolicyUrl`, opened in a new tab. The text comes from the
 `assistant_ui.ai_notice` and `assistant_ui.privacy_policy` translation keys, which every
 consuming app must ship. `AssistantWidget` and `AssistantProvider` accept the same
 `privacyPolicyUrl` prop and pass it through.
+
+Links in rendered answers and in cited source text stay clickable only when they point to
+the page's own origin (relative links included), the host of `privacyPolicyUrl`, a host in
+`allowedLinkOrigins`, or exactly a URL the same answer cites as a source. Every other URL,
+and `mailto:`/`tel:`, is rendered as plain text with the URL visible: an injected
+instruction must not be able to put the member's data in a link one click sends away.
+Allowed links to another host open in a new tab with `rel="noopener noreferrer"`. Forms
+in answers are removed. The rule lives in `src/internal/answerLinks.ts`; its tests run with
+`pnpm --filter @celine-eu/assistant-ui test` (Vitest, jsdom).
 
 ### AssistantContext Shape
 

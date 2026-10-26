@@ -95,6 +95,12 @@ export interface ChatCoreProps {
   conversationId?: string | null;
   initialPrompt?: string;
   privacyPolicyUrl?: string;
+  /**
+   * Platform hosts that links in assistant answers may point to, besides the page's own
+   * origin and `privacyPolicyUrl`'s host. Origins or absolute URLs (only the origin
+   * counts). Links anywhere else, and mailto:/tel:, render as plain text.
+   */
+  allowedLinkOrigins?: string[];
   onConversationChange?: (id: string | null) => void;
   onError?: (error: Error) => void;
   onClose?: () => void;
