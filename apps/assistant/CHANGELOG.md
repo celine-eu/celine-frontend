@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.32.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.31.0...assistant-v0.32.0) (2026-10-26)
+
+### Features
+
+* allow-list links in assistant answers; enforce the whole roi CSP ([460eadc](https://github.com/celine-eu/celine-frontend/commit/460eadcb02311e641c502e8f919a77e2af6ef0c4))
+* **webapp:** installable as a PWA, named after the member's community ([7aafb53](https://github.com/celine-eu/celine-frontend/commit/7aafb53ff819559a43226258c64583078c891390))
+
+### Bug Fixes
+
+* **webapp:** explain a refused commit (no meter, not a member, DT down) ([2b226ff](https://github.com/celine-eu/celine-frontend/commit/2b226ff0b74a22e4140d68718a81c94d64442ca0))
+
 ## [0.31.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.30.0...assistant-v0.31.0) (2026-10-17)
 
 ## [0.30.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.29.0...assistant-v0.30.0) (2026-10-17)
