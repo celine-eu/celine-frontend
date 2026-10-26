@@ -140,6 +140,12 @@
     "no_opportunities_title": "Nessuna opportunità al momento",
     "no_opportunities_body": "Riprova dopo la prossima previsione — le opportunità compaiono quando la comunità ha eccedenza solare.",
     "strip_commit": "Conferma",
+    "respond_error": {
+      "no_meter": "Non hai ancora un contatore associato: non puoi aderire a questa finestra. Contatta la tua comunità.",
+      "not_a_member": "Il tuo account non risulta ancora iscritto alla comunità: non puoi aderire a questa finestra. Contatta la tua comunità.",
+      "dt_unavailable": "Al momento non riusciamo a confermare il tuo impegno. Riprova tra qualche minuto.",
+      "generic": "Qualcosa è andato storto e il tuo impegno non è stato salvato. Riprova."
+    },
     "strip_not_now": "Non ora",
     "strip_commit_title": "Confermi l'impegno per la fascia {range}?",
     "strip_scroll_hint": "Scorri per scoprire altre opportunità",

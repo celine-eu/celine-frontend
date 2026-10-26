@@ -140,6 +140,12 @@
     "no_opportunities_title": "No opportunities right now",
     "no_opportunities_body": "Check back after the next forecast — opportunities appear when the community has excess solar energy.",
     "strip_commit": "Commit",
+    "respond_error": {
+      "no_meter": "You don't have a meter linked to your account yet, so you can't commit to this window. Contact your community.",
+      "not_a_member": "Your account isn't registered as a community member yet, so you can't commit to this window. Contact your community.",
+      "dt_unavailable": "We can't confirm your commitment right now. Please try again in a few minutes.",
+      "generic": "Something went wrong and your commitment wasn't saved. Please try again."
+    },
     "strip_not_now": "Not now",
     "strip_commit_title": "Commit to {range}?",
     "strip_scroll_hint": "Swipe to explore more opportunities",

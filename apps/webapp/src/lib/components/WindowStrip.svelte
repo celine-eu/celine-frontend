@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api, type FlexibilityHistoryItem, type SuggestionItem } from '$lib/api';
+  import { api, ApiError, type FlexibilityHistoryItem, type SuggestionItem } from '$lib/api';
   import { roundPromise } from '$lib/points';
   import { Icon } from '@celine-eu/ui';
   import { locale, t } from 'svelte-i18n';
@@ -30,6 +30,21 @@
   let selected = $state<Segment | null>(null);
   let saving = $state(false);
   let errorMsg = $state('');
+
+  // Refusals the BFF passes through from flexibility-api (`detail.code`). The first two
+  // are about the member, not the window: retrying cannot succeed, so once seen the
+  // commit button stays disabled for every window until the page reloads.
+  const RESPOND_ERROR_CODES = ['no_meter', 'not_a_member', 'dt_unavailable'] as const;
+  const PERMANENT_REFUSALS: readonly string[] = ['no_meter', 'not_a_member'];
+  let permanentRefusal = $state<string | null>(null);
+
+  function respondErrorMessage(e: unknown): string {
+    const code = e instanceof ApiError ? e.code : null;
+    if (code && (RESPOND_ERROR_CODES as readonly string[]).includes(code)) {
+      return $t(`suggestions.respond_error.${code}`);
+    }
+    return $t('suggestions.respond_error.generic');
+  }
 
   function startKey(iso: string): string {
     return new Date(iso).toISOString();
@@ -168,7 +183,7 @@
 
   function open(seg: Segment) {
     if (seg.state === 'committed' || !seg.suggestion) return;
-    errorMsg = '';
+    errorMsg = permanentRefusal ? $t(`suggestions.respond_error.${permanentRefusal}`) : '';
     selected = seg;
   }
 
@@ -188,7 +203,11 @@
       selected = null;
       oncommitted?.();
     } catch (e) {
-      errorMsg = e instanceof Error ? e.message : String(e);
+      console.warn('suggestion respond failed', e);
+      errorMsg = respondErrorMessage(e);
+      if (e instanceof ApiError && e.code && PERMANENT_REFUSALS.includes(e.code)) {
+        permanentRefusal = e.code;
+      }
     } finally {
       saving = false;
     }
@@ -278,13 +297,13 @@
       </div>
       <p class="reason">{$t(reasonKey(selected.suggestion.period_start))}</p>
       {#if errorMsg}
-        <p class="error-msg">{errorMsg}</p>
+        <p class="error-msg" role="alert">{errorMsg}</p>
       {/if}
       <div class="actions">
         <button class="btn btn-secondary" disabled={saving} onclick={close}>
           {$t('suggestions.strip_not_now')}
         </button>
-        <button class="btn btn-primary" disabled={saving} onclick={() => selected && commit(selected)}>
+        <button class="btn btn-primary" disabled={saving || permanentRefusal !== null} onclick={() => selected && commit(selected)}>
           {saving ? $t('suggestion_card.saving') : $t('suggestions.strip_commit')}
         </button>
       </div>

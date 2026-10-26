@@ -227,14 +227,27 @@ export type Settings = {
 };
 
 /** A non-2xx answer. `message` keeps the raw form for logs and the pages that
- *  still print it; `status` is what a page decides its own wording on. */
+ *  still print it; `status` is what a page decides its own wording on, and
+ *  `code` — the BFF's `detail.code`, when the body carries one — refines it
+ *  (e.g. `no_meter` on a refused accept). */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
-    message: string
+    message: string,
+    readonly code: string | null = null
   ) {
     super(message);
     this.name = 'ApiError';
+  }
+}
+
+/** `detail.code` from an error body, or null when the body is not JSON or has none. */
+function errorCode(body: string): string | null {
+  try {
+    const code = JSON.parse(body)?.detail?.code;
+    return typeof code === 'string' ? code : null;
+  } catch {
+    return null;
   }
 }
 
@@ -254,7 +267,7 @@ async function j<T>(url: string, init?: RequestInit): Promise<T> {
   }
   if (!res.ok) {
     const txt = await res.text().catch(() => '');
-    throw new ApiError(res.status, `${res.status} ${res.statusText}${txt ? `: ${txt}` : ''}`);
+    throw new ApiError(res.status, `${res.status} ${res.statusText}${txt ? `: ${txt}` : ''}`, errorCode(txt));
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;

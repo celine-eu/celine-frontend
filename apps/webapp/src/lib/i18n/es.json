@@ -136,6 +136,12 @@
     "no_opportunities_title": "Sin oportunidades en este momento",
     "no_opportunities_body": "Vuelve tras la próxima previsión — las oportunidades aparecen cuando la comunidad tiene excedente solar.",
     "strip_commit": "Confirmar",
+    "respond_error": {
+      "no_meter": "Todavía no tienes un contador asociado: no puedes sumarte a esta franja. Contacta con tu comunidad.",
+      "not_a_member": "Tu cuenta todavía no figura como miembro de la comunidad: no puedes sumarte a esta franja. Contacta con tu comunidad.",
+      "dt_unavailable": "Ahora mismo no podemos confirmar tu compromiso. Vuelve a intentarlo en unos minutos.",
+      "generic": "Algo ha fallado y tu compromiso no se ha guardado. Vuelve a intentarlo."
+    },
     "strip_not_now": "Ahora no",
     "strip_commit_title": "¿Te comprometes con la franja {range}?",
     "strip_scroll_hint": "Desliza para ver más oportunidades",
