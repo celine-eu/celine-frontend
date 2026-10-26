@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.47.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.46.0...webapp-v0.47.0) (2026-10-26)
+
+### Features
+
+* allow-list links in assistant answers; enforce the whole roi CSP ([460eadc](https://github.com/celine-eu/celine-frontend/commit/460eadcb02311e641c502e8f919a77e2af6ef0c4))
+
 ## [0.46.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.45.0...webapp-v0.46.0) (2026-10-26)
 
 ### Bug Fixes
