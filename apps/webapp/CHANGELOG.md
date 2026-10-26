@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.46.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.45.0...webapp-v0.46.0) (2026-10-26)
+
+### Bug Fixes
+
+* **webapp:** explain a refused commit (no meter, not a member, DT down) ([2b226ff](https://github.com/celine-eu/celine-frontend/commit/2b226ff0b74a22e4140d68718a81c94d64442ca0))
+
 ## [0.45.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.44.0...webapp-v0.45.0) (2026-10-23)
 
 ### Features
