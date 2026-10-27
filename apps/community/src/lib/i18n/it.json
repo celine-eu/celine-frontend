@@ -1,4 +1,6 @@
 {
+  "env_banner.message": "Sei su una versione di sviluppo.",
+  "env_banner.link": "Vai alla versione ufficiale",
   "app.title": "Gestione Comunità",
   "nav.overview": "Panoramica",
   "nav.devices": "Misuratori",

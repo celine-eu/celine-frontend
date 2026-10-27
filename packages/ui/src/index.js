@@ -7,3 +7,4 @@ export { default as Panel } from './Panel.svelte';
 export { default as Modal } from './Modal.svelte';
 export { default as ThemeToggle } from './ThemeToggle.svelte';
 export { default as FeedbackWidget } from './FeedbackWidget.svelte';
+export { default as EnvBanner } from './EnvBanner.svelte';

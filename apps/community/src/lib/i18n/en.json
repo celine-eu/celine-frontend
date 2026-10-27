@@ -1,4 +1,6 @@
 {
+  "env_banner.message": "You are on a development version.",
+  "env_banner.link": "Go to the official version",
   "app.title": "Community Manager",
   "nav.overview": "Overview",
   "nav.devices": "Meters",

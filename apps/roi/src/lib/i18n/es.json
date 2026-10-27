@@ -1,4 +1,8 @@
 {
+  "env_banner": {
+    "message": "Estás en una versión de desarrollo.",
+    "link": "Ir a la versión oficial"
+  },
   "page": {
     "title": "CELINE — Calculadora ROI Solar",
     "description": "Estima el retorno de inversión de tu sistema fotovoltaico en Italia.",

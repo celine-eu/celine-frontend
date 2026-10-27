@@ -1,4 +1,6 @@
 {
+  "env_banner.message": "Sei su una versione di sviluppo.",
+  "env_banner.link": "Vai alla versione ufficiale",
   "app.title": "Resilienza Rete",
   "nav.map": "Mappa",
   "nav.management": "Gestione",

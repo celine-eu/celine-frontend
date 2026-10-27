@@ -1,4 +1,8 @@
 {
+  "env_banner": {
+    "message": "You are on a development version.",
+    "link": "Go to the official version"
+  },
   "assistant": {
     "page_title": "CELINE AI assistant"
   },

@@ -4,6 +4,8 @@
   import { page } from '$app/stores';
   import type { LayoutData } from './$types';
   import { meStore, themeOverride } from '$lib/stores';
+  import { env } from '$env/dynamic/public';
+  import { EnvBanner } from '@celine-eu/ui';
   import { startSessionGuard } from '@celine-eu/ui/session';
   import { _ } from 'svelte-i18n';
 
@@ -77,6 +79,12 @@
 </script>
 
 <div class="app-shell">
+  <EnvBanner
+    env={env.PUBLIC_CELINE_ENV}
+    prodUrl={env.PUBLIC_CELINE_PROD_URL}
+    pathname={$page.url.pathname}
+    labels={{ message: $_('env_banner.message'), link: $_('env_banner.link') }}
+  />
   <header class="app-header">
     <a class="app-logo" href="/">{$_('app.title')}</a>
 

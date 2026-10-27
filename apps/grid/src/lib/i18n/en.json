@@ -1,4 +1,6 @@
 {
+  "env_banner.message": "You are on a development version.",
+  "env_banner.link": "Go to the official version",
   "app.title": "Grid Resilience",
   "nav.map": "Map",
   "nav.management": "Management",

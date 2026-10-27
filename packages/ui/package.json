@@ -13,6 +13,10 @@
     "./session": {
       "types": "./src/session.ts",
       "default": "./src/session.ts"
+    },
+    "./environment": {
+      "types": "./src/environment.ts",
+      "default": "./src/environment.ts"
     }
   },
   "files": [
@@ -23,5 +27,8 @@
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
   }
 }

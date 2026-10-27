@@ -1,5 +1,14 @@
 # Apps
 
+## Every app
+
+**Environment**, read at runtime (`$env/dynamic/public`), so one image serves every environment:
+
+| Variable | Default | Description |
+|---|---|---|
+| `PUBLIC_CELINE_ENV` | — | The deployment's environment. Anything but `prod` (trimmed, case-insensitive) — unset included — shows a banner above every page saying this is a development version (`EnvBanner` in `@celine-eu/ui`). Unlike the backends' `CELINE_ENV`, unset is *not* production here: set `prod` explicitly in production |
+| `PUBLIC_CELINE_PROD_URL` | — | Where the same app runs in production, e.g. `https://webapp.<prod domain>`. The banner links the current page there (path only, no query). Unset or not an absolute `http(s)` URL: the banner shows without a link |
+
 ## apps/assistant
 
 Standalone full-page AI assistant application. Provides a single-route SvelteKit app that renders `ChatCore` in full-viewport mode.

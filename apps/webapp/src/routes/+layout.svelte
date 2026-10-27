@@ -6,7 +6,8 @@
   import OnboardingTour from "$lib/components/OnboardingTour.svelte";
   import { collectFeedbackDiagnostics } from "$lib/feedback";
   import { meStore } from "$lib/stores";
-  import { FeedbackWidget, Icon } from "@celine-eu/ui";
+  import { env } from "$env/dynamic/public";
+  import { EnvBanner, FeedbackWidget, Icon } from "@celine-eu/ui";
   import { startSessionGuard } from "@celine-eu/ui/session";
   import "@celine-eu/ui/theme.css";
   import type { Snippet } from "svelte";
@@ -184,6 +185,13 @@
       </div>
     </div>
   </header>
+
+  <EnvBanner
+    env={env.PUBLIC_CELINE_ENV}
+    prodUrl={env.PUBLIC_CELINE_PROD_URL}
+    pathname={$page.url.pathname}
+    labels={{ message: $t("env_banner.message"), link: $t("env_banner.link") }}
+  />
 
   <div class="content-wrap" class:content-wrap--fixed={isAssistantPage}>
     {#if data.auth_error}
