@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.30.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.29.0...grid-v0.30.0) (2026-10-27)
+
+### Features
+
+* allow-list links in assistant answers; enforce the whole roi CSP ([460eadc](https://github.com/celine-eu/celine-frontend/commit/460eadcb02311e641c502e8f919a77e2af6ef0c4))
+* **ui:** a development-version banner on every app outside prod ([4088e17](https://github.com/celine-eu/celine-frontend/commit/4088e1772d7c9c6254a49665425ba2cd30a631f2))
+* **webapp:** installable as a PWA, named after the member's community ([7aafb53](https://github.com/celine-eu/celine-frontend/commit/7aafb53ff819559a43226258c64583078c891390))
+
+### Bug Fixes
+
+* **webapp:** explain a refused commit (no meter, not a member, DT down) ([2b226ff](https://github.com/celine-eu/celine-frontend/commit/2b226ff0b74a22e4140d68718a81c94d64442ca0))
+
 ## [0.29.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.28.0...grid-v0.29.0) (2026-10-17)
 
 ## [0.28.0](https://github.com/celine-eu/celine-frontend/compare/grid-v0.27.0...grid-v0.28.0) (2026-10-17)
