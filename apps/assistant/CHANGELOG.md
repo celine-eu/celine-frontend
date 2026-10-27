@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.33.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.32.0...assistant-v0.33.0) (2026-10-27)
+
+### Features
+
+* **ui:** a development-version banner on every app outside prod ([4088e17](https://github.com/celine-eu/celine-frontend/commit/4088e1772d7c9c6254a49665425ba2cd30a631f2))
+
 ## [0.32.0](https://github.com/celine-eu/celine-frontend/compare/assistant-v0.31.0...assistant-v0.32.0) (2026-10-26)
 
 ### Features
