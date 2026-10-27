@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.35.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.34.0...roi-v0.35.0) (2026-10-27)
+
+### Features
+
+* **ui:** a development-version banner on every app outside prod ([4088e17](https://github.com/celine-eu/celine-frontend/commit/4088e1772d7c9c6254a49665425ba2cd30a631f2))
+
 ## [0.34.0](https://github.com/celine-eu/celine-frontend/compare/roi-v0.33.0...roi-v0.34.0) (2026-10-26)
 
 ### Features
