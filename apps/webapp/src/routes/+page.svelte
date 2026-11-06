@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { api, type Overview, type WeatherResponse, type SuggestionItem, type Co2LocaleSettings, type GamificationResponse, type OverviewRange } from "$lib/api";
-  import { EnergyChart, StatCard, WeatherWidget, GamificationPanel } from "$lib/components";
+  import { api, type Overview, type WeatherResponse, type SuggestionItem, type Co2LocaleSettings, type GamificationResponse, type GamificationFairResponse, type OverviewRange } from "$lib/api";
+  import { EnergyChart, StatCard, WeatherWidget, GamificationPanel, FairGamificationPanel } from "$lib/components";
   import { roundPromise } from '$lib/points';
   import { deviceStore } from "$lib/stores";
   import { AskAssistantButton } from "@celine-eu/assistant-ui";
@@ -41,6 +41,8 @@
   let suggestionsLoading = $state(true);
   let co2Settings = $state<Co2LocaleSettings | null>(null);
   let gamification = $state<GamificationResponse | null>(null);
+  let gamificationFair = $state<GamificationFairResponse | null>(null);
+  const fairVariant = $derived(me?.gamification_variant === 'fair');
   let gamificationLoading = $state(true);
   let trendTab = $state<'yours' | 'community'>('yours');
 
@@ -248,7 +250,11 @@
     api.weather().then(w => { weatherData = w; }).catch(() => {}).finally(() => { weatherLoading = false; });
     api.suggestions().then(s => { suggestions = s; }).catch(() => {}).finally(() => { suggestionsLoading = false; });
     api.co2Settings().then(s => { co2Settings = s.current; }).catch(() => {});
-    api.gamification().then(g => { gamification = g; }).catch(() => {}).finally(() => { gamificationLoading = false; });
+    if (me?.gamification_variant === 'fair') {
+      api.gamificationFair().then(g => { gamificationFair = g; }).catch(() => {}).finally(() => { gamificationLoading = false; });
+    } else {
+      api.gamification().then(g => { gamification = g; }).catch(() => {}).finally(() => { gamificationLoading = false; });
+    }
   });
 
   const maxDate = $derived(todayInputValue());
@@ -272,7 +278,7 @@
 
   <!-- Flexibility opportunities teaser (with anchor link to /suggestions#opportunities) -->
   {#if !suggestionsLoading && suggestions.length > 0}
-    {@const maxPoints = roundPromise(suggestions.reduce((s, i) => s + (i.reward_points ?? 0), 0))}
+    {@const maxPoints = fairVariant ? suggestions.reduce((s, i) => s + (i.reward_points ?? 0), 0) : roundPromise(suggestions.reduce((s, i) => s + (i.reward_points ?? 0), 0))}
     <div class="flex-teaser">
       <Icon name="zap" size={18} />
       <div class="flex-teaser-body">
@@ -303,7 +309,11 @@
         <p class="section-period">{$t('suggestions.progress_period')}</p>
       </div>
     </header>
-    <GamificationPanel data={gamification} loading={gamificationLoading} />
+    {#if fairVariant}
+      <FairGamificationPanel data={gamificationFair} loading={gamificationLoading} />
+    {:else}
+      <GamificationPanel data={gamification} loading={gamificationLoading} />
+    {/if}
   </section>
 
   <!-- Period filter -->

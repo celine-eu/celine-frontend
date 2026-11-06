@@ -8,9 +8,11 @@
     suggestions: SuggestionItem[];
     committed: FlexibilityHistoryItem[];
     oncommitted?: () => void;
+    /** 'fair': promises are the fixed kept-commitment points, shown as such. */
+    variant?: 'points' | 'fair';
   }
 
-  let { suggestions, committed, oncommitted }: Props = $props();
+  let { suggestions, committed, oncommitted, variant = 'points' }: Props = $props();
 
   type Segment = {
     key: string;
@@ -244,7 +246,7 @@
           <span class="seg-day">{dayLabel(seg.dayKey, $locale ?? 'en')}</span>
           <span class="seg-range">{seg.range}</span>
           {#if seg.points != null}
-            <span class="seg-points">~{seg.points} pts</span>
+            <span class="seg-points">{variant === 'fair' ? $t('gamification_fair.points_if_kept', { values: { pts: seg.points } }) : `~${seg.points} pts`}</span>
           {/if}
           <span class="seg-state">
             {#if seg.state === 'committed'}
@@ -278,7 +280,7 @@
         {/if}
       </p>
       {#if selected.points != null}
-        <p class="pop-points">+{selected.points} pts</p>
+        <p class="pop-points">{variant === 'fair' ? $t('gamification_fair.points_if_kept', { values: { pts: selected.points } }) : `+${selected.points} pts`}</p>
       {/if}
       <div class="meta-row">
         <span class="impact-chip">

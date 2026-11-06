@@ -158,6 +158,7 @@
         {suggestions}
         committed={history?.items ?? []}
         oncommitted={refreshAfterCommit}
+        variant={page.data.me?.gamification_variant === 'fair' ? 'fair' : 'points'}
       />
     {/if}
   </section>
@@ -240,7 +241,7 @@
       </div>
       {#if history.total_points_earned > 0}
         <p class="history-total">
-          Total earned: <strong>{history.total_points_earned} pts</strong>
+          {$t('suggestions.history_total', { values: { pts: history.total_points_earned } })}
         </p>
       {/if}
     {:else}

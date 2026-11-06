@@ -32,6 +32,8 @@ export type Me = {
    *  the dataspace may not be deployed, and a screen whose decisions take
    *  effect nowhere is worse than no screen. */
   data_sharing_enabled?: boolean;
+  /** Which gamification panel to render: today's points or the fair weekly boards. */
+  gamification_variant?: 'points' | 'fair';
 };
 
 /** One published sharing offer, with this member's decision on it.
@@ -418,6 +420,65 @@ export type GamificationResponse = {
   season_bonus_points?: number | null;
 };
 
+// ─── Fair gamification (variant "fair", BFF /api/gamification/fair) ───────────
+
+export type FairBoardId = 'virtuosi' | 'in_crescita' | 'generale';
+
+export type BoardStanding = {
+  board: FairBoardId;
+  score?: number | null;
+  rank?: number | null;
+  total_ranked: number;
+  weeks_counted: number;
+  reason: string;                      // 'ranked', a rank_reason code, or 'min_weeks_board'
+  params: Record<string, number | string>;
+};
+
+export type FairWeeklyScore = {
+  week_start: string;                  // YYYY-MM-DD (Monday)
+  is_valid_week: boolean;
+  level_points?: number | null;
+  level_reason: string;
+  growth_points?: number | null;
+  growth_reason: string;
+  actions_points: number;
+  actions_reason: string;
+  kept_count: number;
+  surplus_hours: number;
+  weekly_points: number;
+  flags: string[];
+  params: Record<string, number | string>;   // night_share_pct, group_percentile, group_size, cloudy_days, change_pct, …
+};
+
+export type FairSeason = {
+  start: string;                       // ISO date, inclusive
+  end: string;                         // ISO date, exclusive
+  elapsed_weeks: number;
+  valid_weeks: number;
+  required_weeks: number;
+};
+
+export type FairStatus = 'ranked' | 'not_yet_ranked' | 'silent' | 'quarantined' | 'not_eligible' | 'no_device' | 'unavailable';
+
+export type GamificationFairResponse = {
+  variant: 'fair';
+  status: FairStatus;
+  status_reason?: string | null;
+  season?: FairSeason | null;
+  category?: 'household' | 'public_entity' | null;
+  pv_class?: 'pv' | 'no_pv' | null;
+  reference_group_size?: number | null;
+  season_points: number;
+  level: number;
+  next_level_at: number;
+  badges: BadgeItem[];
+  boards: BoardStanding[];
+  latest_week?: FairWeeklyScore | null;
+  weekly_history: FairWeeklyScore[];   // oldest first
+  actions: Record<string, number>;     // points_per_kept, weekly_cap, kept_season, surplus_hours_season
+  pending_commitment?: FlexibilityCommitmentItem | null;
+};
+
 export type FlexibilityHistoryItem = {
   id: string;
   suggestion_type: string;
@@ -542,6 +603,7 @@ export const api = {
   cancelCommitment: (id: string) =>
     j<void>(`/api/commitments/${id}`, { method: 'DELETE' }),
   gamification: () => j<GamificationResponse>('/api/gamification'),
+  gamificationFair: () => j<GamificationFairResponse>('/api/gamification/fair'),
   gamificationHistory: () => j<CommitmentHistoryResponse>('/api/gamification/history'),
   co2Settings: () => j<Co2SettingsResponse>('/api/settings/co2'),
   submitFeedback: (payload: FeedbackSubmission) =>

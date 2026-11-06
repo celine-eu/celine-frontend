@@ -172,6 +172,7 @@
     "history_cancel": "Cancel",
     "history_earned": "+{pts} pts",
     "history_estimated": "~{pts} pts",
+    "history_total": "Total earned: {pts} pts",
     "history_today": "Today",
     "history_tomorrow": "Tomorrow",
     "history_responded_on": "responded on {date}",
@@ -248,6 +249,77 @@
     "web_push_disabled": "Web push disabled.",
     "loading_settings": "Loading settings..."
   },
+    "gamification_fair": {
+      "level": "Level",
+      "weeks": "weeks",
+      "because": "You are here because",
+      "week_of": "week of {date}",
+      "no_position_yet": "No position yet",
+      "ranked_in_category": "{n} ranked in your category",
+      "points_if_kept": "+{pts} pts if you keep the commitment",
+      "earn_cta": "Keep a commitment: +{pts} points →",
+      "history_title": "Points per week",
+      "history_period": "Level · Growth · Actions, last 12 weeks",
+      "boards": {
+        "virtuosi": "Virtuous",
+        "in_crescita": "Rising",
+        "generale": "Overall"
+      },
+      "category": {
+        "household": "Households",
+        "public_entity": "Public bodies"
+      },
+      "components": {
+        "level": "Level",
+        "growth": "Growth",
+        "actions": "Actions"
+      },
+      "status": {
+      "not_yet_ranked_first_week": "First week of the season in progress: your position arrives on Monday, after the first complete week.",
+      "not_yet_ranked_min_weeks": "Ranked after {required} valid weeks: you have {valid} so far.",
+      "not_yet_ranked_no_valid_week": "No week with complete data yet: your position arrives after the first valid week.",
+        "not_yet_ranked": "First week in progress: your position arrives on Monday, after {required} valid weeks ({valid} so far).",
+        "silent": "Your meter has sent no data for more than 14 days: you are out of the leaderboard until it resumes.",
+        "quarantined": "We are checking your meter's readings. No leaderboard until it is resolved.",
+        "not_eligible": "Your connection is not ranked, but your data helps the comparison.",
+        "no_device": "No meter connected.",
+        "unavailable": "Leaderboard unavailable right now."
+      },
+      "level_reason": {
+      "all_days_merged": "{night_share_pct}% of your import is at night: better than {group_percentile}% of the {group_size} members without PV (households and public bodies together)",
+      "cloudy_days_merged": "on {cloudy_days} cloudy days {night_share_pct}% of your import is at night: better than {group_percentile}% of the {group_size} PV members (households and public bodies together)",
+        "all_days": "{night_share_pct}% of your import is at night: better than {group_percentile}% of the {group_size} members like you",
+        "cloudy_days": "on {cloudy_days} cloudy days {night_share_pct}% of your import is at night: better than {group_percentile}% of PV members",
+        "carry_forward": "no cloudy days this week: last week's Level carries over",
+        "no_cloudy_days": "no cloudy days for two weeks: Level not computed",
+        "saturated": "you are above the 80th percentile: Level at the maximum",
+        "no_valid_week": "fewer than 5 complete days of data this week"
+      },
+      "growth_reason": {
+        "improving": "night import {change_pct}% vs the previous weeks, season-corrected",
+        "stable": "night import stable vs the previous weeks",
+        "worsening": "night import +{change_pct}% vs the previous weeks",
+        "need_weeks": "Growth needs 4 valid weeks",
+        "night_already_zero": "your night import is already near zero: nothing to improve",
+        "no_valid_week": "not enough data this week"
+      },
+      "actions_reason": {
+        "kept": "{kept_count} commitments kept, {surplus_hours} true-surplus hours",
+        "none": "commitments made but not kept this week",
+        "no_commitments": "no commitments this week",
+        "capped": "weekly Actions cap reached"
+      },
+      "rank_reason": {
+        "min_weeks": "ranked after {required} valid weeks ({valid} so far)",
+        "first_week": "first week of the current season",
+        "silent": "silent meter",
+        "quarantined": "readings under review",
+        "min_weeks_board": "this board needs more weeks"
+      },
+      "flags": {
+        "F1_IMPORT_RISE": "Your total import rose a lot while your night share fell: the game rewards how, not how much."
+      }
+    },
   "gamification": {
     "pts": "pts",
     "pts_to_level": "{pts} pts to Level {level}",
@@ -263,7 +335,11 @@
       "first-shift": "First Shift",
       "peak-saver": "Peak Saver",
       "solar-champion": "Solar Champion",
-      "streak-3": "3-Day Streak"
+      "streak-3": "3-Day Streak",
+      "first-valid-week": "First valid week",
+      "first-kept": "First kept commitment",
+      "four-at-max": "Four weeks at the top",
+      "on-the-rise": "On the rise"
     },
     "levels": {
       "1": "Energy Newcomer",

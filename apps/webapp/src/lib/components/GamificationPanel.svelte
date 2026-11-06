@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { GamificationResponse } from '$lib/api';
   import PointsChart from '$lib/components/PointsChart.svelte';
+  import { seasonDaysLeft, seasonMonthsLabel } from '$lib/season';
   import { Icon, Skeleton } from '@celine-eu/ui';
   import { locale, t } from 'svelte-i18n';
 
@@ -34,19 +35,6 @@
     return BADGE_ICONS[badge_id] ?? icon ?? 'zap';
   }
 
-  function seasonMonthsLabel(start: string, end: string, loc: string): string {
-    // season_end is exclusive → last day of the season is end - 1 day
-    const startDate = new Date(`${start}T00:00:00`);
-    const lastDay = new Date(`${end}T00:00:00`);
-    lastDay.setDate(lastDay.getDate() - 1);
-    const fmt = new Intl.DateTimeFormat(loc, { month: 'short' });
-    return `${fmt.format(startDate)}–${fmt.format(lastDay)}`;
-  }
-
-  function seasonDaysLeft(end: string): number {
-    const endDate = new Date(`${end}T00:00:00`);
-    return Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / 86_400_000));
-  }
 </script>
 
 <div class="gamification-panel">

@@ -171,6 +171,7 @@
     "history_cancel": "Cancelar",
     "history_earned": "+{pts} pts",
     "history_estimated": "~{pts} pts",
+    "history_total": "Total ganado: {pts} puntos",
     "ask_ai": {
       "opportunities": "Analiza las oportunidades de desplazamiento de carga disponibles y explícame cuáles conviene aceptar primero.",
       "forecast": "Explícame la perspectiva energética de las próximas 48 horas y cómo puede afectar a los mejores momentos para consumir energía.",
@@ -241,6 +242,77 @@
     "web_push_disabled": "Notificaciones web push deshabilitadas.",
     "loading_settings": "Cargando ajustes..."
   },
+    "gamification_fair": {
+      "level": "Nivel",
+      "weeks": "semanas",
+      "because": "Estás aquí porque",
+      "week_of": "semana del {date}",
+      "no_position_yet": "Todavía sin posición",
+      "ranked_in_category": "{n} clasificados en tu categoría",
+      "points_if_kept": "+{pts} pt si cumples el compromiso",
+      "earn_cta": "Cumple un compromiso: +{pts} puntos →",
+      "history_title": "Puntos por semana",
+      "history_period": "Nivel · Crecimiento · Acciones, últimas 12 semanas",
+      "boards": {
+        "virtuosi": "Virtuosos",
+        "in_crescita": "En crecimiento",
+        "generale": "General"
+      },
+      "category": {
+        "household": "Hogares",
+        "public_entity": "Entes públicos"
+      },
+      "components": {
+        "level": "Nivel",
+        "growth": "Crecimiento",
+        "actions": "Acciones"
+      },
+      "status": {
+      "not_yet_ranked_first_week": "Primera semana de la temporada en curso: la posición llega el lunes, tras la primera semana completa.",
+      "not_yet_ranked_min_weeks": "En clasificación tras {required} semanas válidas: llevas {valid}.",
+      "not_yet_ranked_no_valid_week": "Todavía ninguna semana con datos completos: la posición llega tras la primera semana válida.",
+        "not_yet_ranked": "Primera semana en curso: la posición llega el lunes, tras {required} semanas válidas ({valid} hasta ahora).",
+        "silent": "Tu contador no envía datos desde hace más de 14 días: quedas fuera de la clasificación hasta que vuelva.",
+        "quarantined": "Estamos verificando las medidas de tu contador. Sin clasificación hasta resolverlo.",
+        "not_eligible": "Tu suministro no entra en la clasificación, pero tus datos ayudan a la comparación.",
+        "no_device": "Ningún contador conectado.",
+        "unavailable": "Clasificación no disponible ahora."
+      },
+      "level_reason": {
+      "all_days_merged": "el {night_share_pct}% de tu consumo de red es nocturno: mejor que el {group_percentile}% de los {group_size} miembros sin fotovoltaica (hogares y entes juntos)",
+      "cloudy_days_merged": "en {cloudy_days} días nublados el {night_share_pct}% de tu consumo de red es nocturno: mejor que el {group_percentile}% de los {group_size} miembros con fotovoltaica (hogares y entes juntos)",
+        "all_days": "el {night_share_pct}% de tu consumo de red es nocturno: mejor que el {group_percentile}% de los {group_size} miembros como tú",
+        "cloudy_days": "en {cloudy_days} días nublados el {night_share_pct}% de tu consumo de red es nocturno: mejor que el {group_percentile}% de los miembros con fotovoltaica",
+        "carry_forward": "semana sin días nublados: vale el Nivel de la semana anterior",
+        "no_cloudy_days": "sin días nublados desde hace dos semanas: el Nivel no se calcula",
+        "saturated": "estás por encima del percentil 80: Nivel al máximo",
+        "no_valid_week": "semana con menos de 5 días completos de datos"
+      },
+      "growth_reason": {
+        "improving": "consumo nocturno {change_pct}% respecto a las semanas anteriores, corregido por estación",
+        "stable": "consumo nocturno estable respecto a las semanas anteriores",
+        "worsening": "consumo nocturno +{change_pct}% respecto a las semanas anteriores",
+        "need_weeks": "el Crecimiento necesita 4 semanas válidas",
+        "night_already_zero": "tu consumo nocturno ya es casi cero: nada que mejorar",
+        "no_valid_week": "datos insuficientes esta semana"
+      },
+      "actions_reason": {
+        "kept": "{kept_count} compromisos cumplidos, {surplus_hours} horas de excedente real",
+        "none": "compromisos tomados pero no cumplidos esta semana",
+        "no_commitments": "ningún compromiso esta semana",
+        "capped": "tope semanal de Acciones alcanzado"
+      },
+      "rank_reason": {
+        "min_weeks": "en clasificación tras {required} semanas válidas ({valid} hasta ahora)",
+        "first_week": "primera semana de la temporada en curso",
+        "silent": "contador silencioso",
+        "quarantined": "medidas en revisión",
+        "min_weeks_board": "esta clasificación necesita más semanas"
+      },
+      "flags": {
+        "F1_IMPORT_RISE": "Tu consumo total subió mucho mientras la cuota nocturna bajó: se premia el cómo, no el cuánto."
+      }
+    },
   "gamification": {
     "pts": "puntos",
     "pts_to_level": "{pts} puntos al Nivel {level}",
@@ -254,7 +326,11 @@
       "first-shift": "Primer desplazamiento",
       "peak-saver": "Ahorro en pico",
       "solar-champion": "Campeón solar",
-      "streak-3": "Racha de 3 días"
+      "streak-3": "Racha de 3 días",
+      "first-valid-week": "Primera semana válida",
+      "first-kept": "Primer compromiso cumplido",
+      "four-at-max": "Cuatro semanas al máximo",
+      "on-the-rise": "En ascenso"
     },
     "levels": {
       "1": "Novato energético",

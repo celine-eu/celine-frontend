@@ -6,3 +6,6 @@ export { default as ForecastCard } from './ForecastCard.svelte';
 export { default as WindowStrip } from './WindowStrip.svelte';
 export { default as GamificationPanel } from './GamificationPanel.svelte';
 export { default as PointsChart } from './PointsChart.svelte';
+export { default as FairGamificationPanel } from './FairGamificationPanel.svelte';
+export { default as BoardCard } from './BoardCard.svelte';
+export { default as WeeklyScoreBars } from './WeeklyScoreBars.svelte';
