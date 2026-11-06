@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.49.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.48.0...webapp-v0.49.0) (2026-11-06)
+
+### Features
+
+* **webapp:** add fair gamification panel ([8a2e150](https://github.com/celine-eu/celine-frontend/commit/8a2e150fb3c2b3aeb298e1242de89571304683e9))
+
 ## [0.48.0](https://github.com/celine-eu/celine-frontend/compare/webapp-v0.47.0...webapp-v0.48.0) (2026-10-27)
 
 ### Features
